@@ -1,6 +1,6 @@
 {
 	"name": "@hyecompany/vem-data",
-	"version": "0.1.0",
+	"version": "1.0.0",
 	"description": "Shared browser application knowledge, access and action runtime for Hye Vem",
 	"type": "module",
 	"license": "Apache-2.0",
