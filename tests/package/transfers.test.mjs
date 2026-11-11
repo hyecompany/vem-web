@@ -158,16 +158,17 @@ test("browser-managed upload survives the final tab and recovers the same action
 	timeout: 120_000,
 }, async () => {
 	const app = await fixture();
-	const browser = await chromium.launch({
-		headless: true,
-		channel: "chromium",
-	});
-	const context = await browser.newContext();
-	const errors = [];
-	context.on("page", (page) =>
-		page.on("pageerror", (error) => errors.push(error.message)),
-	);
+	let browser;
 	try {
+		browser = await chromium.launch({
+			headless: true,
+			channel: "chromium",
+		});
+		const context = await browser.newContext();
+		const errors = [];
+		context.on("page", (page) =>
+			page.on("pageerror", (error) => errors.push(error.message)),
+		);
 		const page = await context.newPage();
 		const cdp = await context.newCDPSession(page);
 		await cdp.send("Browser.setPermission", {
@@ -239,9 +240,11 @@ test("browser-managed upload survives the final tab and recovers the same action
 		assert.equal(app.posts, 1, "restoration never repeats an upload");
 		assert.deepEqual(errors, []);
 	} finally {
-		await context.close();
-		await browser.close();
-		await app.close();
+		try {
+			await browser?.close();
+		} finally {
+			await app.close();
+		}
 	}
 });
 
@@ -249,9 +252,10 @@ test("a browser without Background Fetch executes the same command with an expli
 	timeout: 120_000,
 }, async () => {
 	const app = await fixture();
-	const browser = await firefox.launch({ headless: true });
-	const page = await browser.newPage();
+	let browser;
 	try {
+		browser = await firefox.launch({ headless: true });
+		const page = await browser.newPage();
 		await connected(page, app.url);
 		await page.evaluate(() => window.fixture.run(1024));
 		await expect.poll(() => app.received).toBeGreaterThan(0);
@@ -270,8 +274,11 @@ test("a browser without Background Fetch executes the same command with an expli
 			.toBe("succeeded");
 		assert.equal(app.posts, 1);
 	} finally {
-		await browser.close();
-		await app.close();
+		try {
+			await browser?.close();
+		} finally {
+			await app.close();
+		}
 	}
 });
 
@@ -279,12 +286,13 @@ test("explicit browser transfer cancellation is acknowledged without claiming re
 	timeout: 120_000,
 }, async () => {
 	const app = await fixture();
-	const browser = await chromium.launch({
-		headless: true,
-		channel: "chromium",
-	});
-	const context = await browser.newContext();
+	let browser;
 	try {
+		browser = await chromium.launch({
+			headless: true,
+			channel: "chromium",
+		});
+		const context = await browser.newContext();
 		const page = await context.newPage();
 		const cdp = await context.newCDPSession(page);
 		await cdp.send("Browser.setPermission", {
@@ -320,8 +328,10 @@ test("explicit browser transfer cancellation is acknowledged without claiming re
 		assert.match(outcome.message, /partial|complete response/);
 		assert.equal(app.posts, 1);
 	} finally {
-		await context.close();
-		await browser.close();
-		await app.close();
+		try {
+			await browser?.close();
+		} finally {
+			await app.close();
+		}
 	}
 });
