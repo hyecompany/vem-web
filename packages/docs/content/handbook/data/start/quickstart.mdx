@@ -1,0 +1,34 @@
+---
+title: "Explore the task board"
+description: "Filter a list, finish a task, and keep an edit safe."
+order: 2
+---
+
+You’re planning a weekend with a friend. Use the small app below, then see what Vem did for you. Each part starts with one thing to try.
+
+<TaskBoardDemo />
+
+## What you just used
+
+- **A query** asks for the task information a view needs. Filtering reuses what is already known.
+- **A command** asks to complete a task. Its **action** keeps track of progress and the result.
+- **An edit session** keeps your draft and the saved version it came from together.
+
+These are the [four concepts](/docs/data/start/concepts) used throughout Vem. You do not need to manage requests or subscriptions in a feature component.
+
+## The query behind the list
+
+The task list asks for two fields and an optional filter. The component keeps `openOnly` as ordinary React state:
+
+<Example file="task-board/view.tsx" region="list" />
+
+To build your own feature, continue to [display data](/docs/data/build/display), [add an action](/docs/data/build/actions), or [build an editor](/docs/data/build/editors). Each guide connects a behavior in the app to the code responsible for it.
+
+<details>
+<summary>Where the application ends and the integration begins</summary>
+
+<Flow name="ownership" />
+
+The examples use Vem’s real runtime with a simulated task service. To connect your application, start with [defining a resource](/docs/data/connect/resources). The [browser-host guide](/docs/data/connect/browser-host) shows how to share it between tabs.
+
+</details>

@@ -1,0 +1,53 @@
+---
+title: "Maintainer map"
+description: "Trace a documented behavior to implementation and focused tests."
+order: 3
+---
+
+
+Paths below are relative to `packages/data`. Read the relevant guide first, then the implementation and behavioral tests. Internal paths are a navigation aid, not import recommendations.
+
+| Behavior | Implementation | Test search |
+| --- | --- | --- |
+| Typed descriptions and selected fields | `src/contracts.ts`, `src/descriptors.ts` | `tests/contracts/`, `tests/types/` |
+| Query projection and partial membership | `src/read-model/`, `src/runtime/memberships.ts` | `tests/queries/`, `tests/knowledge/` |
+| Missing-information acquisition | `src/runtime/acquisition.ts`, `src/runtime/planning*.ts`, `src/runtime/source-execution.ts`, `src/read-model/requirements.ts` | `tests/planning/` |
+| Observations and dependencies | `src/runtime/knowledge.ts`, `src/runtime/relationships.ts` | `tests/knowledge/` |
+| Access and restoration | `src/access.ts`, `src/access-proofs.ts`, `src/runtime/restoration.ts` | `tests/access/`, `tests/persistence/` |
+| Actions and recovery | `src/actions.ts`, `src/actions/` | `tests/actions/`, `tests/persistence/recovery.test.ts` |
+| Managed editing | `src/edit.ts`, `src/runtime/edit-admission.ts` | `tests/editing/` |
+| Owner and tab publication | `src/worker.ts`, `src/client.ts`, `src/read-model/` | `tests/host/` |
+| Persistence | `src/persistence.ts` | `tests/persistence/` |
+
+The package also keeps liveness and query presentation checks in `tests/queries`, developer-tool checks in `tests/devtools`, and executable-example checks in `tests/examples`. Compile-only assertions in `tests/types/*.types.ts` run through type checking, not the runtime test runner.
+
+At the repository root, `tests/docs` checks the built site, with focused learning tools in `tests/docs/experiments`. `tests/package` checks the actual HTTP/SharedWorker starter, including the packed independent consumer exercised by `scripts/check-package.mjs`. Helpers belong in the nearest `support` directory; only browser launch configuration shared by both suites lives in root `tests/support`.
+
+Before changing a behavior, identify the public contract it affects and add or adjust a focused behavioral test. Keep generic owner and storage mechanics out of domain-specific feature additions.
+
+## Trace a query update
+
+The owner publishes permitted records and membership evidence. A tab applies that publication to its local read model and projects the queries its components use. The owner uses the same projection rules when deciding what information is still missing. Feature code does not manage either copy.
+
+For an existing query, Vem retains each record's contribution: whether it matches, its displayed values, and its missing requirements. A record update recalculates that record's contribution. Unchanged records reuse their previous calculations. Custom scope and filter functions are evaluated again for a changed record; Vem does not assume that these functions read only selected fields.
+
+Before projection, an ordinary observation recalculates currency for changed facts and facts whose evidence depends on them. The dependency index carries changes through derived facts and relationships; it does not treat a new value as evidence that unrelated facts changed. Access changes and event-continuity changes can require broader checks.
+
+This saves repeated evaluation of every resource when one resource changes. Assembling a changed result can still depend on its row count. It is not a constant-time guarantee for every publication.
+
+Access and membership changes can affect which records belong or may be disclosed, so they require broader recomputation. Initial attachment, reset, or a query falling behind the bounded change history can also rebuild its projection. These paths preserve the same results as a full calculation. Inactive retained queries do not perform notification work; reading them again catches up to the current model.
+
+Start with `src/read-model/query-projector.ts` for query contributions, `src/read-model/projection.ts` for the tab's local model, and `src/runtime/read-model-export.ts` plus `src/read-model/publication.ts` for publication changes. Follow the behavior tests in `tests/host` and `tests/queries` before changing their bookkeeping.
+
+## Measure the right work
+
+Run from the repository root:
+
+```sh
+node --import tsx scripts/benchmarks/data-publication.mjs 100 1000 5000
+node --import tsx scripts/benchmarks/publication-pipeline.mjs 100 1000 5000
+```
+
+The first isolates owner observation without active owner queries and tab projection. The second includes active owner queries and three simulated tabs, measuring delta preparation, structured cloning, replica application, and subscriber reads separately. It checks selected-field updates, movement between filters, and updates outside some selections.
+
+These are CPU benchmarks with deterministic data. Their sum is not browser interaction latency: actual Worker scheduling, network, React, and rendering are excluded. Use a browser profile to assess those parts, and behavioral tests to assert which records are evaluated rather than machine-specific timing limits. `packages/data/tests/README.md` documents the benchmark settings and comparison options.

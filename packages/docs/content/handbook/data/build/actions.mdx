@@ -1,0 +1,53 @@
+---
+title: "Commands, progress, and outcomes"
+description: "Add an action button and show what happened."
+order: 3
+---
+
+Mark the task complete, then choose how the service replies. The checkmark can change before success is known.
+
+<Lab name="actions" />
+
+## Add the button
+
+The resource contract names the operation. The command captures its target, so the component does not choose an endpoint or manage an optimistic rollback.
+
+<Example file="feature-guide/actions.tsx" region="action" />
+
+`canRun` means Vem can admit an attempt **now**. A known denial disables the button and supplies a reason. Unknown authorization still permits an attempt; the server can reject it. Admission is checked again when you run.
+
+This completion button keeps the returned handle so it can show feedback in place of the button. Holding a handle observes shared work; it does not create a second operation registry.
+
+## Show progress and the result
+
+`ActionFeedback` uses `useAction` from the same imports above:
+
+<Example file="feature-guide/actions.tsx" region="feedback" />
+
+`run()` returns immediately. `useAction` observes the action as it progresses; imperative code can `await action.result`. A domain can supply more specific success or partial values for the feature to render.
+
+| Result | Meaning for your UI |
+| --- | --- |
+| `succeeded` | The operation completed according to the available evidence |
+| `partial` | Some work succeeded; describe that work and what remains |
+| `failed` | A failure is known; it may have happened after submission |
+| `unknown` | There is not enough evidence to say what happened |
+
+An unknown result is not permission to retry. Show retry only when `controls.canRetry` permits it, and cancellation only when `controls.canCancel` permits it. A partial save must not become “nothing was saved.”
+
+## Let other views follow the change
+
+The definition supplies proposals and confirmed updates. A list using `useQuery` receives them automatically. The feature does not invalidate queries or restore an old snapshot on failure.
+
+<Flow name="proposals" />
+
+Known updates can arrive while a proposal is visible. Ending that proposal reveals the latest confirmed information. An unknown outcome keeps its proposal labeled unconfirmed; a failed create proposal can also remain for feedback according to the definition.
+
+<details>
+<summary>Navigation, feedback, and cancellation</summary>
+
+Removing this component stops its observation. It does not cancel accepted server work. A query's `activities` and `useActivities()` can display shared progress after remounting; the [application feedback layer](/docs/data/connect/feedback) handles unsolicited toasts when the feature leaves the screen.
+
+Dismissing a toast acknowledges feedback. Canceling asks the domain to cancel work. A destructive operation such as force-stopping a service is a separate command. These controls should have different labels.
+
+</details>

@@ -1,0 +1,92 @@
+---
+title: "How Vem chooses reads"
+description: "Declare backend capabilities; Vem plans across the whole outstanding demand."
+order: 5
+---
+
+**Vem chooses the reads. You describe what each source can provide.** There is no planner to write for a screen, resource, or combination of tabs.
+
+A source is one supported way to read your backend: a URL list, a summary collection, one full record, a filtered search, or a page. It declares what information that read can establish and how to execute it.
+
+## Plan for the whole application
+
+The shared owner combines the currently outstanding query requirements it knows about, from every connected tab and imperative reader. It subtracts permitted information already known, expands prerequisites for derived fields, and compares combinations of available sources. Work already in flight can satisfy overlapping demand without another request. Later arrivals can reuse that work and its results; Vem does not predict requests from a tab that has not asked yet.
+
+For example, four task details might be cheaper as one collection read. If three details are already known, one detail read might be cheaper. If another tab also needs collection membership, that changes the comparison again. No component chooses an endpoint.
+
+<Lab name="planning" />
+
+The receipt shows calls made by the runtime. The task views only ask for fields; none chooses the source.
+
+<Flow name="acquisition" />
+
+## Describe the alternatives
+
+These two backend functions return observation batches, as shown in [Connect a resource](/docs/data/connect/resources). Their source declarations expose the choice to Vem:
+
+<Example file="integration/planning.ts" region="sources" />
+
+`key` names a backend source and must be unique within its resource. It is not a query cache key: Vem derives concrete request and query identities automatically. Screens do not define keys.
+
+Register them as `sources: taskSources(api)` on the resource definition. The costs estimate the work of each acquisition, including expected pagination where applicable; they are relative values, not durations or guarantees. Both sources return fixed representations: one full task or all full tasks. Vem can use every returned field, even if the first consumer did not select it.
+
+Vem compares acquisition sets using those estimates. It performs a bounded search, starting with a coverage-and-cost solution; when the search budget is reached it keeps the best solution found. This avoids an unbounded optimizer and does **not** promise a globally optimal plan for arbitrary backends. Describe meaningful cost differences rather than precise-looking guesses.
+
+## Which characteristics belong in the definition?
+
+| Capability | What Vem uses it for |
+| --- | --- |
+| `fields`, `relationships` | Identify which missing facts or links a read can supply |
+| `membership` | Distinguish enumeration from details about already known records |
+| `scope` | Keep tenant, project, or other collection boundaries separate |
+| `filters` | Push supported equality terms to the backend; evaluate the remaining terms locally |
+| `select: true` | Request only missing fields when the backend supports field selection |
+| `cost` | Compare shared reads, smaller representations, and targeted requests |
+| `pagination` | Follow bounded continuation without claiming an early page is complete |
+| `access`, `accessUnknown` | Admit reads according to current authority before dispatch |
+| `available` | Exclude a representation the backend does not support |
+
+By default a source returns a fixed representation. With `select: true`, `request.fields` is the requested projection. Vem cannot expand a request already sent; a later field may require additional work. A fixed representation already in flight can serve any of its declared fields.
+
+A URL, response header, or nested reference can establish facts too. Extract and advertise those facts when the backend semantics justify them. A URL containing a task ID may establish that ID; it does not establish permission, notes, or a writable representation's ETag.
+
+<details>
+<summary>When a collection returns only task URLs</summary>
+
+Suppose a public endpoint returns the full list of URLs such as `/api/tasks/walk`. `load` below performs that request and checks its response. The task contract puts `id` in its resource reference, so this source can establish membership and presence without any display fields:
+
+<Example file="integration/planning.ts" region="url-source" />
+
+Add it alongside the other sources. Vem can use these known identities when choosing detail reads; this response supplies no title, status, or notes. If your contract also exposes an identity-derived field such as `name`, advertise it in `fields` and return its verified value in `values`.
+
+This example's `complete: true` relies on the endpoint returning the whole visible collection. Use incomplete membership for partial responses. Preserve project or tenant context in both identity and scope when the URLs belong to separate collections.
+
+</details>
+
+## Filtering and pages
+
+This source accepts a status filter and cursor pagination. The transport performs **one page**; Vem owns continuation:
+
+<Example file="integration/planning.ts" region="paged-source" />
+
+`load` is your HTTP transport. `TaskPage.complete` reports whether the service established the final collection, including any partial-service failures. Vem accumulates page identities and keeps membership incomplete while continuation remains. A missing cursor is not, by itself, proof of completeness. Repeated cursors and page limits stop acquisition with an explanation; partial rows stay useful.
+
+Pages may have different disclosure permissions. The accumulated collection is complete only while every contributing page’s evidence remains permitted; withdrawing a page’s permission preserves independently readable facts but removes that complete-set claim. Continuity combines across pages too: a complete set relies on every contributing page’s change coverage, while individual identities retain their own page’s support.
+
+Only advertise filters with matching semantics. For declared equality filters, actual matching membership also establishes those field values: a task returned for `status: "open"` has that status even if the response omits the field. A broader response must supply or acquire the fields needed to evaluate the narrower filter locally. Filtering on the server may reduce payload without reducing server computation; model its cost accordingly. A complete result for `status: "open"` can support a stricter local filter, but cannot establish the entire unfiltered collection.
+
+## Prerequisites and partial answers
+
+Some reads require information first: for example, service capabilities determine which task representation exists. Declare that requirement with `readPrerequisites`:
+
+<Example file="integration/planning.ts" region="read-prerequisites" />
+
+Install this as `readPrerequisites: taskReadPrerequisites` and register a `service` definition whose sources supply `features`. Vem shares that prerequisite acquisition across consumers, then chooses task sources from the updated knowledge. Already satisfied task queries keep using their data; this declaration does not introduce verification on each read. Failed, denied, or still-incomplete prerequisites settle with an explanation instead of dispatching the guarded source or retrying indefinitely.
+
+Use `fieldDependencies` when a derived value needs other fields or related resources. These supply an alternative way to obtain a value, alongside sources that return it directly. It returns descriptions of the required information, using known identities or relationships; it does not fetch or choose endpoints. Vem includes those prerequisites in the shared plan and reevaluates them as evidence arrives. The existing `derive` function computes the value and reports its evidence dependencies. See [relationships and derived values](/docs/data/connect/events).
+
+A parent response can also establish another resource's existence or collection. Suppose a task detail includes its complete checklist. The checklist resource can declare a task-detail query through `membershipDependencies` for its list, or `presenceDependencies` for one item. Vem compares that route with direct checklist sources and can share a task read already needed elsewhere. The task response's extraction must still publish the checklist facts and scoped membership; a dependency declaration alone proves nothing. These callbacks return the same query or relationship descriptions as `fieldDependencies`, without orchestrating requests.
+
+A source's declaration is a capability, not evidence. If a response omits fields or contains only part of a collection, publish exactly that. Vem can try another eligible source, then settles with the remaining gaps. It does not repeatedly request an unavailable field until it appears. Retry begins a new attempt; ordinary data has no time-based expiry.
+
+Next: [connect permissions](/docs/data/connect/access), or [apply events without unnecessary reads](/docs/data/connect/events).

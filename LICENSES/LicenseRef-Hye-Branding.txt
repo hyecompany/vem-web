@@ -1,0 +1,6 @@
+Hye branding
+
+Copyright Hye Hosting LLC. All rights reserved.
+
+The Hye logo is reserved branding and is not licensed under Apache-2.0.
+Its inclusion in this repository and the official Hye Vem documentation does not grant permission to reuse or modify it or imply Hye endorsement. Separate permission is required for other uses. Applicable trademark rights are reserved.

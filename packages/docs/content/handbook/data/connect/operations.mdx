@@ -1,0 +1,56 @@
+---
+title: "Observe a server operation"
+description: "Follow accepted work and recover without accidentally submitting it twice."
+order: 6
+---
+
+Some servers reply “accepted” while work continues in the background. A command's `run` should follow that work to its outcome. A recovered action should investigate the existing operation, not repeat the request that started it.
+
+Use this adapter pattern only if your backend has equivalent semantics. **These endpoints are an example contract, not endpoints provided by Vem or the task-board demo.**
+
+## The backend contract
+
+| Request | Backend response |
+| --- | --- |
+| `POST /api/task-operations` with a task and action | HTTP 202 with `{ operationId: "op-42" }` |
+| `GET /api/task-operations/op-42` | `{ state: "running" }`, `{ state: "succeeded", taskId: "walk" }`, or `{ state: "failed" }` |
+| `GET /api/task-operations/op-42/wait` | Holds the request until the same operation reaches a terminal state |
+
+Here success proves the named task is done. Failure is definitive, and this single-effect backend has no partial outcome. If your API can partly succeed, model that result explicitly. Missing history or a missing response proves neither success nor failure.
+
+## Submit once, then checkpoint the receipt
+
+Install `asynchronousCompletion()` as the resource's `commands.complete` definition. It uses the existing public `tasks.commands.complete(taskRef)` contract:
+
+<Example file="integration/operations.ts" region="operation-command" />
+
+`recovery` supplies initial journal metadata before dispatch. Once acceptance provides an operation ID, `checkpoint` stores it. `submitted()` releases the submission slot so other commands can start while this one is monitored. The action remains running until `run` returns an outcome.
+
+If storage fails, execution can continue but the action reports reduced recovery through `action.recovery`. Finishing `checkpoint()` is not, by itself, proof of durable storage. The host needs persistence configured before it can offer restart recovery.
+
+## Observe the existing operation
+
+Both initial execution and recovery use this function. It reads status once and, if necessary, waits on the backend's operation endpoint:
+
+<Example file="integration/operations.ts" region="operation-observation" />
+
+There is no timer or ordinary-data refresh policy here. If your API offers operation events instead of a waiting endpoint, subscribe to that operation and settle from its terminal event. Closing a view is not cancellation of accepted work.
+
+The final response updates the task through the action's context, so queries see the established status automatically. The sample treats non-202 submission replies conservatively; you may return a definite failure for response codes that your backend explicitly guarantees are rejections before any effect.
+
+<details>
+<summary>Response checks used in the example</summary>
+
+<Example file="integration/operations.ts" region="operation-decoding" />
+
+These checks narrow the small example protocol. A production transport can use its normal schema validator for the same response shapes.
+
+</details>
+
+## What recovery can promise
+
+Recovery uses the saved ID to call `GET` again. It never calls `POST`. If the ID was not durably recorded, or the backend discarded its history, the result stays unknown. That is a reason to investigate, not an instruction to retry automatically.
+
+This sample does not implement backend cancellation or resumable uploads. For a [native transfer](/docs/data/connect/commands-edits#declare-an-http-upload), submitting a file and tracking the resulting operation are separate concerns: a journaled operation ID does not preserve the file's bytes, restart an interrupted upload, or guarantee the worker remains alive. Define those capabilities from the backend protocol before exposing them in the UI.
+
+For how these actions stay visible across navigation, continue to [shared feedback](/docs/data/connect/feedback). For owner lifetimes and restoration limits, see [ownership and recovery](/docs/data/understand/recovery).

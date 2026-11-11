@@ -1,0 +1,38 @@
+/* SPDX-FileCopyrightText: © 2026 Joseph Maldjian <joseph.maldjian@hyecompany.com> */
+/* SPDX-License-Identifier: Apache-2.0 */
+
+:root {
+	--learn-blue: #1d4ed8;
+	--learn-violet: #6d28d9;
+	--learn-green: #047857;
+	--learn-amber: #92400e;
+}
+.dark {
+	--learn-blue: #93c5fd;
+	--learn-violet: #c4b5fd;
+	--learn-green: #6ee7b7;
+	--learn-amber: #fcd34d;
+}
+[data-tone="blue"] {
+	--tone: var(--learn-blue);
+}
+[data-tone="violet"] {
+	--tone: var(--learn-violet);
+}
+[data-tone="green"] {
+	--tone: var(--learn-green);
+}
+[data-tone="amber"] {
+	--tone: var(--learn-amber);
+}
+.docs-appearance {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	font-size: 0.8rem;
+	color: var(--color-fd-muted-foreground);
+}
+.docs-appearance > div {
+	flex-shrink: 0;
+}

@@ -1,0 +1,72 @@
+{
+	"name": "@hyecompany/vem-data",
+	"version": "0.1.0",
+	"description": "Shared browser application knowledge, access and action runtime for Hye Vem",
+	"type": "module",
+	"license": "Apache-2.0",
+	"author": "Joseph Maldjian <joseph.maldjian@hyecompany.com>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/hyecompany/vem-web.git",
+		"directory": "packages/data"
+	},
+	"sideEffects": false,
+	"files": [
+		"dist",
+		"src",
+		"examples",
+		"LICENSE",
+		"README.md"
+	],
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
+		"./runtime": {
+			"types": "./dist/runtime.d.ts",
+			"import": "./dist/runtime.js"
+		},
+		"./react": {
+			"types": "./dist/react.d.ts",
+			"import": "./dist/react.js"
+		},
+		"./client": {
+			"types": "./dist/client.d.ts",
+			"import": "./dist/client.js"
+		},
+		"./worker": {
+			"types": "./dist/worker.d.ts",
+			"import": "./dist/worker.js"
+		},
+		"./devtools": {
+			"types": "./dist/devtools.d.ts",
+			"import": "./dist/devtools.js"
+		},
+		"./testing": {
+			"types": "./dist/testing.d.ts",
+			"import": "./dist/testing.js"
+		}
+	},
+	"scripts": {
+		"build": "node ../../scripts/clean-data-output.mjs && tsc -p tsconfig.json",
+		"typecheck": "tsc -p tsconfig.test.json",
+		"test": "tsx --tsconfig tsconfig.test.json --test \"tests/**/*.test.ts\""
+	},
+	"dependencies": {
+		"@tanstack/db": "1.0.0-rc.1.4",
+		"dexie": "4.4.7",
+		"xstate": "5.33.3"
+	},
+	"peerDependencies": {
+		"react": ">=19"
+	},
+	"devDependencies": {
+		"@types/node": "^24.0.0",
+		"@types/react": "^19.0.0",
+		"fake-indexeddb": "^6.0.0",
+		"react": "^19.0.0",
+		"tsx": "^4.20.0",
+		"typescript": "^5.9.0"
+	}
+}

@@ -1,0 +1,36 @@
+{
+  "name": "@hyecompany/vem-web",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run docs:build",
+    "typecheck": "npm run typecheck --workspaces",
+    "test": "npm run test --workspaces",
+    "check": "biome check .",
+    "format": "biome check --write .",
+    "docs:dev": "npm run docs:prepare && npm run dev --workspace @hyecompany/vem-docs",
+    "docs:build": "npm run build --workspace @hyecompany/vem-data && npm run docs:prepare && npm run build --workspace @hyecompany/vem-docs",
+    "docs:llms": "node scripts/generate-docs.mjs",
+    "test:package": "npm run build --workspace @hyecompany/vem-data && npm pack --workspace @hyecompany/vem-data && node scripts/check-package.mjs",
+    "commitlint": "commitlint --from=HEAD~1 --to=HEAD --verbose",
+    "example:dev": "npm run build --workspace @hyecompany/vem-data && node packages/data/examples/task-board/dev.mjs",
+    "example:build": "npm run build --workspace @hyecompany/vem-data && vite build --config packages/data/examples/task-board/vite.config.ts",
+    "docs:prepare": "node scripts/generate-reference.mjs && node scripts/generate-docs.mjs",
+    "test:docs": "node --test --test-concurrency=1 \"tests/docs/**/*.test.mjs\"",
+    "pretypecheck": "npm run docs:prepare",
+    "pretest": "npm run docs:prepare"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@biomejs/biome": "2.4.5",
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
+    "@playwright/test": "1.65.0",
+    "typedoc": "0.28.20",
+    "typedoc-plugin-markdown": "4.14.1",
+    "vite": "8.3.6"
+  }
+}

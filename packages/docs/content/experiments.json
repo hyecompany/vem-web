@@ -1,0 +1,42 @@
+{
+  "knowledge": {
+    "title": "Filter without fetching",
+    "prompt": "Choose To do, open the overview, then open the walk’s notes.",
+    "explanation": "Filtering and the overview reuse the task list. Opening notes asks for a missing field, so it reads once more. Returning to that detail reuses the new information."
+  },
+  "results": {
+    "title": "When part of the list is missing",
+    "prompt": "Choose what the task service returns.",
+    "explanation": "A missing title keeps the matching task visible. A missing filter status leaves a candidate unresolved. A failed read preserves known tasks and offers retry. Only complete empty membership proves that there are no tasks."
+  },
+  "actions": {
+    "title": "A checkmark before confirmation",
+    "prompt": "Complete the walk, then let the task service reply.",
+    "explanation": "A command proposes a completed task while its action awaits a reply. Confirm, reject, save only a note, or lose the reply. Only confirmed success establishes completion; an unknown outcome keeps the preview unconfirmed."
+  },
+  "editor": {
+    "title": "Keep your own draft",
+    "prompt": "Change the meeting time and save the task.",
+    "explanation": "A managed edit keeps your input with the version it came from. A teammate’s change does not replace your draft. Saving against that older version conflicts. Read-only access keeps readable input; losing notes access removes just the private notes."
+  },
+  "access": {
+    "title": "Who can still read the notes?",
+    "prompt": "Turn off Team access, then the direct invitation.",
+    "explanation": "Either permission can disclose the same private note. Losing both removes the note while the public task survives. A reply captured before withdrawal cannot restore that note after regrant; a new authorized update can."
+  },
+  "recovery": {
+    "title": "Return to an unfinished action",
+    "prompt": "Complete the walk, then close and reopen the example.",
+    "explanation": "The first owner records possible submission and sends once. A replacement owner restores its journal and investigates. Missing confirmation leaves the result unknown; recovery never resubmits the command."
+  },
+  "planning": {
+    "title": "One plan for several views",
+    "prompt": "Open all task notes, then compare a single note after starting over. Explore sharing a pending reply and filtered pages.",
+    "explanation": "Vem compares declared sources across the views that currently need information. Three task-note views can share a cheaper collection read; one view can use a detail read. A second view can join an in-flight fixed representation. A supported filter narrows acquisition, and the runtime follows pages until the actual response establishes completeness. The receipt counts real source calls to the simulated service."
+  },
+  "liveness": {
+    "title": "Different fields, different guarantees",
+    "prompt": "Go offline, change the service, then reconnect. Keep the reply pending, return an error, or confirm the new title.",
+    "explanation": "The real runtime receives an immutable task ID, a title supported by a scoped event channel, and a temperature snapshot. Losing continuity makes the title stale and triggers an unsuccessful targeted read while the simulated service is offline. A service change does not silently update the disconnected view. Reconnecting starts a held check while the old title stays visible. The user can return an error: the title remains last known and the checking indication stops. Retrying and accepting the reply establishes the new title. The ID stays immutable and the old temperature remains a snapshot without automatic polling."
+  }
+}

@@ -1,0 +1,31 @@
+---
+title: "Keep progress visible after navigation"
+description: "Wire inline progress and shared notices once in the application shell."
+order: 5
+---
+
+A task is still completing when its page closes. Its progress should move into a notice, then return inline if the page opens again. The owner decides which tab should show that notice; the application decides how it looks.
+
+## Mark the inline surface
+
+Use a shared page component to claim feedback for its query. The effect returns the release function, so navigating away automatically ends the claim.
+
+<Example file="host-guide/feedback.tsx" region="inline" />
+
+Mount this alongside the task list while the route is open. A scoped page should claim that same scope. Individual action buttons do not need to manage ownership.
+
+## Render the shell's notices
+
+Mount this component once inside `DataProvider`, outside the route content. `useActivities` reads shared action records; `client.feedback()` returns the IDs assigned to this tab for unsolicited feedback.
+
+<Example file="host-guide/feedback.tsx" region="feedback" />
+
+This deliberately plain renderer shows the wiring. Replace its markup with your toast component and map outcome names to your application's messages.
+
+Pass the displayed action snapshot to `acknowledgeFeedback`. That acknowledges the stage the user saw: dismissing a running notice will not accidentally dismiss a later failure.
+
+## What happens in another tab?
+
+The tab that started the action receives unsolicited feedback. If it closes, a surviving connected tab takes responsibility. Other tabs may still display related progress inline. Dismissal changes presentation; it never cancels accepted server work.
+
+For a surface that has action IDs rather than a query, `claimFeedback(ids)` provides the same claim/release lifecycle. Test navigation and closing the originating tab in your application's browser tests.

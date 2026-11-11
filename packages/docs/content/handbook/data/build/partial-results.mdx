@@ -1,0 +1,54 @@
+---
+title: "Partial rows and honest empty states"
+description: "Keep useful content visible when some information is missing."
+order: 2
+---
+
+A task without a title is still a task. A task without a status cannot yet match a “To do” filter. A failed read does not erase the information already on screen.
+
+<Lab name="results" />
+
+## Render a useful status
+
+Use this small companion beside your list or detail. `queryView` chooses the ordinary state with existing content first; the component adds explanations and retry without replacing the rows.
+
+<Example file="feature-guide/status.tsx" region="status" />
+
+Render missing cells with a fallback such as `row.data.title ?? "Title unavailable"`. You do not have to wrap every cell in a special component.
+
+`result.retry()` retries unsuccessful acquisition for this query. It does not grant access or force a refetch of already sufficient information.
+
+## Choose the right count
+
+| You want to show | Use |
+| --- | --- |
+| Rows the UI can display | `rows` |
+| “Some tasks still need checking” | `unresolved.length` |
+| “3 confirmed matches so far” | `confirmed.knownCount` |
+| “3 tasks total” | `confirmed.total`, only when `confirmed.complete` |
+| “No matching tasks” | `empty`, never `rows.length === 0` |
+
+`rows` includes known matches with missing display values and visible action proposals. `unresolved` contains candidates whose filter or scope cannot be evaluated. Do not render those as established matches.
+
+A proposed creation is not a confirmed resource and does not inflate the confirmed count. `activities` holds related action progress and outcomes, separate from the rows.
+
+## Keep values visible while checking them
+
+Use `revalidating` for a quiet “Checking for changes…” indication beside retained values. Do not replace them with a loading screen. `stale` says relevant evidence is no longer current; it does not say a read is running.
+
+| State | Presentation |
+| --- | --- |
+| `revalidating` | Keep available content visible and signal that the result is being checked |
+| `stale` without `revalidating` | Keep permitted values visible as last known; explain a failure or stopped check |
+| `fetching` without `stale` | Acquire missing information; retain any content already available |
+| `settled` with missing information | Show the partial result and its explanation, with retry where useful |
+
+`fetching` covers all active acquisition. `settled` means the current attempt has ended, even if it could not provide everything. Neither a failed check nor an unavailable field calls for an endless spinner.
+
+If a filter or scope is no longer confirmed, the retained candidate belongs in `unresolved`. Show it separately with a label such as **Match not confirmed**; it is not a confirmed match and might never have been one. The [list example](/docs/data/build/display) renders that distinction.
+
+For finer presentation, `row.fields.title?.stale` identifies the affected field. Its `liveness` describes the kind of continuing coverage, not whether a request is active. A plain snapshot is not automatically stale.
+
+A previously empty result can also need checking. It may still contain no rows, but `empty` is false until current evidence proves emptiness again. Show the check status; do not announce “No matching tasks” or invent missing rows.
+
+For why a read happens, continue to [shared knowledge and acquisition](/docs/data/understand/acquisition).

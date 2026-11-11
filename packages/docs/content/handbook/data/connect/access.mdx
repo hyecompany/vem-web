@@ -1,0 +1,100 @@
+---
+title: "Connect permissions"
+description: "Declare who may read or write; inherit the evidence instead of tracking it in screens."
+order: 4
+---
+
+Suppose task titles are public, notes are private, and editing needs another permission. Declare those rules in the domain. Screens still use the same queries, commands, and editors; they do not track callers or clean up protected values themselves.
+
+The server authorizes its requests. Vem governs what the application may attempt, show, and retain.
+
+## 1. Report what the backend permits
+
+Give each permission a stable name. This example uses `tasks:read-notes` and `tasks:write`. Apply decisions after your authentication integration verifies the caller:
+
+<Example file="integration/access.ts" region="permission-decision" />
+
+The context ID distinguishes callers on this backend. A permission can be `allowed`, `denied`, or `unknown`; unlisted permissions start unknown. A network failure does not establish denial or logout.
+
+## 2. Put read rules beside the resource
+
+Use the same pure definition in the owner and each tab:
+
+<Example file="integration/access.ts" region="read-permission" />
+
+`access` is the common read requirement. `fieldAccess` adds requirements for individual fields. Its map accepts permission expressions directly; a field whose permission depends on its identity can use a function there.
+
+Replace `taskRead` with `protectedTaskRead` in the [resource adapter](/docs/data/connect/resources). Vem applies the notes rule to acquisition, projection, stored evidence, and managed drafts. You do not repeat it in each response or component.
+
+A title-and-notes query can still acquire and display the public title when notes are denied. Private filter and sort fields also need permission; they cannot silently influence visible results. Identity must include project or tenant information when that changes a field's permission.
+
+## 3. Describe each operation's requirements
+
+| What needs a rule? | Where it belongs |
+| --- | --- |
+| A backend read | Source `access` |
+| A command attempt | Command `access` |
+| Showing an action's details | Command `disclosure` |
+| Saving an editor | Baseline `writeAccess` |
+| Keeping an editor's readable values | Baseline `disclosure`, inherited from its confirmed representation |
+
+Every command declares its `disclosure` explicitly, including `"public"` for public activity details. Admission and disclosure need not use the same permission. Source and command requirements accept either an expression or a function of their descriptor. Use `{ all: [...] }` when every permission is needed; use `{ any: [...] }` when either permission independently suffices. A common permission is just a string.
+
+For example, a public list can remain available while a private notes source requires `tasks:read-notes`:
+
+<details>
+<summary>Implement the separate notes endpoint</summary>
+
+This source assumes `GET /api/tasks/:id/notes` returns `{ notes: string }`. Add it beside the public list in `sources`:
+
+<Example file="integration/access.ts" region="source-permission" />
+
+The list advertises only its public fields. The notes source controls whether that request can start; the resource's field rule protects the resulting notes. A source declaration describes capability, not proof that a request succeeded or permission was granted.
+
+</details>
+
+Known denial blocks an attempt. Unknown authority permits a source attempt by default; `accessUnknown: "wait"` waits for an independently established decision. A pure `(request, context) => "wait" | "attempt"` can distinguish caller discovery from a resource permission the endpoint itself establishes. Keep the actual permission in `access`. Use `available` for backend feature support, not authorization.
+
+An editor's `prepare` function inherits the actual writable representation's proof with `context.disclosure({ resource, identity, field })`. The [editor example](/docs/data/connect/commands-edits#acquire-a-writable-baseline) shows this mapping. It does not rebuild permission generations. When draft fields have different evidence, `fieldDisclosure` overrides the common proof for those fields.
+
+## 4. Change authority explicitly
+
+<Example file="integration/access.ts" region="revoke" />
+
+Losing the last read permission forgets the affected facts and managed draft values. Losing only write access disables saving while readable input remains. Changing caller retires that caller's authority; independently permitted information and public consumers survive.
+
+Regrant permits new evidence. It does not restore forgotten values or make a retired response valid again. Keep asynchronous observations attached to their acquisition context. Losing visibility of an action does not prove accepted server work was canceled.
+
+## When the response supplies more specific evidence
+
+Most definitions use the rules above. A response may also reveal an independent invitation, an owning project, or other facts that determine why its information is readable.
+
+<details>
+<summary>Combine independent permissions on returned evidence</summary>
+
+`basis` records why a returned fact may be disclosed. The resource's field rule remains an additional requirement. Capture response-specific evidence with `context.proof`:
+
+<Example file="integration/access.ts" region="composed-proof" />
+
+Here sign-in is required, and either team membership or a direct invitation suffices. Withdrawing team access preserves the notes while the invitation remains valid. Withdrawing sign-in removes them.
+
+A response can establish permissions and information together: return verified `grants` and a symbolic basis such as `basis: [{ all: ["signed-in", "tasks:read-notes"] }]` in the same observation batch. The acquisition context resolves the names after that batch's decisions, while fencing retired authority. Include only grants the response proves.
+
+Entries in the `basis` array are independent alternatives. Memberships and relationships also carry evidence; [per-target relationship permissions](/docs/data/connect/events#record-a-relationship-when-links-matter) use `targetBasis`. Use `public` only for permanently readable information. Publicly listed information that can become private needs a revocable permission.
+
+</details>
+
+<details>
+<summary>Bind a permission to a project discovered later</summary>
+
+Return this binding in the response's `grants` alongside its facts:
+
+<Example file="integration/access.ts" region="permission-binding" />
+
+It declares a dependency, not a grant. Add `state: "allowed"` only if the response verifies permission. Known denial of a prerequisite retires the dependent permission and its evidence. Unknown authority does not revoke existing evidence.
+
+The first binding preserves currently permitted information; changing an established binding retires its old generation. A verified response can establish the new permission and data together. Saved bindings restore before protected payloads become visible. Every persistence adapter implements `writeAccessBindings`, even when its current binding set is empty. Failures are reported and block further protected payload writes while permitted live data remains usable.
+
+</details>
+
+Try [selective withdrawal](/docs/data/understand/access). [Recovery](/docs/data/understand/recovery) explains restoration and durable erasure.

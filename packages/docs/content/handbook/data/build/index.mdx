@@ -1,0 +1,20 @@
+---
+title: "Build with Vem"
+description: "Recipes for screens, actions, editors, and tests."
+order: 2
+---
+
+These guides are for adding features to an application that already uses Vem. Import the application's resource contract and use the shared hooks; the application supplies the provider.
+
+| You want to… | Start here |
+| --- | --- |
+| Show a list, add a column, or open a detail | [Display data](/docs/data/build/display) |
+| Keep useful content visible during incomplete reads | [Partial results](/docs/data/build/partial-results) |
+| Add a button with progress and outcome feedback | [Commands and actions](/docs/data/build/actions) |
+| Edit values without losing a draft | [Protected editors](/docs/data/build/editors) |
+| Read or run outside React | [Imperative usage](/docs/data/build/imperative) |
+| Reproduce a feature's loading or failure states | [Feature tests](/docs/data/build/testing) |
+
+New to the concepts? [Use the task board](/docs/data/start/quickstart) first. Connecting Vem to a new backend? [Define a resource](/docs/data/connect/resources) before wiring a screen.
+
+Feature components do not choose endpoints, maintain cache keys, or track backend operations. Those decisions are shared by the domain and host.

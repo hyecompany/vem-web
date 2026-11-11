@@ -1,0 +1,39 @@
+---
+title: "Build a protected editor"
+description: "Keep a draft safe while the saved value or permissions change."
+order: 4
+---
+
+Edit the notes, then try a teammate’s update before saving. Your input should remain yours to resolve.
+
+<Lab name="editor" />
+
+## Bind inputs to the managed draft
+
+The `tasks.edits.notes(target)` definition supplies the saved values and the version used for conditional writes. Your component owns the form:
+
+<Example file="feature-guide/editor.tsx" region="editor" />
+
+`edit.set` updates the draft. `edit.save` creates the save action. `canSave` accounts for preparation, dirty state, an active save, and current write access. Add your own validation alongside it.
+
+`Object.hasOwn` is intentional: readable notes can be an empty string, while an unreadable field is removed from `edit.values`. Do not replace an absent protected field with an editable blank input.
+
+## Handle a newer saved version
+
+An **ETag** is the backend’s token for the version you edited. Saving sends your draft with that original token. If someone saved a newer version, this task definition reports `failed` with error code `conflict`.
+
+The hook keeps the draft and disables another save until you establish a new baseline. The example offers **Discard draft and reload**, explicitly naming the loss of input. A richer editor can offer a comparison UI; Vem does not automatically merge text.
+
+<Flow name="baseline" />
+
+A successful save prepares a fresh baseline. A partial or uncertain save requires review; it must not be presented as a clean success. Add rendering for any partial outcome declared by your edit contract.
+
+## Keep readable input; remove unreadable input
+
+Write-only loss disables saving while retaining values the user may still read. Losing read access removes the affected baseline and draft fields. Regaining access does not revive the old private draft; reload an authorized baseline.
+
+The component above renders directly from `edit.values`. Copying protected values into `useState`, logs, or form-library defaults makes extra copies that Vem cannot withdraw. If you adopt a form library, its integration must clear both values and default values when fields are withdrawn.
+
+Defining the backend side belongs in [conditional edits](/docs/data/connect/commands-edits), not in each form.
+
+A failed reload preserves the permitted draft and reports an error. Unrelated updates do not clear that error or re-enable saving. Retry the reload to establish a writable baseline; access withdrawal still removes unreadable fields while the error is present.

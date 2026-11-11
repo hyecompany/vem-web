@@ -1,0 +1,39 @@
+---
+title: "Inspect consumers and try UI scenarios"
+description: "Connect development tools to the same public contract your features use."
+order: 6
+---
+
+Use **live inspection** to understand what a mounted screen requests. Use **scenarios** to see how that screen handles missing data, denied access, or a failed command. The choice belongs to the development host, not the feature component.
+
+## Inspect a real screen
+
+`inspectClient` from `/devtools` returns a wrapper. Pass `inspection.client` to `DataProvider`; mount your panel against `inspection.subscribe` and `inspection.getSnapshot`. Only consumers using that wrapper appear in the inspection.
+
+<Example file="host-guide/devtools.ts" region="inspect" />
+
+The snapshot includes active queries, commands, editors, and actions. Inspection observes existing consumers; it does not fetch extra data. Call `inspection.close()` when removing the panel to detach inspection without closing the real client.
+
+## Give the screen controlled data
+
+A scenario catalog supplies example values and useful choices. The catalog is checked against the resource contract:
+
+<Example file="host-guide/devtools.ts" region="scenarios" />
+
+Pass the returned `scenario.client` to the same `DataProvider` used by the real application. It runs an isolated runtime instead of sending commands to your server.
+
+Once a screen is mounted, a panel can change its discovered query:
+
+<Example file="host-guide/devtools.ts" region="scenario-change" />
+
+The screen should keep the known row and show its missing title. Other query states are `ready`, `loading`, `empty`, `failed`, and `denied`. `setCommand` and `setEdit` control operation and editor scenarios. Call `scenario.close()` on disposal; recreate it for a full reset.
+
+## Keep the integration in development
+
+For a Vite application, use a build-time branch and a separate development module:
+
+<Example file="host-guide/development.ts" region="development" />
+
+The `devtools.js` module above exports `inspectDevelopmentClient`. Pass the returned client into the provider and the optional inspection into your panel. With other build tools, use their equivalent compile-time development entry point.
+
+Place the panel in your existing developer-tools surface, such as TanStack Devtools. Vem supplies inspection and scenarios, not a bundled panel. Verify the final **client and worker** bundles exclude development imports and initialization; hiding the panel is not sufficient.

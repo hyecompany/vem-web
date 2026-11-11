@@ -1,0 +1,38 @@
+{
+	"compilerOptions": {
+		"target": "ES2022",
+		"lib": ["dom", "dom.iterable", "esnext"],
+		"allowJs": true,
+		"skipLibCheck": true,
+		"strict": true,
+		"noEmit": true,
+		"esModuleInterop": true,
+		"module": "esnext",
+		"moduleResolution": "bundler",
+		"resolveJsonModule": true,
+		"isolatedModules": true,
+		"jsx": "react-jsx",
+		"incremental": true,
+		"plugins": [{ "name": "next" }],
+		"paths": {
+			"@/*": ["./*"],
+			"@/.source": ["./.source"],
+			"@hyecompany/vem-data": ["../data/src/index.ts"],
+			"@hyecompany/vem-data/react": ["../data/src/react.tsx"],
+			"@hyecompany/vem-data/client": ["../data/src/client.ts"],
+			"@hyecompany/vem-data/worker": ["../data/src/worker.ts"],
+			"@hyecompany/vem-data/runtime": ["../data/src/runtime.ts"],
+			"@hyecompany/vem-data/testing": ["../data/src/testing.ts"],
+			"@hyecompany/vem-data/devtools": ["../data/src/devtools.ts"]
+		}
+	},
+	"include": [
+		"next-env.d.ts",
+		"**/*.ts",
+		"**/*.tsx",
+		".next/types/**/*.ts",
+		".next/dev/types/**/*.ts",
+		".source/**/*.ts"
+	],
+	"exclude": ["node_modules", "out"]
+}

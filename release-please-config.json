@@ -1,0 +1,13 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "separate-pull-requests": true,
+  "include-component-in-tag": true,
+  "packages": {
+    "packages/data": {
+      "component": "vem-data",
+      "package-name": "@hyecompany/vem-data",
+      "release-type": "node",
+      "initial-version": "1.0.0"
+    }
+  }
+}

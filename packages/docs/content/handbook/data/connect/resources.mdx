@@ -1,0 +1,70 @@
+---
+title: "Connect a resource"
+description: "Teach Vem how your backend supplies one kind of data."
+order: 1
+---
+
+A feature asks for tasks. Your integration describes the available backend reads and what each response provides. Vem chooses among them for the whole application’s outstanding needs.
+
+This guide assumes a task API with two endpoints: `GET /api/tasks` returns **every task and all its fields**; `GET /api/tasks/:id` returns one task. A backend with pagination or brief list representations needs different coverage rules, explained below.
+
+## Give features a contract
+
+The contract names the fields, identity, commands, and editors that components can use. Constructing any of these descriptions performs no work.
+
+<Example file="task-board/contract.ts" region="contract" />
+
+The command and editor names are declarations; [their implementations](/docs/data/connect/commands-edits) come after the read adapter. Keep the contract in a module features can import. The HTTP adapter belongs in the owner, where credentials and transport are available.
+
+## Separate read rules from transport
+
+The task example needs only a name and a public read permission:
+
+<Example file="task-board/read.ts" region="read-definition" />
+
+Here `ResourceReadDefinition` is imported from `@hyecompany/vem-data/client`. Install these same pure rules in the owner and each tab. Vem already compares ordinary `where` fields and includes them when deciding whether a row matches.
+
+<details>
+<summary>If your backend has custom filters or project scopes</summary>
+
+Vem's default matching handles equality filters. For a custom predicate, add `matches` and list the additional fields it reads in `queryDependencies`; return `"unknown"` when those inputs are absent. Add `inScope` when a collection has project or tenant boundaries. A resource identity must distinguish otherwise identical names in different projects.
+
+</details>
+
+## Declare sources and extract their evidence
+
+Describe each representation once. `fields` identifies its information; `membership: true` says a list can establish which tasks exist. Vem chooses when to call `run`:
+
+<Example file="integration/resource.ts" region="adapter" />
+
+Each `key` names a backend source within this resource. It is not a query cache key; components describe their needs without defining keys.
+
+This complete owner definition imports the contract and read rules above. `TaskRef` is `{ id: string }`; `TaskRecord` is the backend response with that ID plus the contract's task fields. The cast at the adapter boundary uses this resource's identity type. Validate external response shapes in your transport when they are not already checked.
+
+The transport checks HTTP success, and `taskFact` extracts one response:
+
+<Example file="integration/resource.ts" region="extraction" />
+
+Returning a batch lets the runtime apply it through the acquisition's context. For an intermediate update, use `context.observe(batch)`. Do not start a fetch and later call a global `runtime.observe`: that loses the request's protection against obsolete responses.
+
+| Your response establishes… | Report… |
+| --- | --- |
+| Some fields of a task | A fact with those `values` |
+| The tasks seen on one page | Membership with `complete: false` |
+| The entire matching collection | Membership with `complete: true`, for its actual scope and filter |
+| One task's details | Its facts; no claim about the whole collection |
+
+Missing display fields keep a known task visible. Unknown filter fields keep a candidate unresolved. If a successful response cannot provide everything, return what it does establish; reads settle partial. Throw on an acquisition failure so the result can explain it and offer retry.
+
+<details>
+<summary>When omission means deletion</summary>
+
+`replace` names a representation's fields whose omission means removal. A brief list response must not delete notes that only appear in details. Report `presence: "absent"` only when absence is established; a concealed resource or generic permission error does not prove deletion.
+
+</details>
+
+## Install the definition
+
+Give `taskAdapter` to the owner's `resources` array and `taskRead` to the tab's read definitions. The [browser-host guide](/docs/data/connect/browser-host) shows that connection. Components continue importing `tasks` from the contract; adding a field does not add a fetch effect.
+
+The [automatic planning guide](/docs/data/connect/planning) explains how these declarations combine across views and tabs, including costs, filters, and pages. For live updates, continue to [events](/docs/data/connect/events). For protected data, [connect permissions](/docs/data/connect/access).

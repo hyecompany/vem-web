@@ -1,0 +1,20 @@
+---
+title: "API map"
+description: "Choose the public import for the responsibility you own."
+order: 1
+---
+
+
+| Import | Audience | Main exports |
+| --- | --- | --- |
+| `@hyecompany/vem-data` | Features and contracts | `defineResource`, `defineCommand`, `defineEdit`, `hasFields`, descriptions and result types |
+| `@hyecompany/vem-data/react` | React features | `DataProvider`, `useQuery`, `useCommand`, `useEdit`, `useAction`, `useActivities`, `queryView` |
+| `@hyecompany/vem-data/client` | Tab host | `connectSharedWorker`, `BrowserClient`, compatibility |
+| `@hyecompany/vem-data/worker` | Owner bootstrap | `createSharedHost`, owner contract |
+| `@hyecompany/vem-data/runtime` | Domain and owner integration | `createRuntime`, `ResourceDefinition`, evidence types, `DexiePersistence` |
+| `@hyecompany/vem-data/testing` | Feature tests | `createTestClient`, fixtures, `MemoryPersistence`, `deferred` |
+| `@hyecompany/vem-data/devtools` | Development integration | Inspection, scenario catalog, controlled scenario client |
+
+[Browse all generated signatures](/docs/data/reference/api), or search for an exact API name. Entry-point listings link every exported declaration, including its members and generic parameters. Shared types may be linked to their canonical declaration under another entry point.
+
+Use only package exports. Internal stores, worker messages, and database rows are not the feature API. Low-level structural helpers `query`, `command`, and `edit` exist, but named resource contracts are the primary contributor interface.

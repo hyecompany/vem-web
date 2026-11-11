@@ -1,0 +1,115 @@
+---
+title: "Implement commands and edits"
+description: "Turn a feature's intent into an operation with an honest outcome."
+order: 3
+---
+
+The feature says “complete this task.” The domain definition decides whether to admit that attempt, how to send it, and what the reply proves. Put command definitions in the resource's `commands` object; the names match the public contract.
+
+## Complete a task
+
+This command talks to a synchronous endpoint that returns the updated task:
+
+<Example file="task-board/domain.ts" region="complete-command" />
+
+`TaskRef` is the contract's `{ id: string }` identity. `request` sends an HTTP request with `context.signal`; `record` checks the status and decodes the returned task; `taskFact` extracts its fields as shown in [connecting a resource](/docs/data/connect/resources#declare-sources-and-extract-their-evidence).
+
+The transport helpers used above are small. `ResourceContext` is imported from `@hyecompany/vem-data/runtime`; `TaskRecord` has the task fields plus its ID:
+
+<Example file="task-board/domain.ts" region="command-transport" />
+
+The definition is built by `createTaskDefinition(request = fetchTask)`, so its `request` calls use this helper unless the host supplies another transport. Keep the helpers beside the resource definition; feature components do not call them.
+
+The three parts have distinct jobs:
+
+- `availability` blocks an attempt when current, non-stale evidence says it is already done. Server authorization still applies.
+- `project` supplies a temporary preview. It does not establish success or replace the confirmed value.
+- `run` sends the operation, publishes confirmed response facts, and reports its outcome. A status event can update the same facts without extra feature code.
+
+These task examples are public. For protected operations, declare `access` with the write permission and `disclosure` with the permissions needed to show the activity. The [permissions guide](/docs/data/connect/access) explains how those expressions compose.
+
+## Report what actually happened
+
+| Evidence | Outcome |
+| --- | --- |
+| The intended work completed | `succeeded` |
+| Some work completed and some did not | `partial`, with a value identifying each result |
+| The backend definitively rejected or failed the operation | `failed` |
+| The request may have succeeded, but the reply is missing | `unknown` |
+
+The runtime records possible submission before calling `run` when persistence works. The synchronous example holds its submission slot until it settles. `context.submitted()` releases that slot early; it does not prove that the backend accepted the operation. For asynchronous APIs, release that slot when submission is acknowledged and then monitor the accepted operation. Publish meaningful progress with `context.progress`.
+
+A thrown error from a mutation becomes `unknown`: a dropped connection cannot prove that no work occurred. Return a definite failure only when your backend's semantics establish it. `submitted: false` means the request did not reach the backend; it must not be used merely because the response was lost.
+
+If your backend returns an accepted job instead of a completed task, continue to [observe and recover a server operation](/docs/data/connect/operations). That guide shows the checkpoint, monitoring, and recovery code separately.
+
+
+## Declare an HTTP upload
+
+Use `transfer` in place of `run` for a file upload. The definition prepares one request and interprets its receipt; Vem manages submission, progress, cancellation, and recovery on the existing action.
+
+This example adds an attachment to a task. **Its backend contract is illustrative:** `PUT` returns HTTP 204 only after the complete attachment is saved. Add an `upload: defineCommand<{ file: File }, { kind: "succeeded" }>()` entry to the task's public command contract, and install `attachmentUpload(apiOrigin)` as its owner definition:
+
+<Example file="integration/transfers.ts" region="upload-definition" />
+
+The component binds `useCommand(tasks.commands.upload(target, { file }))` after a file is selected. It does not manage worker messages or a second operation registry. The example is public like the task board; use your application's write permission for `access` and readable activity permission for `disclosure` when the destination is protected.
+
+`prepare` runs for a new attempt. `complete` interprets a captured response and may run again during recovery, so it must not send another mutation. It can publish established facts with `context.observe`. If HTTP acceptance starts a separate server operation, interpret and monitor that operation rather than treating acceptance as completion.
+
+The built-in host supports `POST`, `PUT`, and `PATCH` uploads with `Blob` bodies. Response text is limited to 64 KiB in UTF-8 and response headers to 16 KiB of encoded JSON; an incomplete or oversized response leaves the result unknown. This is for upload receipts, not downloading arbitrary binary files. Upload bytes and request credentials are not copied into the action journal.
+
+[Configure the browser host](/docs/data/connect/browser-host#let-the-browser-continue-an-upload) to enable browser-owned execution. Otherwise the owner sends the request and the UI must explain that an application tab needs to remain open. See [recovery limits](/docs/data/understand/recovery#uploads-and-background-transfers) before promising resumption or retry.
+
+## Acquire a writable baseline
+
+An editor needs writable values **and the ETag from the same response**. A token from a collection or expanded view may belong to a different representation. Do not assemble a baseline from unrelated field observations and then attach the newest token.
+
+Declare that the detail source supplies an atomic writable representation alongside the ordinary task fields:
+
+<Example file="task-board/domain.ts" region="writable-source" />
+
+`$notesEdit` is a private domain field containing the response's values and token together. It is absent from the public `Task` contract; feature components still use `useEdit(tasks.edits.notes(target))`. The `taskResponse` helper emits this field only when the response contains an ETag.
+
+<details>
+<summary>Extract the values and token from one response</summary>
+
+<Example file="task-board/domain.ts" region="writable-observation" />
+
+The snapshot depends on the fields covered by this backend's token: changing a covered field makes the old snapshot unsupported. This backend's token covers the whole task, even though the editor only changes notes. A backend with a notes-specific token would have different dependencies.
+
+</details>
+
+Now add the edit definition:
+
+<Example file="task-board/domain.ts" region="prepare-edit" />
+
+`readPrerequisites` describes the required representation. Vem includes that need in shared acquisition, so concurrent editors and a detail view can reuse the same response. A previously acquired, still-supported snapshot needs no new read. Missing, failed, or denied prerequisites prevent preparation.
+
+`prepare` maps the established snapshot into the editor's baseline. `command` combines the user's current draft with the original token. Incoming changes do not silently replace that token. `context.disclosure` inherits the snapshot's actual permission evidence, so the editor does not reconstruct permission scopes or generations. `writeAccess` controls saving; the save command declares its own admission with `access`. [Permissions](/docs/data/connect/access) explains how to protect individual draft fields when they have different disclosure evidence.
+
+## Keep the baseline honest
+
+An event that supplies fresh task fields but no token updates the readable data and marks only `$notesEdit` unsupported. The open editor keeps its original baseline and dirty input. A deliberate reload acquires a new writable representation.
+
+A response can also arrive after a newer event. The task definition compares the snapshot with the latest confirmed fields before allowing a new editor to use it:
+
+<details>
+<summary>Reject a snapshot that disagrees with newer confirmed values</summary>
+
+<Example file="task-board/domain.ts" region="writable-consistency" />
+
+Install this function as `derive: writableConsistency` on the task resource. `dependsOn` handles changes after an established snapshot; this check also handles a late response introducing an already-obsolete snapshot. Neither check starts a periodic verification loop.
+
+</details>
+
+## Save with the original token
+
+The editor above creates `saveNotes`. Add this command next to `complete`:
+
+<Example file="task-board/domain.ts" region="save-command" />
+
+The conditional `If-Match` header lets this backend reject an obsolete baseline with HTTP 412. The command reports that conflict without discarding the user's draft and marks the writable snapshot unsupported, even if no event arrived. The component presents a choice to keep editing or discard and reload; it does not manage an independent rollback.
+
+An expanded representation or collection ETag may not be valid for a writable endpoint. Use the token from the representation you will write. If your backend has no conditional writes, document that limitation instead of claiming conflict protection.
+
+Next: [wire permissions](/docs/data/connect/access) or [connect the browser host](/docs/data/connect/browser-host).

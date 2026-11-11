@@ -1,0 +1,36 @@
+---
+title: "Why information disappears after an access change"
+description: "Keep readable information and forget only what lost its permission."
+order: 2
+---
+
+A task's title can be public while its notes are private. You might be able to read those notes because you belong to a team, because you were invited directly, or both. Try removing each permission.
+
+<Lab name="access" />
+
+## A value can have more than one permission
+
+Vem keeps the reasons a value may be shown alongside the value. The domain calls these its **disclosure bases**. If either team access or a direct invitation permits the notes, losing just one should not remove them.
+
+| Change | Visible result |
+| --- | --- |
+| Team access ends; the invitation remains | Notes remain readable |
+| The last permission ends | Notes disappear, including from managed edit drafts |
+| Write permission ends, but read access remains | The draft stays; saving is disabled |
+| Access is granted again | New authorized evidence can restore the notes |
+
+Derived values and relationships also depend on the information and permissions supporting them. A total computed from unreadable records must not remain visible merely because the total was computed earlier.
+
+## Unknown is different from denied
+
+A fresh owner may not yet know who the caller is. Protected restored data stays hidden until the host establishes access. That uncertainty is not proof that permission was revoked.
+
+Likewise, a network error during an established session is not a logout. Only an actual access decision or authority retirement withdraws the old permission. A logout can retire private access while leaving public data and the runtime alive.
+
+## An old reply cannot undo withdrawal
+
+A pending read carries the permission generation under which it started. If that permission is retired, the late response cannot repopulate protected data—even if access was granted again in the meantime. Regrant permits new evidence, not reuse of the retired response.
+
+With persistence, Vem records revocation before deleting saved payloads. Live values disappear immediately even if storage fails; the failure must still be reported because durable cleanup was not established.
+
+To implement these rules, follow [access controls step by step](/docs/data/connect/access). Components should render managed query and edit values directly: independent copies in React state or a form library need their own withdrawal integration.

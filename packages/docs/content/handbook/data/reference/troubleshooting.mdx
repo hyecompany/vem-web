@@ -1,0 +1,47 @@
+---
+title: "Troubleshooting"
+description: "Start with what you see, then check the responsible layer."
+order: 2
+---
+
+## Nothing fetched or no event socket
+
+- **In the embedded examples:** the service is simulated inside the page. The counter measures calls to that source, not HTTP requests.
+- **In your application:** inspect the existing query's `issues` and whether its requested fields and membership are already known. A satisfied query needs no acquisition.
+- **With a SharedWorker host:** inspect the worker's network activity. Page developer tools may not show its requests. Your host opens the event transport; Vem does not choose or open one automatically.
+
+A failed HTTP request is not proof of logout. Check the source URL, proxy, and authentication separately. See [when acquisition happens](/docs/data/understand/acquisition).
+
+## Opening another task did not add a service read
+
+The earlier response may have included both tasks' details. Vem reuses all established facts, not only those used by the first view. If it returned only one task, a missing detail on another task should cause acquisition. Check the response contents and your source declarations and response extraction before expecting one request per screen.
+
+## Loading when changing a known filter
+
+Check `readDefinitions` in `connectSharedWorker`: the tab needs the same pure read rules as the owner. Then check the filter fields and `confirmed.complete`. An unknown predicate or incomplete membership can require acquisition.
+
+If the required information is present and permitted, a loading flash is a defect. Do not add a timer or a second feature cache to conceal it. [Browser setup](/docs/data/connect/browser-host) shows the shared read definition.
+
+## Partial rows or no confirmed total
+
+A row's `missing` fields, unresolved filter candidates, and incomplete membership mean different things. Keep known rows visible. Only `confirmed.complete` establishes the matching set, and only `result.empty` proves emptiness. [Partial-result rendering](/docs/data/build/partial-results) provides the code.
+
+## Save conflict
+
+Confirm that the edit's ETag came from the same response as its baseline. Preserve the draft when the server rejects that token. Let the user reload explicitly; silently replacing the token would turn an old draft into an overwrite of someone else's changes. [Editor recipe](/docs/data/build/editors).
+
+## Another tab has different behavior
+
+Start with `client.connectionSnapshot()`. If it is not `ready`, address the reported connection error first. Then compare the tabs' origin, worker URL, and definitions version. Same-origin tabs must use the same ownership lock name across versions. [Host compatibility](/docs/data/connect/browser-host#1-agree-on-compatibility).
+
+## A failed action cannot be retried
+
+Default retry requires a settled failure explicitly marked `submitted: false`, and excludes restored actions. A failed response after possible submission does not meet that rule. The domain can override retry only when backend evidence makes another attempt safe. [Command controls](/docs/data/build/actions).
+
+## Data disappeared after an access change
+
+Check whether the data lost its last allowed disclosure basis. If it did, disappearance is expected—even from an unsaved draft. Granting permission again allows new evidence; an old response cannot refill the values. [Implementing access](/docs/data/connect/access) explains the declarations.
+
+## Recovery is unavailable
+
+Check `action.recovery` and the owner's `onError` reports for persistence failures. Execution can continue while restart recovery is reduced. If a command has no backend operation history to investigate, its journal cannot prove the outcome. [Recovery](/docs/data/understand/recovery).
