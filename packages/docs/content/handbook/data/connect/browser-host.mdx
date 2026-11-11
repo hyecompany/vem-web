@@ -1,0 +1,92 @@
+---
+title: "Configure the browser host"
+description: "Connect a React app and its tabs to one shared owner."
+order: 4
+---
+
+This is application setup. Once it is in place, feature components only use the resource contract and hooks.
+
+The **tab** renders UI. A **SharedWorker** runs the domain definitions, makes requests, receives events, and owns shared data. Both use the same pure read rules so filtering already-known data is immediate.
+
+<Flow name="ownership" />
+
+## 1. Agree on compatibility
+
+Share this object between your worker and tab modules:
+
+<Example file="host-guide/browser.tsx" region="compatibility" />
+
+Keep `definitions` unchanged for compatible domain edits; increment it when old and new definitions cannot safely share knowledge. `build` identifies the deployment. A different build alone does not require separate owners.
+
+## 2. Start the owner
+
+The worker imports the assembled owner definition as `taskDefinition`. This runnable task service emits full task updates on `task-events`; its facts declare that matching channel. Start with [resource sources](/docs/data/connect/resources), then add the event decoder and [commands and edits](/docs/data/connect/commands-edits) your backend supports. The shared compatibility object is the one above:
+
+<Example file="task-board/owner.ts" region="owner" />
+
+`/api/events` is this example's backend event stream. Adapt its URL and event decoder to your service. This fixture sends full task updates. `setContinuity` reports whether that channel is continuously delivering them; a normal incoming update goes through `client.event`.
+
+The starter waits for the initial event connection to open or fail before admitting readers. This keeps a late startup coverage change from making the first request obsolete. On failure, readers can still acquire snapshots. Reconnecting does not make observations from the uncovered interval current; affected active consumers need new evidence. Give the event transport a connection deadline if it can remain silent indefinitely.
+
+Publish the worker at a stable URL, such as `/task-owner.js`, and keep the lock name stable across deployments. Changing the lock name for each release could allow two owners to run at once.
+
+## 3. Connect the tab and provide the client
+
+Pass the same `taskRead` rules used by the owner. `ownerModule` is the URL of the compiled worker module, served from the application's origin.
+
+<Example file="host-guide/browser.tsx" region="connect" />
+
+Create the client once in the application entry point, then pass it into this provider. The browser needs HTTPS or loopback, SharedWorker, and Web Locks. Connection failures are application-level errors, separate from an individual query's failure.
+
+<Example file="host-guide/browser.tsx" region="provider" />
+
+Put your routes inside the provider. Close the client when the app is permanently disposed; do not recreate it on route changes.
+
+## Decide what survives a restart
+
+Storage is optional: omit `persistence` for an in-memory owner. With `DexiePersistence`, a definition's `persist` decides which fields can be saved. For example, the task definition allows `$presence`, `title`, and `status`, and leaves private notes out. Relationships have a separate `persistRelationship` allowance. The starter uses the explicit IndexedDB name `vem-data:task-board:v1`; the constructor uses that name directly. Choose a namespace your application owns.
+
+`runtime.ready` means restoration was attempted. It does not grant permission to show protected data. Establish the current caller through [access decisions](/docs/data/connect/access); protected saved data stays quarantined until then. Report persistence errors through `RuntimeOptions.onError`, and inspect `action.recovery` before promising restart recovery.
+
+## Let the browser continue an upload
+
+This optional host integration uses Background Fetch where available. Commands declare their HTTP transfer; feature components keep using `useCommand` and `useAction`. Configure three cooperating pieces once per application:
+
+| Where | Responsibility |
+| --- | --- |
+| SharedWorker | Runs the action, prepares the request, and interprets its result |
+| Page | Initiates the browser transfer after the ServiceWorker admits the handoff |
+| ServiceWorker | Atomically claims the protected action and stores its completion receipt |
+
+The owner and ServiceWorker must use the **same Dexie database** as the action journal. All three use the same channel name. Keep both names stable across compatible deployments:
+
+<Example file="host-guide/transfer-config.ts" region="transfer-configuration" />
+
+**In the SharedWorker**, use this factory from the existing `createSharedHost({ create })` callback. Retain your domain event connection and close it in the same `dispose` function:
+
+<Example file="host-guide/transfers.ts" region="transfer-owner" />
+
+**In the application entry point**, call `connectUploadHost()` once. Keep the returned cleanup function for permanent application disposal:
+
+<Example file="host-guide/transfer-page.ts" region="transfer-page" />
+
+**In `/transfer-service-worker.js`**, compiled from this module:
+
+<Example file="host-guide/transfer-service-worker.ts" region="transfer-worker" />
+
+Serve this worker from your own origin with an appropriate scope. The example uses the origin root; an application under a subpath should use that subpath for both URL and scope. If the application already registers a ServiceWorker, install the handlers in that worker instead of creating a competing registration. This integration does not install a cache or intercept ordinary requests.
+
+The native host accepts HTTP `POST`, `PUT`, and `PATCH` uploads with a `Blob` body and a small text response. The [transfer definition](/docs/data/connect/commands-edits#declare-an-http-upload) describes the backend contract. Browser support, storage, and permission can prevent handoff; display the action's actual [execution lifetime](/docs/data/understand/recovery#uploads-and-background-transfers), not a promise inferred from API availability.
+
+<details>
+<summary>Handle an application update</summary>
+
+A compatible client can report `connection.updateAvailable`. To offer an update button:
+
+<Example file="host-guide/browser.tsx" region="upgrade" />
+
+Display the returned reason if the owner refuses, for example because work is active or storage could not be flushed. An incompatible connection cannot use the old owner; ask the user to finish work in older tabs and close them before reopening. Never bypass this by inventing another lock name.
+
+</details>
+
+Next: [move progress from the page into shared feedback](/docs/data/connect/feedback).

@@ -1,0 +1,63 @@
+---
+title: "When Vem reads from the service"
+description: "Reuse known information and acquire only what a view still needs."
+order: 1
+---
+
+Once a task list has loaded, filtering it should feel instant. Opening another view should reuse the same information. Try both in the app below.
+
+<Lab name="knowledge" />
+
+## A query describes a need
+
+Vem first projects information it already knows and is allowed to show. Vem combines missing requirements across active consumers, including other tabs, and chooses among the backend capabilities declared by the integration. One response may satisfy several views; existing or in-flight information changes what is worth reading.
+
+<Flow name="acquisition" />
+
+## What is actually missing?
+
+| The view needs… | What Vem must know |
+| --- | --- |
+| A list of tasks | Which tasks belong to the collection |
+| Task titles | The selected field on each known task |
+| Only unfinished tasks | Each candidate's status, even if status is not displayed |
+| A definite empty state | Complete membership and enough information to evaluate the filter |
+
+A missing title leaves a known task visible as an incomplete row. A missing status cannot establish whether a task matches the unfinished filter. [Partial results](/docs/data/build/partial-results) shows how to render both.
+
+## A query is not a request cache key
+
+Different queries can reuse the same facts. A list response that includes notes can satisfy a later notes view. If a detail response contains only one task's notes, opening a different task needs another read. The response's actual contents determine what becomes known.
+
+To see Vem choose between competing reads across several views, try [the automatic planning example](/docs/data/connect/planning#plan-for-the-whole-application).
+
+The definition declares `sources`: available representations, fields, membership, supported filters, access, and relative cost. Vem plans automatically across the combined demand. [Connect a resource](/docs/data/connect/resources) shows the declarations; [how Vem chooses reads](/docs/data/connect/planning) explains the selection and its bounds. Feature components only describe information.
+
+## Is this field kept current?
+
+Three questions stay separate: **may I see it**, **what was observed**, and **what keeps that observation current**. Permission answers the first; source responses answer the second; declared event continuity answers the third.
+
+A task's status can be `live` while its notes are a `snapshot` from the last read. An `immutable` field needs no change monitoring because it cannot change for that identity. Vem reports these states per field; an open socket alone does not establish any of them.
+
+Snapshots remain useful without automatic time-based verification. A known gap in the field's declared change coverage makes it stale and can require acquisition. A gap in another field's or project's channel does not. Domain authors [declare that coverage explicitly](/docs/data/connect/events#declare-which-fields-the-events-keep-current).
+
+## What makes Vem acquire again?
+
+A new unsatisfied view, retrying unsuccessful acquisition, or a reported event-coverage gap can require new evidence. Mounting, focusing, or waiting a fixed time does not by itself make ordinary data expire.
+
+Events can provide the missing values directly. When an older request finally returns, it cannot overwrite newer established observations or revive values under retired permissions.
+
+<details>
+<summary>Measurements that intentionally repeat</summary>
+
+Measurements such as CPU usage are different from ordinary task data. A query can explicitly request a sample interval:
+
+<Example file="host-guide/lifetimes.ts" region="sample" />
+
+Import `defineResource` from `@hyecompany/vem-data`. Subscribe with `useQuery(measuredUsage)`. The host also needs a `machines` definition that acquires usage. Sampled fields must be selected; intervals must be finite and at least 100 ms. Sampling ends when consumer demand ends, and does not make unrelated data expire.
+
+</details>
+
+## Why reload might make no request
+
+A reloaded tab can rejoin an owner that still has the needed information. If the owner stopped, a new one can restore eligible data. Permitted values remain displayable, but non-immutable evidence—including plain snapshots—restores stale and the first active need reacquires it. Genuine immutable evidence can survive without another read. This re-establishes evidence after owner loss; it is not a mount, focus, or time-based policy. The integration also establishes the new owner's event continuity. Look at the owner's connection and coverage, not only the page reload, when diagnosing a missing request.

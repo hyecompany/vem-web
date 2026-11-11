@@ -1,0 +1,32 @@
+---
+title: "What Vem Data does"
+description: "Keep related views up to date without coordinating them in every component."
+order: 1
+---
+
+Imagine a task list, a progress summary, and a notes editor. Completing a task should update both the list and the summary. Opening its details should reuse what is already known. A teammate's update should not erase the notes you are typing.
+
+Vem Data manages that shared information. Components describe what they need; one backend integration teaches Vem where the information comes from and what changes mean.
+
+**[Explore the task board →](/docs/data/start/quickstart)**
+
+## What you write
+
+For a feature, you write a query, command binding, or edit binding and render the result. You keep control of the components, layout, and validation.
+
+For a new backend, you write its **domain definition**: how to identify resources, translate responses, handle changes, and report operation outcomes. The browser host connects that definition to shared ownership and events. Those are integration tasks, done once for many features.
+
+## When it fits
+
+Vem is useful when features share information, work outlives a screen, or access can change while the application is open. It includes React hooks and an imperative API and can be consumed independently of other Hye Vem packages.
+
+For one isolated request, the integration may be more than you need. Vem does not supply a backend or decide who is authorized; it applies the rules and evidence your integration provides.
+
+## Choose your path
+
+| You want to… | Start with… |
+| --- | --- |
+| Build a screen or add a button | [Build with Vem](/docs/data/build) |
+| Connect your backend | [Define a resource](/docs/data/connect/resources) |
+| Understand why a read happens | [Shared knowledge](/docs/data/understand/acquisition) |
+| Look up an API or diagnose a problem | [Reference and troubleshooting](/docs/data/reference) |

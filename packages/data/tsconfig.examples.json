@@ -1,0 +1,20 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"rootDir": ".",
+		"noEmit": true,
+		"jsx": "react-jsx",
+		"types": ["node", "vite/client"],
+		"paths": {
+			"@hyecompany/vem-data": ["./src/index.ts"],
+			"@hyecompany/vem-data/react": ["./src/react.tsx"],
+			"@hyecompany/vem-data/client": ["./src/client.ts"],
+			"@hyecompany/vem-data/worker": ["./src/worker.ts"],
+			"@hyecompany/vem-data/runtime": ["./src/runtime.ts"],
+			"@hyecompany/vem-data/testing": ["./src/testing.ts"],
+			"@hyecompany/vem-data/devtools": ["./src/devtools.ts"]
+		}
+	},
+	"include": ["examples/**/*.ts", "examples/**/*.tsx"],
+	"exclude": []
+}

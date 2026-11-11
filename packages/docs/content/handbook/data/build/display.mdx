@@ -1,0 +1,45 @@
+---
+title: "Display data"
+description: "Add a list, column, filter, or detail view through a typed query."
+order: 1
+---
+
+Try filtering a task list and opening its notes. The component below uses the same query pattern.
+
+<Lab name="knowledge" />
+
+## Render a list and filter
+
+In an application that already uses Vem, import its resource contract (`tasks` here). The application supplies `DataProvider` once; each screen just uses the hooks. If you are connecting a new application, start with [define a resource](/docs/data/connect/resources).
+
+<Example file="feature-guide/list.tsx" region="list" />
+
+`openOnly` is ordinary UI state. Changing it changes the query description. Vem reuses known task statuses to answer immediately; a missing field can require a read. Inline descriptions do not need `useMemo`, a cache key, or an effect.
+
+`ReadStatus` is a small shared component, shown on the [partial-results page](/docs/data/build/partial-results#render-a-useful-status). It explains loading, errors, or incomplete results while leaving known rows visible. `row.key` is the stable React key; `row.data` contains plain selected values.
+
+## Add a column
+
+Select the field, then render it. For example, to show notes:
+
+<Example file="feature-guide/columns.tsx" region="column" />
+
+Unselected fields are TypeScript errors. Selected fields can still be missing from a response, so the example uses a fallback. To perform an operation that requires an actual string, import `hasFields` from `@hyecompany/vem-data` and narrow just what you need:
+
+<Example file="feature-guide/columns.tsx" region="fields" />
+
+`row.complete` narrows all selected fields together. Neither guard turns a proposed value into a confirmed server fact; `row.fields.notes?.source` identifies a proposal when that distinction matters to the UI.
+
+## Open one task
+
+Pass a resource reference such as `{ id: "walk" }` from navigation or a selected row:
+
+<Example file="feature-guide/detail.tsx" region="detail" />
+
+`exists === false` means absence is established. `undefined` means Vem does not know yet. A resource concealed by permissions need not be reported as nonexistent.
+
+When a list also contains proposed creations, only actual resources can be command targets:
+
+<Example file="feature-guide/columns.tsx" region="target" />
+
+Next: [bind a command](/docs/data/build/actions) or [handle partial results](/docs/data/build/partial-results).

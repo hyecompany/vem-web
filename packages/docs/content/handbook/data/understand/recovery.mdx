@@ -1,0 +1,56 @@
+---
+title: "What happens when the app closes mid-operation"
+description: "Keep accepted work separate from what the UI knows about it."
+order: 3
+---
+
+An app can close after sending a command but before learning what happened. Sending it again could repeat work. Try returning to an unfinished task below.
+
+<Lab name="recovery" />
+
+## Sending, watching, and showing are separate
+
+| What happened | What it means |
+| --- | --- |
+| You navigate away | The shared owner can continue observing the action |
+| You dismiss its notice | Feedback is acknowledged; server work is unchanged |
+| You lose permission to see it | Protected details disappear; accepted work may continue |
+| The owner stops before receiving a result | The next owner needs evidence before deciding what happened |
+
+## Recovery investigates
+
+When storage works, Vem records that submission may occur **before** dispatch. An operation ID returned by the backend can then be saved as recovery metadata. After interruption, the domain's `recover` function uses that metadata to check the backend's operation record.
+
+<Flow name="recovery" />
+
+If the operation record proves success, recovery may report success. If the record is absent or no useful metadata survived, the truthful outcome may be `unknown`. Missing history is not proof that no work occurred. Recovery must not simply call the command again.
+
+The [command implementation guide](/docs/data/connect/commands-edits) explains submission and checkpoints. The embedded example intentionally returns an uncertain result so you can see this boundary.
+
+## Storage failure reduces recovery
+
+Actions can still execute if storage fails. Their `recovery` state is then `unavailable`; display that limitation where a user is relying on restart recovery. `RuntimeOptions.onError` receives owner errors such as persistence failures.
+
+## Uploads and background transfers
+
+A command can declare a native HTTP `transfer`. With the [browser transfer host](/docs/data/connect/browser-host#let-the-browser-continue-an-upload), the browser can accept responsibility for moving its bytes after tabs close. Without that integration, or when the browser cannot use it, the SharedWorker sends the request while the application remains open.
+
+| Action state | What the UI can say |
+| --- | --- |
+| `execution.lifetime === "owner"` | Keep an application tab open; show `execution.reason` when present |
+| `execution.lifetime === "browser"` | The browser accepted the transfer; closing this tab does not itself cancel it |
+| `recovery === "saved"` | The action checkpoint was saved; this alone says nothing about who owns the request |
+
+API support alone does not establish browser ownership. Vem reports `browser` only after an actual handoff acknowledgement or recovered evidence of acceptance. The browser may still stop the transfer, storage may fail, and the server may reject it. The [Background Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Background_Fetch_API) is not supported by Firefox or Safari; those browsers use the owner lifetime.
+
+The ServiceWorker saves a bounded response receipt in the same protected journal. A returning owner uses that evidence or investigates the existing browser registration; it never starts a replacement upload. If the acknowledgement or result is missing, the outcome can remain `unknown`. A lost acknowledgement does not trigger an owner-bound fallback, because that could send the upload twice.
+
+**Continuation is not resumption.** The journal does not contain the uploaded file, and Vem has no automatic upload replay. A resumable backend needs its own transfer identity and accepted-byte protocol. The [Background Fetch specification](https://wicg.github.io/background-fetch/) restricts automatic request restart to GET because repeating other methods can cause side effects.
+
+The browser uses the request's credential policy; the journal does not pin a cookie, TLS identity, or authenticated session. Credentials can change while work is pending. Server authorization remains authoritative. Read-access loss removes protected activity and receipts; losing write access blocks a handoff that has not started, but does not mean already accepted work was canceled. Explicit cancellation can leave partial remote effects and must not be presented as rollback.
+
+## One owner makes shared decisions
+
+The SharedWorker owns acquisition, actions, and persistence. Tabs own views. A version-independent Web Lock protects ownership, including during updates. A delayed heartbeat does not authorize a second owner.
+
+Use the [browser-host guide](/docs/data/connect/browser-host) to configure that boundary. Runtime defaults bound concurrent reads and commands to four each; adjust concurrency and retention through [RuntimeOptions](/docs/data/reference/api/runtime.Interface.RuntimeOptions) when your backend or application needs different limits.

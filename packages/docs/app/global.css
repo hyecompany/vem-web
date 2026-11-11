@@ -1,0 +1,185 @@
+@import "tailwindcss";
+@import "fumadocs-ui/css/preset.css";
+@import "fumadocs-ui/css/neutral.css";
+
+:root {
+	--background: hsl(0, 0%, 100%);
+	--foreground: hsl(0, 0%, 3.9%);
+	--card: hsl(0, 0%, 100%);
+	--card-foreground: hsl(0, 0%, 3.9%);
+	--popover: hsl(0, 0%, 100%);
+	--popover-foreground: hsl(0, 0%, 3.9%);
+	--primary: hsl(0, 0%, 9%);
+	--primary-foreground: hsl(0, 0%, 98%);
+	--secondary: hsl(0, 0%, 96.1%);
+	--secondary-foreground: hsl(0, 0%, 9%);
+	--muted: hsl(0, 0%, 96.1%);
+	--muted-foreground: hsl(0, 0%, 45.1%);
+	--accent: hsl(0, 0%, 96.1%);
+	--accent-foreground: hsl(0, 0%, 9%);
+	--destructive: hsl(0, 84.2%, 60.2%);
+	--destructive-foreground: hsl(0, 0%, 98%);
+	--border: hsl(0, 0%, 89.8%);
+	--input: hsl(0, 0%, 89.8%);
+	--ring: hsl(0, 0%, 3.9%);
+	--radius: 0.5rem;
+}
+
+.dark {
+	--background: hsl(0, 0%, 7.04%);
+	--foreground: hsl(0, 0%, 98%);
+	--card: hsl(0, 0%, 9.8%);
+	--card-foreground: hsl(0, 0%, 98%);
+	--popover: hsl(0, 0%, 11.6%);
+	--popover-foreground: hsl(0, 0%, 98%);
+	--primary: hsl(0, 0%, 98%);
+	--primary-foreground: hsl(0, 0%, 9%);
+	--secondary: hsl(0, 0%, 12.9%);
+	--secondary-foreground: hsl(0, 0%, 98%);
+	--muted: hsl(0, 0%, 12.9%);
+	--muted-foreground: hsl(0, 0%, 63.9%);
+	--accent: hsl(0, 0%, 14.9%);
+	--accent-foreground: hsl(0, 0%, 98%);
+	--destructive: hsl(0, 62.8%, 30.6%);
+	--destructive-foreground: hsl(0, 0%, 98%);
+	--border: hsl(0, 0%, 18%);
+	--input: hsl(0, 0%, 18%);
+	--ring: hsl(0, 0%, 83.1%);
+}
+
+.home-page {
+	width: min(100% - 3rem, 66rem);
+	margin: 0 auto;
+	padding: 1.5rem 0 3rem;
+}
+.home-page nav {
+	display: flex;
+	gap: 1.5rem;
+	align-items: center;
+	padding-bottom: 3rem;
+}
+.home-page nav a:first-child {
+	font-weight: 750;
+	margin-right: auto;
+}
+.home-page section {
+	margin: 2rem 0 3rem;
+}
+.home-page h1 {
+	font-size: clamp(2.5rem, 6vw, 4.8rem);
+	line-height: 1.08;
+	letter-spacing: -0.04em;
+	font-weight: 700;
+	margin: 1rem 0 1.5rem;
+}
+.home-page h2 {
+	font-size: 1.6rem;
+	font-weight: 650;
+	margin-bottom: 1rem;
+}
+.home-intro {
+	font-size: 1.2rem;
+	max-width: 43rem;
+	line-height: 1.65;
+}
+.eyebrow {
+	font-size: 0.85rem;
+	font-weight: 650;
+	letter-spacing: 0.03em;
+}
+.package-card {
+	border: 1px solid var(--color-fd-border);
+	border-radius: 1rem;
+	padding: clamp(1.25rem, 4vw, 2.5rem);
+	background: var(--color-fd-card);
+}
+.package-card p {
+	max-width: 43rem;
+	line-height: 1.7;
+}
+.home-links {
+	display: flex;
+	gap: 1.5rem;
+	align-items: center;
+	flex-wrap: wrap;
+	margin: 1.5rem 0;
+}
+.primary-link {
+	background: var(--color-fd-primary);
+	color: var(--color-fd-primary-foreground);
+	padding: 0.75rem 1rem;
+	border-radius: 0.5rem;
+}
+.package-note,
+.home-page footer {
+	font-size: 0.9rem;
+	color: var(--color-fd-muted-foreground);
+}
+.task-links {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+	gap: 0.75rem;
+}
+.task-links a {
+	border-bottom: 1px solid var(--color-fd-border);
+	padding: 0.8rem 0;
+}
+.home-page footer a {
+	text-decoration: underline;
+}
+.home-page :focus-visible {
+	outline: 3px solid var(--color-fd-primary);
+	outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+	:root {
+		--animate-fd-dialog-in: var(--animate-fd-fade-in);
+		--animate-fd-dialog-out: var(--animate-fd-fade-out);
+		--animate-fd-popover-in: var(--animate-fd-fade-in);
+		--animate-fd-popover-out: var(--animate-fd-fade-out);
+		--animate-fd-sidebar-in: var(--animate-fd-fade-in);
+		--animate-fd-sidebar-out: var(--animate-fd-fade-out);
+		--animate-fd-collapsible-down: none;
+		--animate-fd-collapsible-up: none;
+		--animate-fd-accordion-down: none;
+		--animate-fd-accordion-up: none;
+		scroll-behavior: auto;
+	}
+	#nd-docs-layout,
+	#nd-sidebar,
+	#nd-sidebar-mobile,
+	[data-sidebar-placeholder],
+	[data-sidebar-panel],
+	[data-toc-popover-content] {
+		transition-property: color, background-color, opacity;
+	}
+}
+
+:root {
+	--color-fd-muted-foreground: hsl(0 0% 38%);
+}
+.dark {
+	--color-fd-muted-foreground: hsl(0 0% 72%);
+}
+
+@theme inline {
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+	--color-card: var(--card);
+	--color-card-foreground: var(--card-foreground);
+	--color-popover: var(--popover);
+	--color-popover-foreground: var(--popover-foreground);
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-secondary: var(--secondary);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-accent: var(--accent);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-destructive: var(--destructive);
+	--color-destructive-foreground: var(--destructive-foreground);
+	--color-border: var(--border);
+	--color-input: var(--input);
+	--color-ring: var(--ring);
+}

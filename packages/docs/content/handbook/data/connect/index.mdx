@@ -1,0 +1,23 @@
+---
+title: "Connect your data"
+description: "Give Vem your backend rules once; keep feature code small."
+order: 3
+---
+
+This section is for the person integrating a backend. If a resource already exists, go straight to [Build with Vem](/docs/data/build).
+
+Start with one resource and its available reads. Add the other pieces as the application needs them:
+
+| Your next task | Guide |
+| --- | --- |
+| Turn a backend response into usable rows | [Define a resource](/docs/data/connect/resources) |
+| Show private data to the right caller | [Implement access controls](/docs/data/connect/access) |
+| Keep views in sync with events | [Events, relationships, and derived values](/docs/data/connect/events) |
+| Save changes or run an operation | [Commands and conditional edits](/docs/data/connect/commands-edits) |
+| Share the owner across browser tabs | [Browser host](/docs/data/connect/browser-host) |
+| Keep progress visible after navigation | [Shared feedback](/docs/data/connect/feedback) |
+| Exercise loading, failures, and permissions | [Development tools](/docs/data/connect/devtools) |
+
+Vem plans automatically from your source declarations. Persistence and development panels are separate host choices.
+
+To describe bulk reads, filtering, pagination, and relative cost, see [how Vem chooses reads](/docs/data/connect/planning). For accepted background jobs, [observe and recover an operation](/docs/data/connect/operations). These extend the first adapter without changing feature code.

@@ -1,0 +1,14 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"rootDir": ".",
+		"noEmit": true
+	},
+	"include": [
+		"src",
+		"tests/contracts.ts",
+		"tests/devtools-types.ts",
+		"tests/edit-types.ts",
+		"tests/access-types.ts"
+	]
+}

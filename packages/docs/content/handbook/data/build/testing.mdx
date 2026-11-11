@@ -1,0 +1,49 @@
+---
+title: "Test a feature and its states"
+description: "Supply data and outcomes without a worker or a backend."
+order: 6
+---
+
+A feature test should prove what a person sees and can do. `createTestClient` supplies the same provider contract as the application, using named queries, commands, and edits.
+
+## Render an incomplete list
+
+Pass your React test library's `render` function to this helper:
+
+<Example file="feature-guide/testing.tsx" region="fixture" />
+
+Assert that **Plan a weekend walk** is visible with **Status unavailable**. The collection has complete membership, but the row is missing a display field. The component should not hide it or claim the list is empty.
+
+Unmount the view before calling `fixture.close()` in test cleanup. Keep one fixture per test.
+
+## Change the situation while the view is open
+
+<Example file="feature-guide/testing.tsx" region="transition" />
+
+Call `showFailure(fixture)` after rendering. Assert that the known task remains visible and the source error is shown. Use `setQuery` to supply another result; `replace` lists fields whose old values must be removed when intentionally switching to a partial scenario.
+
+Fixtures match query descriptions. If a test changes the filter, supply a fixture for that filtered query too, or establish sufficient known information for the runtime to answer it.
+
+## Exercise a conflict and access loss
+
+<Example file="feature-guide/testing.tsx" region="edit-fixture" />
+
+Render `NotesEditor` inside `DataProvider` using `fixture.client` and target `{ id: "walk" }`. Type a new meeting time and save. Assert that the conflict appears and the typed value remains.
+
+Then withdraw just the notes:
+
+<Example file="feature-guide/testing.tsx" region="edit-access" />
+
+Assert that the textarea and its value disappear. For write-only loss, use `setEditAccess(edit, { write: "denied" })` and assert that Save is disabled while readable input stays.
+
+## Choose the boundary to test
+
+| Change | Useful check |
+| --- | --- |
+| A field or filter | Type-check selected fields; render missing values |
+| A command | Admission, progress, and command-specific outcomes |
+| An editor | Dirty external change, conflict, and access loss |
+| A domain definition | Real backend responses, events, and replacement boundaries |
+| A browser host | Actual worker ownership, two tabs, and storage failures |
+
+Feature fixtures exercise the runtime's consumer behavior, not HTTP, IndexedDB, or worker ownership. Those belong in integration tests. For manual exploration inside an application, see [development tools](/docs/data/connect/devtools).

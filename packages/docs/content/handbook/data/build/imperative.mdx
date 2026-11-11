@@ -1,0 +1,36 @@
+---
+title: "Use Vem outside React"
+description: "Read, observe, and run commands through the same descriptions."
+order: 5
+---
+
+Use the application's existing `DataClient` in a controller or another UI framework. It describes the same information as a React hook; it does not create another owner.
+
+## Read once
+
+<Example file="feature-guide/imperative.ts" region="read" />
+
+The read settles with available, partial, or failed information after the acquisition attempt. A missing title remains `undefined`; inspect `issues` rather than assuming a complete object. `exists === false` is established absence.
+
+Pass an `AbortSignal` when the caller needs a deadline or can leave the screen. Aborting, closing the client, or using an invalid description can reject the promise; handle those errors at your caller boundary. There is no automatic deadline for an unresponsive source.
+
+## Run an operation
+
+<Example file="feature-guide/imperative.ts" region="run" />
+
+The returned outcome has the same success, partial, failure, and uncertainty meanings as [React actions](/docs/data/build/actions). The action handle also provides `subscribe` and `getSnapshot` for progress. Unsubscribing stops observation, not execution.
+
+## Keep a view current
+
+Call this once when the view attaches, and call its returned cleanup when the view leaves:
+
+<Example file="task-board/recipes.ts" region="watch" />
+
+Retry is on the query handle. You do not need a separate refresh query or an event subscription in the view.
+
+<details>
+<summary>Writing an editor without React</summary>
+
+`prepareEdit` returns the writable values, matching ETag, and disclosure information. `saveEdit` accepts that prepared representation and the draft. A custom editor must manage the access lifetime of copied values, preserve the original baseline while dirty, and discard it on authority or owner changes. The React `useEdit` binding already supplies that state management; the lower-level pair is not a drop-in form binding.
+
+</details>

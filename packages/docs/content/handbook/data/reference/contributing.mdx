@@ -1,0 +1,57 @@
+---
+title: "Contribute to these docs"
+description: "Keep guides, examples, reference, and exports in sync."
+order: 5
+---
+
+
+## Update a guide
+
+Edit `packages/docs/content/handbook`. Lead with the task and prerequisites, show a small useful example, explain the decisions the reader must make, and link a relevant next step. Add a page's title, description, and order in frontmatter. Navigation and machine-readable exports are generated from that content.
+
+Run `npm run docs:prepare` after content changes, then `npm run docs:dev` to preview. Generated content in `content/docs`, `.generated`, and the static `out` artifact is not edited by hand. Source typechecking excludes the previous `out` artifact; the actual example files are compiled separately. During a running preview, rerun `docs:prepare` to publish source changes.
+
+## Show executable code
+
+Put runnable TypeScript in `packages/data/examples`, imported only through public package entries. Mark a focused region with `// #region name` and `// #endregion name`. Use an `Example` include with its file and optional region in a guide. The generator inserts that exact code. Include the code needed for the task on the page; a source link should never be required to understand an omitted step.
+
+Compile examples with `npm run typecheck`. Add negative type assertions for important boundaries such as unselected fields, invalid command inputs, and proposal targets. Do not maintain a second hand-copied tutorial implementation.
+
+## Add a diagram or experiment
+
+Diagram content lives in `content/diagrams.json`. Each node keeps its title, icon, color, and short explanation together. Static diagrams should explain the whole relationship at a glance. Use interaction only when changing something teaches a behavior that a static picture cannot. Add an icon to the small map in `components/Flow.tsx` when needed.
+
+Experiment prompts and explanations live in `content/experiments.json`; focused implementations live in `components/labs`. Start with one useful move the reader can make, then make its result easy to see. Keep technical scope and longer explanations in the expandable section.
+
+The task board at `components/TaskBoardDemo.tsx` is a short, ordered walkthrough of the same lessons used in the guides. `components/lesson` owns the shared application view and teaching presentation, using shadcn components. `components/labs/sources` owns each controlled source. Both use public Vem APIs.
+
+Give each lesson one familiar task first. Explain the observed result in one sentence, after the interaction. Keep unusual responses and permission changes in optional controls. Teach with the app, not a panel of internal state. Match the guide’s technical explanation to that experience, and verify the initial state as well as the failure paths.
+
+Tutorial snippets are extracted from compiled files in `packages/data/examples`. Keep each excerpt focused, and show or explain the imports and local values it needs. The repository fixture separately checks HTTP and SharedWorker integration; running it is a contributor check, not a reader prerequisite. The in-page lessons use simulated calls, so never label their counters as HTTP traffic.
+
+Each experiment needs an initial state, a few labeled controls, reset, observable results, and honest execution scope. Keep interaction user-controlled and keyboard accessible. Add browser checks for reset and meaningful failure paths. Avoid one combined control panel that requires learning every concept at once.
+
+## Change the API reference
+
+Update JSDoc on the public source declaration. `scripts/generate-reference.mjs` reads the package's seven export entry points through pinned TypeDoc and its Markdown plugin. Signatures and member lists are generated; semantic responsibilities belong in source comments and the relevant guide.
+
+## Review the teaching value
+
+Read the rendered page as someone doing the task for the first time. Can they tell where the code belongs, understand its inputs, and use its output without opening a source repository? Explain one practical default before introducing optional mechanisms. Remove repeated scope disclaimers, unexplained API lists, and controls that do not teach anything new.
+
+## Validate the reader journeys
+
+```sh
+npm run check
+npm run typecheck
+npm test
+npm run test:package
+npm run docs:build
+npm run test:docs
+```
+
+For Pages, build with `BASE_PATH=/vem-web` in the environment. Check search, links and anchors, mobile width, zoom, keyboard focus, reduced motion, and ordinary reading with JavaScript disabled. Do not publish as a side effect of local validation.
+
+`llms.txt`, `llms-full.txt`, and `docs.json` come from the same content. Text exports expand code excerpts and explain diagrams and experiments; they must not contain unresolved component tags.
+
+For host development, `npm run example:dev` starts the repository's HTTP/event fixture and SharedWorker application on `http://127.0.0.1:4310`. Use it to investigate transport or cross-tab behavior. The learning examples remain embedded in the docs.

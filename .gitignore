@@ -1,0 +1,16 @@
+node_modules/
+dist/
+coverage/
+*.tgz
+*.local
+.env
+.npm-cache/
+.next/
+out/
+.source/
+
+packages/docs/content/docs/
+.generated/
+packages/docs/public/examples/
+**/.build/
+*.tsbuildinfo

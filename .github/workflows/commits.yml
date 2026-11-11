@@ -1,0 +1,47 @@
+# SPDX-FileCopyrightText: © 2026 Joseph Maldjian <joseph.maldjian@hyecompany.com>
+# SPDX-License-Identifier: Apache-2.0
+
+name: Commits
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  dco-check:
+    name: Signed-off-by (DCO)
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    steps:
+      - name: Check that all commits are signed-off
+        uses: KineticCafe/actions-dco@5f160e3ee086af8fc0fb567b8add0937d074123e # v3.2.0
+
+  llm-commit-policy:
+    name: LLM commit policy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: none
+    steps:
+      - name: Check out commits
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Reject automated attribution trailers
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -eu
+          agents="(aider|anthropic|claude|codex|copilot|devin|gemini|grok|openai)"
+          for commit in $(git rev-list "${BASE_SHA}..${HEAD_SHA}"); do
+            if git log -n 1 "$commit" | tr '[:upper:]' '[:lower:]' | grep -qE "(author|assisted-by|co-authored-by|signed-off-by):.*${agents}"; then
+              echo "Commit appears to contain an automated attribution trailer:"
+              git log -n 1 "$commit"
+              exit 1
+            fi
+          done

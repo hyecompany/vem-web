@@ -1,0 +1,38 @@
+---
+title: "Four concepts"
+description: "Connect the task-board interactions to the code you write."
+order: 3
+---
+
+The task board uses four concepts. Each corresponds to one ordinary piece of feature code.
+
+| Concept | In the app | In your code |
+| --- | --- | --- |
+| **Query** | Show the unfinished tasks | `useQuery(tasks.list(...))` |
+| **Command** | Ask to complete this task | `useCommand(tasks.commands.complete(target))` |
+| **Action** | Track that attempt's progress and result | `useAction(handle)` |
+| **Edit session** | Change notes while keeping a protected draft | `useEdit(tasks.edits.notes(target))` |
+
+A command is a description of intended work. Calling its bound `run()` creates an action: the shared record of that particular attempt.
+
+## Descriptions are values
+
+Calling `tasks.list(...)` or `tasks.commands.complete(...)` alone does not read or change anything. The hook or client uses that description to request information or execute work.
+
+Equivalent inline descriptions work without manual memoization. A new JavaScript object with the same query values is the same information request.
+
+## Where does `tasks` come from?
+
+It is a small contract shared by your features and backend integration. It names the available fields, commands, and edits:
+
+<Example file="task-board/contract.ts" region="contract" />
+
+The integration supplies how those names work. A feature contributor imports `tasks`; they do not repeat the definition or implement its networking. The **resource reference** `TaskRef` identifies a task, while `Task` describes its fields.
+
+`defineCommand` and `defineEdit` also describe their input and supported outcomes. Even a contract with only `succeeded` can return a framework failure or an unknown result, so the UI still handles both.
+
+## A query result can be useful before it is complete
+
+A known task without its title can still appear with a placeholder. A task without its status cannot yet be placed in a “To do” filter. An empty array can mean “not known yet,” so use `result.empty` to say “No tasks.”
+
+You can build the ordinary view first using [Display data](/docs/data/build/display). The [partial-results guide](/docs/data/build/partial-results) explains the additional states when you need them.

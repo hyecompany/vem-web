@@ -1,0 +1,468 @@
+/* SPDX-FileCopyrightText: © 2026 Joseph Maldjian <joseph.maldjian@hyecompany.com> */
+/* SPDX-License-Identifier: Apache-2.0 */
+
+.lesson,
+.lesson-tour {
+	--muted-foreground: var(--color-fd-muted-foreground);
+	color: var(--foreground);
+	font-size: 0.9rem;
+	line-height: 1.6;
+}
+.lesson {
+	margin-block: 1.5rem;
+}
+.lesson-heading {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	margin-bottom: 0.75rem;
+}
+.lesson-heading h3 {
+	font-weight: 600;
+	font-size: 0.9rem;
+	margin: 0;
+}
+.lesson-heading > button {
+	color: var(--muted-foreground);
+}
+.teaching-note {
+	display: flex;
+	align-items: start;
+	gap: 0.7rem;
+	min-height: 4.5rem;
+	padding: 0.6rem 0 1.1rem;
+}
+.teaching-note > svg {
+	width: 1.1rem;
+	height: 1.1rem;
+	flex-shrink: 0;
+	margin-top: 0.25rem;
+	color: var(--learn-blue);
+}
+.teaching-note p {
+	margin: 0;
+	max-width: 43rem;
+}
+.teaching-note[data-learned="true"] > svg {
+	color: var(--learn-green);
+}
+.teaching-metric {
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+	font-size: 0.75rem;
+	color: var(--muted-foreground);
+	margin-left: auto;
+	padding-top: 0.1rem;
+}
+.task-window {
+	overflow: hidden;
+	box-shadow: 0 3px 14px #00000006;
+}
+.task-app-header {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	padding: 0.85rem 1.1rem;
+	border-bottom: 1px solid var(--border);
+	background: color-mix(in srgb, var(--muted) 45%, var(--background));
+}
+.task-app-header strong {
+	font-size: 0.9rem;
+}
+.app-mark {
+	display: grid;
+	place-items: center;
+	background: var(--learn-blue);
+	color: var(--background);
+	border-radius: 0.4rem;
+	width: 1.65rem;
+	height: 1.65rem;
+}
+.app-mark svg {
+	width: 1rem;
+	height: 1rem;
+}
+.app-location {
+	color: var(--muted-foreground);
+	font-size: 0.8rem;
+}
+.app-toolbar {
+	margin-left: auto;
+}
+.task-app-body {
+	padding: 1rem 1.15rem;
+}
+.task-filters {
+	display: flex;
+	gap: 0.3rem;
+	margin-bottom: 0.65rem;
+}
+.app-task-list {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+.app-task {
+	display: flex;
+	align-items: center;
+	gap: 0.45rem;
+	padding: 0.8rem 0;
+	min-height: 4.25rem;
+	border-bottom: 1px solid var(--border);
+}
+.app-task:last-child {
+	border-bottom: 0;
+}
+.app-task[data-done="true"] .task-name > strong,
+.app-task[data-done="true"] .task-name > button {
+	color: var(--muted-foreground);
+	text-decoration: line-through;
+}
+.task-check {
+	display: grid;
+	place-items: center;
+	width: 2.25rem;
+	flex-shrink: 0;
+	color: var(--muted-foreground);
+}
+.task-check svg {
+	width: 1.1rem;
+	height: 1.1rem;
+}
+.app-task[data-done="true"] .task-check {
+	color: var(--learn-green);
+}
+.task-name {
+	min-width: 0;
+	flex: 1;
+}
+.task-name > strong {
+	font-size: 0.9rem;
+	font-weight: 500;
+}
+.task-name > button {
+	height: auto;
+	white-space: normal;
+	text-align: left;
+	justify-content: flex-start;
+	padding: 0.35rem 0.4rem;
+	margin-left: -0.4rem;
+}
+.task-note {
+	font-size: 0.8rem;
+	color: var(--muted-foreground);
+	margin: 0.25rem 0 0;
+}
+.app-hint {
+	color: var(--muted-foreground);
+	font-size: 0.8rem;
+	margin: 0.5rem 0 0;
+}
+.task-detail {
+	padding-block: 0.6rem;
+}
+.task-detail h4 {
+	font-size: 1rem;
+	font-weight: 600;
+	margin: 0 0 1rem;
+}
+.task-detail > span,
+.task-section-label {
+	color: var(--muted-foreground);
+	font-size: 0.8rem;
+}
+.task-detail p {
+	margin-top: 0.25rem;
+}
+.app-columns {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	gap: 1rem;
+}
+.app-columns:has(.app-overview) {
+	grid-template-columns: minmax(0, 1fr) 8rem;
+}
+.app-overview {
+	border-left: 1px solid var(--border);
+	padding-left: 1rem;
+	align-self: stretch;
+	padding-top: 0.4rem;
+}
+.app-overview > span {
+	font-size: 0.75rem;
+	color: var(--muted-foreground);
+}
+.app-overview strong {
+	display: block;
+	font-size: 1.5rem;
+	letter-spacing: -0.04em;
+	margin-top: 0.7rem;
+}
+.app-overview p {
+	color: var(--muted-foreground);
+	font-size: 0.75rem;
+	margin: 0;
+}
+.lesson progress {
+	accent-color: var(--learn-green);
+	width: 100%;
+	height: 0.4rem;
+}
+.lesson-situation,
+.lesson-about,
+.lesson-evidence {
+	font-size: 0.8rem;
+	margin-top: 1rem;
+}
+.lesson-situation summary,
+.lesson-about summary,
+.lesson-evidence summary {
+	cursor: pointer;
+	width: fit-content;
+	color: var(--muted-foreground);
+	padding-block: 0.3rem;
+}
+.situation-body {
+	margin-top: 0.5rem;
+	border-left: 2px solid var(--border);
+	padding: 0.3rem 0 0.3rem 1rem;
+}
+.situation-body p,
+.lesson-about p,
+.lesson-evidence p {
+	margin: 0.5rem 0;
+}
+.scenario-buttons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+.service-reply {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	margin-top: 0.75rem;
+	padding: 0.7rem 0;
+	font-size: 0.8rem;
+}
+.service-reply span {
+	color: var(--muted-foreground);
+}
+.action-feedback {
+	font-size: 0.85rem;
+	margin-top: 0.8rem;
+}
+.task-editor {
+	display: grid;
+	gap: 1rem;
+}
+.task-editor label {
+	display: grid;
+	gap: 0.4rem;
+	font-size: 0.8rem;
+	font-weight: 500;
+}
+.task-editor input,
+.task-editor textarea {
+	font-weight: 400;
+}
+.editor-actions {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+.editor-actions > span {
+	font-size: 0.8rem;
+	color: var(--learn-green);
+}
+.teammate-note,
+.private-note {
+	background: var(--muted);
+	border-radius: 0.5rem;
+	padding: 0.8rem 1rem;
+	margin-top: 1rem;
+}
+.teammate-note > span,
+.private-note > span {
+	font-size: 0.75rem;
+	color: var(--muted-foreground);
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+.private-note svg {
+	width: 0.85rem;
+	height: 0.85rem;
+}
+.private-note p,
+.teammate-note p {
+	margin: 0.4rem 0 0;
+	font-size: 0.85rem;
+}
+.app-message {
+	font-size: 0.85rem;
+	color: var(--muted-foreground);
+	padding-block: 0.5rem;
+}
+.app-empty {
+	display: grid;
+	place-items: center;
+	padding: 1.8rem 0;
+	color: var(--muted-foreground);
+}
+.app-empty svg {
+	width: 1.5rem;
+	color: var(--learn-green);
+}
+.app-empty p {
+	margin-top: 0.5rem;
+}
+.situation-select {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	flex-wrap: wrap;
+	font-size: 0.8rem;
+	color: var(--muted-foreground);
+	margin-block: 1rem;
+}
+.situation-select select {
+	border: 1px solid var(--input);
+	border-radius: 0.4rem;
+	padding: 0.5rem;
+	background: var(--background);
+	color: var(--foreground);
+	max-width: 100%;
+	font-size: 1rem;
+}
+.access-settings {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 0.6rem 1.5rem;
+	padding-block: 1rem 0.5rem;
+}
+.access-settings > span {
+	grid-column: 1 / -1;
+	color: var(--muted-foreground);
+	font-size: 0.75rem;
+}
+.access-settings label {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	font-size: 0.8rem;
+}
+.lesson-evidence dl {
+	display: grid;
+	gap: 0.4rem;
+}
+.lesson-evidence dl > div {
+	display: flex;
+	justify-content: space-between;
+	gap: 1rem;
+}
+.lesson-evidence dt {
+	color: var(--muted-foreground);
+}
+.lesson-evidence dd {
+	margin: 0;
+}
+.lesson-tour > div > [role="tablist"] {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	width: 100%;
+	height: auto;
+	padding: 0.3rem;
+}
+.lesson-tour [role="tab"] {
+	gap: 0.5rem;
+	padding: 0.65rem 0.5rem;
+	font-size: 0.8rem;
+}
+.lesson-tour [role="tab"] > span {
+	color: var(--muted-foreground);
+	font-variant-numeric: tabular-nums;
+}
+.lesson-tour .lesson {
+	margin-top: 1.2rem;
+}
+.lesson-next {
+	display: flex;
+	justify-content: flex-end;
+	border-top: 1px solid var(--border);
+	padding-top: 0.4rem;
+}
+.lesson-placeholder {
+	padding: 1.5rem;
+	border: 1px solid var(--border);
+	border-radius: 0.75rem;
+}
+.lesson-placeholder p {
+	color: var(--muted-foreground);
+}
+.lesson :focus-visible,
+.lesson-tour :focus-visible {
+	outline: 2px solid var(--learn-blue);
+	outline-offset: 3px;
+}
+@media (max-width: 540px) {
+	.teaching-note {
+		flex-wrap: wrap;
+		gap: 0.45rem;
+	}
+	.teaching-note p {
+		flex: 1;
+		min-width: 75%;
+	}
+	.teaching-metric {
+		margin-left: 1.55rem;
+	}
+	.app-columns:has(.app-overview) {
+		grid-template-columns: 1fr;
+	}
+	.app-overview {
+		border-left: 0;
+		border-top: 1px solid var(--border);
+		padding: 0.7rem 0 0;
+	}
+	.app-overview strong {
+		margin-top: 0.2rem;
+	}
+	.access-settings {
+		grid-template-columns: 1fr;
+	}
+	.service-reply {
+		align-items: start;
+		flex-direction: column;
+	}
+	.lesson-tour [role="tab"] {
+		white-space: normal;
+		font-size: 0.75rem;
+		line-height: 1.4;
+	}
+	.lesson-tour [role="tab"] > span {
+		display: none;
+	}
+	.app-location {
+		display: none;
+	}
+}
+
+.lesson-tour {
+	scroll-margin-top: 7rem;
+}
+
+@media (pointer: coarse) {
+	.lesson summary {
+		min-block-size: 2.75rem;
+		padding-block: 0.75rem;
+	}
+	.access-settings label,
+	.situation-select select {
+		min-block-size: 2.75rem;
+	}
+}

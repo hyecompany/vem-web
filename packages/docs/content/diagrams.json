@@ -1,0 +1,146 @@
+{
+  "ownership": {
+    "title": "Three responsibilities",
+    "explanation": "The tab holds a read model for synchronous rendering. The SharedWorker owns acquisition and mutation. Pure read definitions run in both places; credentials and HTTP stay in the owner integration.",
+    "nodes": [
+      {
+        "title": "Component",
+        "icon": "layout",
+        "tone": "blue",
+        "summary": "Describe what the view needs. Render it with public hooks."
+      },
+      {
+        "title": "Domain",
+        "icon": "blocks",
+        "tone": "violet",
+        "summary": "Define how backend responses, permissions, and operations work."
+      },
+      {
+        "title": "Browser host",
+        "icon": "network",
+        "tone": "green",
+        "summary": "Connect tabs to one owner, with events and optional storage."
+      }
+    ]
+  },
+  "acquisition": {
+    "title": "From need to knowledge",
+    "explanation": "The shared owner combines demand from tabs and imperative readers, subtracts known information, and reuses in-flight work. It compares declared backend capabilities and costs. Responses establish facts; missing information may require another source.",
+    "nodes": [
+      {
+        "title": "Combine demand",
+        "icon": "list",
+        "tone": "blue",
+        "summary": "Collect what active consumers across tabs still need."
+      },
+      {
+        "title": "Reuse knowledge",
+        "icon": "database",
+        "tone": "green",
+        "summary": "Subtract known facts and account for work already in flight."
+      },
+      {
+        "title": "Compare sources",
+        "icon": "search",
+        "tone": "amber",
+        "summary": "Choose compatible reads using coverage, permissions, and cost."
+      },
+      {
+        "title": "Observe and reconsider",
+        "icon": "radio",
+        "tone": "violet",
+        "summary": "Publish actual evidence, then plan for any remaining gaps."
+      }
+    ]
+  },
+  "proposals": {
+    "title": "A proposal sits above confirmed facts",
+    "explanation": "Removing a proposal does not restore a saved old snapshot. Success must be supported by backend evidence; a partial or unknown outcome cannot be rewritten as complete success.",
+    "nodes": [
+      {
+        "title": "Confirmed: open",
+        "icon": "database",
+        "tone": "blue",
+        "summary": "The service last confirmed this task is open."
+      },
+      {
+        "title": "Proposed: done",
+        "icon": "layers",
+        "tone": "violet",
+        "summary": "The component previews completion while the action runs."
+      },
+      {
+        "title": "New evidence arrives",
+        "icon": "radio",
+        "tone": "green",
+        "summary": "Events can change the confirmed task beneath the preview."
+      },
+      {
+        "title": "Reveal the latest facts",
+        "icon": "check",
+        "tone": "green",
+        "summary": "When the preview ends, show current facts, not an old snapshot."
+      }
+    ]
+  },
+  "baseline": {
+    "title": "An editor keeps its concurrency baseline",
+    "explanation": "Reload explicitly discards the draft and prepares a new baseline. Known read revocation removes protected values; write-only loss keeps readable values and disables saving.",
+    "nodes": [
+      {
+        "title": "Prepare + ETag",
+        "icon": "file",
+        "tone": "blue",
+        "summary": "Read the saved notes and their version together."
+      },
+      {
+        "title": "Keep a draft",
+        "icon": "pencil",
+        "tone": "violet",
+        "summary": "Keep typed changes with that original version."
+      },
+      {
+        "title": "External change",
+        "icon": "radio",
+        "tone": "amber",
+        "summary": "A teammate\u2019s update changes shared facts, not dirty input."
+      },
+      {
+        "title": "Save conditionally",
+        "icon": "shield",
+        "tone": "green",
+        "summary": "Send draft + original version. A conflict preserves the draft."
+      }
+    ]
+  },
+  "recovery": {
+    "title": "Recovery investigates what happened",
+    "explanation": "A missing response, missing journal, or missing operation history does not prove that the operation never happened. Recovery is not an instruction to submit again. A lock protects owner exclusivity; a heartbeat timeout cannot transfer ownership.",
+    "nodes": [
+      {
+        "title": "Checkpoint",
+        "icon": "file",
+        "tone": "blue",
+        "summary": "Record possible submission before sending, when storage works."
+      },
+      {
+        "title": "Submit once",
+        "icon": "send",
+        "tone": "violet",
+        "summary": "A lost response does not tell us whether the work happened."
+      },
+      {
+        "title": "Restore context",
+        "icon": "database",
+        "tone": "amber",
+        "summary": "Restore the action record after access is established."
+      },
+      {
+        "title": "Investigate",
+        "icon": "search",
+        "tone": "green",
+        "summary": "Check what happened. Do not send the command again."
+      }
+    ]
+  }
+}

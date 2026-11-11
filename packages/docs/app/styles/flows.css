@@ -1,0 +1,77 @@
+/* SPDX-FileCopyrightText: © 2026 Joseph Maldjian <joseph.maldjian@hyecompany.com> */
+/* SPDX-License-Identifier: Apache-2.0 */
+.learning-flow {
+	border: 1px solid var(--color-fd-border);
+	border-radius: 0.75rem;
+	margin-block: 2rem;
+	font-size: 0.9rem;
+	padding: clamp(1rem, 3vw, 1.5rem);
+	background: var(--color-fd-card);
+}
+.learning-flow figcaption {
+	font-weight: 650;
+	font-size: 0.9rem;
+}
+.learning-flow .flow-track {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.8rem;
+	list-style: none;
+	padding: 0;
+	margin: 1rem 0;
+}
+.learning-flow .flow-track > li {
+	padding: 0.9rem;
+	background: var(--color-fd-background);
+	border: 1px solid var(--color-fd-border);
+	border-top: 3px solid var(--tone);
+	border-radius: 0.6rem;
+}
+.flow-node-title {
+	display: flex;
+	align-items: center;
+	gap: 0.65rem;
+}
+.flow-node-title strong {
+	font-size: 0.9rem;
+	line-height: 1.4;
+}
+.flow-number {
+	color: var(--tone);
+}
+.flow-icon {
+	display: grid;
+	place-items: center;
+	width: 2rem;
+	height: 2rem;
+	flex-shrink: 0;
+	border-radius: 0.45rem;
+	color: var(--tone);
+	background: color-mix(in srgb, var(--tone) 10%, transparent);
+}
+.flow-icon svg {
+	width: 1.15rem;
+	height: 1.15rem;
+}
+.learning-flow .flow-track p {
+	margin: 0.65rem 0 0;
+	font-size: 0.85rem;
+	line-height: 1.6;
+}
+.learning-flow .flow-explanation {
+	font-size: 0.85rem;
+	line-height: 1.65;
+	margin: 1rem 0 0;
+	color: var(--color-fd-muted-foreground);
+}
+@media (max-width: 600px) {
+	.learning-flow .flow-track {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (min-width: 1100px) {
+	.learning-flow[data-flow="ownership"] .flow-track {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+}

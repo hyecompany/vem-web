@@ -1,0 +1,116 @@
+---
+title: "Apply events and derive values"
+description: "Update shared information from what the backend actually tells you."
+order: 2
+---
+
+If the backend announces that a task is done, every view can use that fact immediately. The adapter translates the event once; components do not subscribe to the event stream or invalidate their queries.
+
+## Publish a value from an event
+
+Add this function as `event: taskStatusEvent` on the task's owner definition. It accepts a small event with an ID and the new status:
+
+<Example file="integration/events.ts" region="event-definition" />
+
+`ResourceDefinition` comes from `@hyecompany/vem-data/runtime`. The validator rejects malformed input. It publishes only the status: it does not pretend this event supplied the task's title, notes, or a complete list.
+
+In the owner, route the transport's decoded messages to that definition:
+
+<Example file="integration/events.ts" region="event-delivery" />
+
+`Runtime` is imported from the same entry point. Connect `receiveTaskStatus` to decoded events. Call `connectedTaskEvents` only when delivery is continuous for that channel, and `lostTaskEvents` on an interruption. A channel is a named continuity guarantee, not merely an open socket. If a subscription covers only one project, include that project in the channel reference's `scope`.
+
+| The event contains… | The adapter should… |
+| --- | --- |
+| A new field value | Publish that fact directly |
+| Proof a resource was deleted | Publish `presence: "absent"` |
+| Only “this field changed” | Mark that specific evidence unsupported so an active reader can acquire it |
+| An unknown span of missed changes | Mark the affected channel and scope interrupted |
+
+The last two cases acknowledge missing evidence. They are not a reason to periodically reread ordinary data. An update event cannot prove that an enumeration is complete.
+
+## Declare which fields the events keep current
+
+<Lab name="liveness" />
+
+Suppose this backend emits every task-status change, but no title or notes changes. Describe that difference on each acquired representation:
+
+<Example file="integration/events.ts" region="field-liveness" />
+
+Use this extraction in the task sources when the status subscription is installed. `fieldLiveness` overrides the observation's default for those fields. For directly observed values, unlisted fields remain snapshots: reading status events does not make notes current.
+
+| Observation declares… | Meaning |
+| --- | --- |
+| `liveness: "snapshot"`, or omitted | The value was observed; ongoing change coverage is not established |
+| `liveness: { channel, scope? }` | This value relies on that channel's continuous delivery |
+| `liveness: "immutable"` | The field genuinely cannot change for this identity |
+
+Use `{ all: [...] }` when several channels are needed, or `{ any: [...] }` for independently sufficient coverage. These expressions describe continuity; permission expressions answer a separate question.
+
+<details>
+<summary>When events reveal some changes but cannot cover every change</summary>
+
+Use `liveness: { all: [{ channel: "task-events" }, "snapshot"] }`. The snapshot requirement prevents a false `live` claim, while the channel still records useful change coverage. A known interruption makes affected evidence stale because an event may have been missed. Plain `"snapshot"` declares no such channel dependency.
+
+</details>
+
+A real interruption makes facts that rely on that channel stale. Unrelated fields and independently sufficient coverage survive. Reads made during the interruption still provide useful snapshots. Reconnecting does not retroactively cover missed changes: affected active consumers acquire new evidence. An unchanged, unmonitored snapshot does not gain a TTL or a mount/focus verification policy.
+
+Keep permitted values on screen during repair. `result.revalidating` signals an active check of stale evidence; `result.stale` remains true if the check stops or fails. [Read presentation](/docs/data/build/partial-results#keep-values-visible-while-checking-them) shows the shared status component.
+
+The runtime exposes `row.fields.status?.liveness` as `"live"`, `"snapshot"`, or `"immutable"`; `stale` separately reports known missing currency evidence. `live` applies to that field's declared support. It is not a claim that every field or project is monitored.
+
+## Derive a value from known facts
+
+Suppose every screen uses a human-readable status label. Define it once instead of storing an unrelated copy:
+
+<Example file="task-board/recipes.ts" region="derivation" />
+
+Install this as `derive: deriveTaskLabel`. Add `statusLabel` to the public contract before selecting it in a component. `changed` identifies evidence that changed; `context.get` reads what is now known. `dependsOn` connects the derived label to its source status, so withdrawal or invalidation of that support affects the label too.
+
+To let Vem acquire the inputs when a consumer asks for the derived field, declare its prerequisites:
+
+<Example file="integration/events.ts" region="planned-derivation" />
+
+Install this as `fieldDependencies: taskDependencies`. The `labelCount` entry is used by the relationship example below. These callbacks describe required information; Vem selects the sources and shares their work with other consumers.
+
+A derived field automatically inherits the currency of every required `dependsOn` fact and relationship. An explicit liveness requirement can add support requirements, but cannot make an unsupported dependency current.
+
+For ordinary formatting used by only one component, a local formatting function is enough. A domain derivation is useful when multiple readers need the same meaning or it participates in queries.
+
+## Record a relationship when links matter
+
+A task's labels are links to label resources, separate from the labels' names or colors:
+
+<Example file="integration/events.ts" region="relationship" />
+
+Here `TaskRef` is `{ id: string }`; `ObservationBatch` comes from `@hyecompany/vem-data/runtime`. Return this batch from acquisition or an event definition. Set `complete: true` only if `labelIds` is the full set. A partial response uses `false`; explicit removals use `removed`.
+
+<details>
+<summary>When individual links have different permissions</summary>
+
+Suppose a task links to labels that require different read permissions. Use `targetBasis` to protect each link separately. This example assumes those permissions were verified and the response establishes the entire visible set:
+
+<Example file="integration/events.ts" region="relationship-permissions" />
+
+Withdrawing one label’s permission removes that link and the claim that the set is complete; other permitted links survive. A count or other value derived from the complete set loses its supporting evidence too. If you also publish all label IDs as one scalar array, protect that aggregate with every permission it requires.
+
+A complete response replaces claims with the same disclosure basis; independently supported links can remain. Populate `removedLabelIds` only when the backend establishes those links were removed. `removed` withdraws the link itself, including independent claims; a partial response or a concealed target does not establish removal.
+
+</details>
+
+To expose the number of labels as an ordinary selected field, derive it only when the set is complete:
+
+<Example file="integration/events.ts" region="relationship-derivation" />
+
+Install this as the resource's `derive` function and add `labelCount: number` to `Task` plus `"labelCount"` to the contract's `fields`. A component can then select `"labelCount"` through its usual task query. If you also use the status-label derivation above, combine their returned facts in the one `derive` function.
+
+A relationship source advertises `relationships: ["labels"]` in its capabilities. The response above establishes the actual links.
+
+To derive label names, register a `labels` resource with its own sources and declare the related information needed:
+
+<Example file="integration/events.ts" region="related-prerequisites" />
+
+Vem first acquires unknown links, then reevaluates the prerequisites and chooses reads for the related names alongside all other demand. A corresponding `labelNames` derivation must depend on both the relationship and those name facts; it publishes a value only when the needed evidence is available. The component still selects an ordinary field.
+
+Next: [implement commands and edits](/docs/data/connect/commands-edits).

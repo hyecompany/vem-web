@@ -1,0 +1,39 @@
+{
+	"name": "@hyecompany/vem-docs",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "next dev --webpack",
+		"build": "next build --webpack",
+		"start": "next start",
+		"test": "fumadocs-mdx && tsc --noEmit",
+		"typecheck": "fumadocs-mdx && tsc --noEmit"
+	},
+	"dependencies": {
+		"@fontsource/poppins": "^5.3.0",
+		"@hyecompany/vem-data": "file:../data",
+		"@radix-ui/react-slot": "^1.2.4",
+		"@radix-ui/react-switch": "^1.4.1",
+		"@radix-ui/react-tabs": "^1.1.13",
+		"class-variance-authority": "^0.7.1",
+		"clsx": "^2.1.1",
+		"fumadocs-core": "^16.18.3",
+		"fumadocs-mdx": "^15.5.2",
+		"fumadocs-ui": "^16.18.3",
+		"lucide-react": "^1.16.0",
+		"next": "^16.4.5",
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0",
+		"tailwind-merge": "^3.0.2"
+	},
+	"devDependencies": {
+		"@tailwindcss/postcss": "^4.0.9",
+		"@types/node": "^24.0.0",
+		"@types/react": "^19.0.0",
+		"@types/react-dom": "^19.0.0",
+		"postcss": "^8.5.3",
+		"tailwindcss": "^4.0.9",
+		"typescript": "^5.9.0"
+	}
+}

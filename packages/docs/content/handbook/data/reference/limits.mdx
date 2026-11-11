@@ -1,0 +1,41 @@
+---
+title: "Integration limits"
+description: "Know which guarantees your backend and browser host must provide."
+order: 4
+---
+
+## Bound requests that may never return
+
+Vem settles an acquisition when the source answers or fails. The runtime currently has no built-in deadline for a source promise that never settles. This is a gap in the intended finite-read guarantee: a hanging adapter can keep an imperative read pending.
+
+Set transport deadlines in your domain integration. An imperative caller can also bound its own wait:
+
+<Example file="host-guide/lifetimes.ts" region="deadline" />
+
+`DataClient` comes from `@hyecompany/vem-data`; `tasks` is the application's resource contract. Catch an aborted read at the caller. Aborting withdraws that caller's demand, including reads queued before attachment. It does not cancel shared work needed by another view. An acquisition already in flight may finish and contribute permitted evidence; the abandoned reader does not request further acquisition.
+
+## Automatic planning is bounded
+
+Vem chooses acquisition sets from declared capabilities and current knowledge. It cannot infer undocumented backend semantics or know future demand. When record identities or related links are unknown, it may first acquire membership, then plan again with that evidence. Its cost estimates come from the integration; the bounded search keeps the best plan it finds, not a universal optimum.
+
+`maxConcurrent` defaults to 4 source reads. `maxAcquisitionsPerRead` defaults to 4,096 dispatched sources per attempt; exhausting it leaves a partial result with an explanation. Paged sources default to at most 100 pages unless configured. Sources must provide transport deadlines and truthful completeness. These bounds prevent an unbounded acquisition loop; increase them deliberately for larger supported workloads.
+
+## Match promises to your integration
+
+| You want… | Your integration must provide… |
+| --- | --- |
+| Current data after a disconnected event stream | Accurate field/channel continuity and replay or reacquisition after a gap |
+| Private fields to disappear on access loss | Accurate access decisions and disclosure bases |
+| Conditional saves | A token from the same writable representation as the draft baseline |
+| Recovery after the owner stops | Persistence plus backend evidence the domain can investigate |
+| An upload that continues after tabs close | The [browser transfer host](/docs/data/connect/browser-host#let-the-browser-continue-an-upload), durable storage, browser support, and confirmed handoff |
+| A resumable transfer | A backend transfer protocol and enough durable metadata to resume it |
+| Form-library values to be forgotten | Integration that withdraws its values and defaults alongside the edit session |
+
+Vem provides the coordination contracts. It does not generate backend semantics from a schema or supply a form library, authorization server, upload protocol, or development panel.
+
+## What the documentation examples exercise
+
+The embedded examples run Vem against simulated services in the page. They demonstrate shared planning, per-field continuity, actions, access, and edits. Their counters do not represent HTTP traffic; their recovery example uses memory storage.
+
+Repository integration checks separately exercise an actual SharedWorker, HTTP/events, conditional writes, and a packed independent consumer. Backend-specific behaviors still belong in your domain's tests. Use [feature fixtures](/docs/data/build/testing) for screens and [the resource guide](/docs/data/connect/resources) for integration boundaries.
