@@ -76,8 +76,14 @@ test("exported internal links and anchors resolve beneath the deployment base", 
 });
 test("text exports contain executable excerpts and equivalent visual explanations", async () => {
 	const text = await readFile(resolve(out, "llms-full.txt"), "utf8");
-	assert.doesNotMatch(text, /<(?:Example|Flow|Lab|TaskBoardDemo)\b/);
+	assert.doesNotMatch(
+		text,
+		/<(?:Example|Flow|Lab|TaskBoardDemo|UiPreview|ComponentPreview|ComponentCatalog|UiReference)\b/,
+	);
 	assert.match(text, /function NotesEditor/);
+	assert.match(text, /function ProjectButton/);
+	assert.match(text, /Preview: A long project name/);
+	assert.match(text, /Preview: Loading feedback/);
 	assert.match(text, /Three responsibilities/);
 	assert.match(text, /Experiment: Keep your own draft/);
 	assert.match(text, /Experiment: One plan for several views/);
@@ -121,5 +127,108 @@ test("all public entry points and their exported symbols appear in generated ref
 				text.includes(`[${member.name}]`),
 				`${entry.name}.${member.name} missing from reference`,
 			);
+	}
+});
+
+test("every public UI component and binding has a guide and generated reference", async () => {
+	for (const file of await files(resolve(root, "packages/docs/components"))) {
+		if (!file.endsWith(".tsx")) continue;
+		assert.doesNotMatch(
+			await readFile(file, "utf8"),
+			/from ["'][^"']*(?:@\/components\/ui\/|\/ui\/(?:src|registry)\/)/,
+			`Internal UI import in ${file}`,
+		);
+	}
+
+	const api = JSON.parse(
+		await readFile(
+			resolve(root, "packages/docs/.generated/ui-api.json"),
+			"utf8",
+		),
+	);
+	const manifest = JSON.parse(
+		await readFile(resolve(root, "packages/ui/package.json"), "utf8"),
+	);
+	const entries = Object.keys(manifest.exports)
+		.filter((key) => !key.endsWith(".css"))
+		.map((key) => (key === "." ? "index" : key.slice(2)));
+	assert.deepEqual(
+		api.children.map((entry) => entry.name).sort(),
+		entries.sort(),
+	);
+	const catalog = JSON.parse(
+		await readFile(
+			resolve(root, "packages/docs/content/ui-components.json"),
+			"utf8",
+		),
+	);
+	const documented = catalog.flatMap((entry) => entry.exports).sort();
+	const actual = api.children
+		.flatMap((entry) =>
+			entry.children
+				.filter((member) => member.kind === 64 || member.kind === 32)
+				.map((member) => member.name),
+		)
+		.sort();
+	assert.deepEqual(
+		documented,
+		actual,
+		"the catalog covers every public component and hook",
+	);
+	const generated = await files(
+		resolve(root, "packages/docs/.generated/ui-api"),
+	);
+	for (const entry of api.children) {
+		const module = await readFile(
+			resolve(
+				root,
+				`packages/docs/.generated/ui-api/${entry.name === "index" ? "index-1" : entry.name}.md`,
+			),
+			"utf8",
+		);
+		for (const member of entry.children) {
+			assert.ok(
+				module.includes(`[${member.name}]`),
+				`${entry.name}.${member.name} missing from entry reference`,
+			);
+			assert.ok(
+				generated.some((file) => file.endsWith(`.${member.name}.md`)),
+				`${member.name} missing generated declaration`,
+			);
+		}
+	}
+	const pages = JSON.parse(await readFile(resolve(out, "docs.json"), "utf8"));
+	for (const component of catalog) {
+		const guide = pages.find((page) => `/docs/${page.slug}` === component.url);
+		assert.ok(guide, `${component.title} missing guide`);
+		assert.match(guide.text, /@hyecompany\/vem-ui|API reference/);
+	}
+	assert.ok(pages.some((page) => page.slug === "task-board"));
+	assert.doesNotMatch(
+		pages.find((page) => page.slug === "").text,
+		/Working with data/,
+	);
+	assert.match(
+		pages.find((page) => page.slug === "ui").text,
+		/@hyecompany\/vem-ui\/styles.css/,
+	);
+	assert.doesNotMatch(
+		pages
+			.filter((page) => page.slug.startsWith("ui"))
+			.map((page) => page.text)
+			.join("\n"),
+		/npx shadcn|RegistryExample|RegistryExports/,
+	);
+});
+
+test("generic UI examples do not prescribe a React framework boundary", async () => {
+	for (const file of await files(resolve(root, "packages/ui/examples"))) {
+		if (!file.endsWith(".tsx")) continue;
+		const text = await readFile(file, "utf8");
+		assert.doesNotMatch(
+			text,
+			/["']use client["']|from ["']next(?:\/|["'])/,
+			file,
+		);
 	}
 });
