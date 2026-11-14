@@ -67,7 +67,7 @@ test("only one connection can claim a checkpointed transfer", async (t) => {
 	assert.deepEqual(claimed.sort(), [false, true]);
 	assert.equal((await first.readTransfer(action.id))?.state, "dispatching");
 	assert.equal(await second.claimTransfer(action.id), false);
-	assert.equal(persistenceSchemaVersion, 1);
+	assert.equal(persistenceSchemaVersion, 3);
 });
 
 test("missing, unrelated and uncheckpointed actions cannot dispatch or gain receipt records", async (t) => {

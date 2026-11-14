@@ -21,6 +21,22 @@ export async function readTitle(
 }
 // #endregion read
 
+// #region read-status
+export function observeNoteReads(
+	client: DataClient,
+	render: (pending: boolean) => void,
+) {
+	const handle = client.watchReadStatus(tasks.list({ select: ["notes"] }));
+	const update = () => render(handle.getSnapshot().pending);
+	const unsubscribe = handle.subscribe(update);
+	update();
+	return () => {
+		unsubscribe();
+		handle.dispose();
+	};
+}
+// #endregion read-status
+
 // #region run
 export async function completeTask(client: DataClient, target: TaskRef) {
 	const action = client.run(tasks.commands.complete(target));

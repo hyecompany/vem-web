@@ -12,6 +12,7 @@ import {
 } from "./transfers/receipt.js";
 import type {
 	AccessBinding,
+	AccessSnapshot,
 	ActionJournal,
 	DisclosureProof,
 	GrantRef,
@@ -25,7 +26,8 @@ interface Tombstone {
 	scope: string;
 	generation: number;
 }
-export const persistenceSchemaVersion = 1;
+/** Version 3 fences older readers that interpret predicate expressions as equality maps. */
+export const persistenceSchemaVersion = 3;
 const permitted = (
 	bases: readonly DisclosureProof[],
 	revoked: ReadonlyMap<string, number>,
@@ -54,6 +56,7 @@ export class DexiePersistence implements PersistenceAdapter {
 	private actions: Table<ActionJournal & { terminal?: number }, string>;
 	private tombstones: Table<Tombstone, string>;
 	private accessBindings: Table<AccessBinding, string>;
+	private access: Table<AccessSnapshot & { savedAt: number }, string>;
 	private queue: Promise<unknown> = Promise.resolve();
 	private closed = false;
 
@@ -74,6 +77,7 @@ export class DexiePersistence implements PersistenceAdapter {
 			actions: "id,terminal,snapshot.revision",
 			tombstones: "scope",
 			accessBindings: "key",
+			access: "contextId,savedAt",
 		});
 		this.facts = this.db.table("facts");
 		this.relationships = this.db.table("relationships");
@@ -81,6 +85,7 @@ export class DexiePersistence implements PersistenceAdapter {
 		this.actions = this.db.table("actions");
 		this.tombstones = this.db.table("tombstones");
 		this.accessBindings = this.db.table("accessBindings");
+		this.access = this.db.table("access");
 		this.db.on("versionchange", () => this.close());
 		this.db.on("ready", () => {
 			if (this.db.backendDB().version !== persistenceSchemaVersion * 10)
@@ -110,6 +115,7 @@ export class DexiePersistence implements PersistenceAdapter {
 					this.actions,
 					this.tombstones,
 					this.accessBindings,
+					this.access,
 				],
 				async () => {
 					const tombstones = await this.tombstones.toArray();
@@ -136,6 +142,7 @@ export class DexiePersistence implements PersistenceAdapter {
 						actions: actions.filter((row) => permitted(row.bases, revoked)),
 						revoked: Object.fromEntries(revoked),
 						accessBindings,
+						access: await this.access.orderBy("savedAt").toArray(),
 					};
 				},
 			),
@@ -148,12 +155,13 @@ export class DexiePersistence implements PersistenceAdapter {
 		yield await this.enqueue(() =>
 			this.db.transaction(
 				"r",
-				[this.accessBindings, this.tombstones],
+				[this.accessBindings, this.tombstones, this.access],
 				async () => ({
 					facts: [],
 					memberships: [],
 					actions: [],
 					accessBindings: await this.accessBindings.toArray(),
+					access: await this.access.orderBy("savedAt").toArray(),
 					revoked: Object.fromEntries(
 						(await this.tombstones.toArray()).map((row) => [
 							row.scope,
@@ -234,6 +242,22 @@ export class DexiePersistence implements PersistenceAdapter {
 		}
 	}
 
+	writeAccess(snapshot: AccessSnapshot): Promise<void> {
+		return this.enqueue(() =>
+			this.db.transaction("rw", this.access, async () => {
+				const previous = await this.access.orderBy("savedAt").last();
+				await this.access.put({
+					...structuredClone(snapshot),
+					savedAt: Math.max(Date.now(), (previous?.savedAt ?? 0) + 1),
+				});
+				const excess = (await this.access.count()) - 16;
+				if (excess > 0)
+					await this.access.bulkDelete(
+						await this.access.orderBy("savedAt").limit(excess).primaryKeys(),
+					);
+			}),
+		);
+	}
 	writeAccessBindings(bindings: readonly AccessBinding[]): Promise<void> {
 		return this.enqueue(async () => {
 			await this.accessBindings.bulkPut(structuredClone([...bindings]));
@@ -488,9 +512,16 @@ export class DexiePersistence implements PersistenceAdapter {
 		return this.enqueue(() =>
 			this.db.transaction(
 				"rw",
-				[this.facts, this.relationships, this.memberships, this.actions],
+				[
+					this.facts,
+					this.relationships,
+					this.memberships,
+					this.actions,
+					this.access,
+				],
 				async () => {
 					await Promise.all([
+						this.access.clear(),
 						this.facts.clear(),
 						this.relationships.clear(),
 						this.memberships.clear(),

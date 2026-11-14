@@ -18,11 +18,12 @@ import type { Cell } from "./state.js";
 
 export function mergeSupports<T extends EvidenceSupport>(
 	supports: readonly T[],
+	key: (value: unknown) => string = stableKey,
 ): T[] {
 	return [
 		...new Map(
 			supports.map((support) => [
-				stableKey({
+				key({
 					...support,
 					stale: undefined,
 					liveness: continuityRoute(support.liveness),
@@ -51,8 +52,17 @@ export class EvidenceSupports {
 					this.grants.surviving(proof).map((basis) => this.grants.adopt(basis)),
 				),
 			}))
-			.filter((support) => this.validSupport(support, new Set([cell.key])));
-		if (!supports.length) return undefined;
+			.filter(
+				(support) =>
+					support.bases.length > 0 &&
+					this.validDependencies(support, new Set([cell.key])),
+			);
+		if (
+			!supports.some((support) =>
+				this.validSupport(support, new Set([cell.key])),
+			)
+		)
+			return undefined;
 		const next = { ...cell, supports };
 		return {
 			...next,
@@ -61,7 +71,15 @@ export class EvidenceSupports {
 		};
 	}
 	validSupport(support: EvidenceSupport, path: Set<string>): boolean {
-		if (!this.grants.allowsAny(support.bases)) return false;
+		return (
+			this.grants.allowsAny(support.bases) &&
+			this.validDependencies(support, path)
+		);
+	}
+	private validDependencies(
+		support: EvidenceSupport,
+		path: Set<string>,
+	): boolean {
 		if (support.independentDisclosure) return true;
 		if (support.disclosureDependencies)
 			return support.disclosureDependencies.every((proof) =>

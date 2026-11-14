@@ -15,6 +15,7 @@ import type {
 	QueryDescriptor,
 	QueryHandle,
 	QueryResult,
+	QueryWatchOptions,
 	ResourceReadDefinition,
 } from "./types.js";
 import { equal } from "./values.js";
@@ -22,6 +23,7 @@ import { equal } from "./values.js";
 type Listener = () => void;
 interface QueryEntry {
 	descriptor: QueryDescriptor;
+	acquire: boolean;
 	status?: QueryAcquisitionState;
 	value?: QueryResult;
 	projected?: QueryResult;
@@ -54,6 +56,7 @@ export class BrowserQueries {
 	#project<T extends object, I>(
 		descriptor: QueryDescriptor<T, I>,
 		status?: QueryAcquisitionState,
+		acquire = true,
 	): QueryResult<T, I> {
 		return this.#projection.project(
 			descriptor,
@@ -77,7 +80,15 @@ export class BrowserQueries {
 								},
 							],
 						}
-					: status,
+					: (status ??
+						(acquire
+							? undefined
+							: {
+									fetching: false,
+									revalidating: false,
+									settled: true,
+									issues: [],
+								})),
 		);
 	}
 
@@ -147,7 +158,7 @@ export class BrowserQueries {
 				entry.projected = undefined;
 				continue;
 			}
-			const next = this.#project(entry.descriptor, entry.status);
+			const next = this.#project(entry.descriptor, entry.status, entry.acquire);
 			if (next === entry.projected) continue;
 			entry.projected = next;
 			if (
@@ -174,12 +185,15 @@ export class BrowserQueries {
 
 	watch<T extends object, I>(
 		descriptor: QueryDescriptor<T, I>,
+		{ acquire = true }: QueryWatchOptions = {},
 	): QueryHandle<T, I> {
 		if (!this.#projection.supports(descriptor.resource))
 			throw new Error(
 				`No read definition was configured for ${descriptor.resource}. Pass its ResourceReadDefinition when connecting the browser client.`,
 			);
-		const id = stableKey(descriptor);
+		const id = acquire
+			? stableKey(descriptor)
+			: stableKey({ query: descriptor, acquire: false });
 		const owned = new Set<() => void>();
 		let generation = -1;
 		let snapshot: QueryResult<T, I> | undefined;
@@ -188,13 +202,17 @@ export class BrowserQueries {
 			const entry = this.#entries.get(id);
 			if (entry) {
 				if (!entry.value) {
-					entry.projected = this.#project(entry.descriptor, entry.status);
+					entry.projected = this.#project(
+						entry.descriptor,
+						entry.status,
+						entry.acquire,
+					);
 					entry.value = entry.projected;
 				}
 				return entry.value as QueryResult<T, I>;
 			}
 			if (generation !== this.#generation || !snapshot) {
-				const next = this.#project(descriptor);
+				const next = this.#project(descriptor, undefined, acquire);
 				if (
 					!snapshot ||
 					(next !== projected &&
@@ -213,6 +231,7 @@ export class BrowserQueries {
 				if (!entry) {
 					entry = {
 						descriptor: descriptor as QueryDescriptor,
+						acquire,
 						value: getSnapshot(),
 						listeners: new Set(),
 						bound: false,
@@ -226,7 +245,7 @@ export class BrowserQueries {
 				entry.listeners.add(registered);
 				if (!entry.bound) {
 					entry.bound = true;
-					this.host.send({ type: "watch", id, query: descriptor });
+					this.host.send({ type: "watch", id, query: descriptor, acquire });
 				}
 				const current = entry;
 				const release = () => {
@@ -237,9 +256,10 @@ export class BrowserQueries {
 						this.#entries.get(id) === current
 					) {
 						current.bound = false;
+						if (!acquire) current.status = undefined;
 						this.#entries.delete(id);
 						this.#entries.set(id, current);
-						this.host.send({ type: "unwatch", id, query: descriptor });
+						this.host.send({ type: "unwatch", id, query: descriptor, acquire });
 						this.#trim();
 					}
 				};

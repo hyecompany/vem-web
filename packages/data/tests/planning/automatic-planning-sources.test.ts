@@ -9,21 +9,13 @@ import {
 	createRuntime,
 } from "@hyecompany/vem-data/runtime";
 import { deferred } from "@hyecompany/vem-data/testing";
+import { fact, list } from "../support/acquisition.js";
 
 const tick = () => new Promise<void>((resolve) => setImmediate(resolve));
 async function until(predicate: () => boolean) {
 	for (let i = 0; i < 100 && !predicate(); i++) await tick();
 	assert.ok(predicate(), "Expected source progress");
 }
-const fact = (identity: string, values: Record<string, unknown>) => ({
-	resource: "tasks",
-	identity,
-	values,
-	presence: "present" as const,
-	basis: ["public"],
-});
-const list = query({ resource: "tasks", mode: "list", select: ["title"] });
-
 test("supported server filters compose with local predicates without proving broader collection coverage", {
 	timeout: 5000,
 }, async (t) => {
@@ -426,4 +418,78 @@ test("filtered pages retain each page's field and collection continuity", {
 		runtime.watch(descriptor).getSnapshot().confirmed.complete,
 		false,
 	);
+});
+
+test("source costs use current permitted membership to compare shared and individual reads", async (t) => {
+	for (const size of [2, 100]) {
+		const calls: string[] = [];
+		const identities = Array.from({ length: size }, (_, index) =>
+			String(index),
+		);
+		const runtime = createRuntime({
+			resources: [
+				{
+					name: "tasks",
+					access: () => "public",
+					sources: [
+						{
+							key: "collection",
+							mode: "list",
+							fields: ["title"],
+							membership: true,
+							cost: (request, context) => {
+								const membership = context.membership("tasks", request.scope);
+								assert.equal(membership?.identities.length, size);
+								return 1 + (membership?.identities.length ?? 0) * 0.1;
+							},
+							run: async () => {
+								calls.push("collection");
+								return {
+									facts: identities.map((id) => fact(id, { title: id })),
+								};
+							},
+						},
+						{
+							key: "detail",
+							mode: "one",
+							fields: ["title"],
+							cost: 1,
+							run: async (request) => {
+								calls.push(`detail:${request.identity}`);
+								return {
+									facts: [
+										fact(String(request.identity), { title: request.identity }),
+									],
+								};
+							},
+						},
+					],
+				},
+			],
+		});
+		t.after(() => runtime.close());
+		runtime.observe({
+			facts: identities.map((id) => fact(id, {})),
+			memberships: [
+				{ resource: "tasks", identities, complete: true, basis: ["public"] },
+			],
+		});
+		const results = await Promise.all(
+			["0", "1"].map((identity) =>
+				runtime.read(
+					query({
+						resource: "tasks",
+						mode: "one",
+						identity,
+						select: ["title"],
+					}),
+				),
+			),
+		);
+		assert.ok(results.every((result) => result.confirmed.complete));
+		assert.deepEqual(
+			calls.sort(),
+			size === 2 ? ["collection"] : ["detail:0", "detail:1"],
+		);
+	}
 });

@@ -4,6 +4,7 @@
 import type { AccessRegistry } from "../access.js";
 import { captureBasis, captureProof, mapProof } from "../access-proofs.js";
 import { stableKey } from "../descriptors.js";
+import { filterFields, isFilterExpression, matchesFilter } from "../filters.js";
 import { fieldAccess } from "../read-model/access-requirements.js";
 import type {
 	AccessUpdate,
@@ -35,6 +36,7 @@ interface EvidenceHost {
 	readonly closed: boolean;
 	cells: ReadonlyMap<string, Cell>;
 	records: ReadonlyMap<string, KnownRecord>;
+	identityRevision(resource: string, identity: unknown): number | undefined;
 	memberships: ReadonlyMap<string, PersistedMembership>;
 	relationship(
 		resource: string,
@@ -197,7 +199,29 @@ export function createResourceContext(
 							ownGrants.set(decision.scope, host.grants.ref(decision.scope));
 					}
 				}
+				const identityTransitions = batch.identityTransitions?.flatMap(
+					(transition) => {
+						const accepted = [transition.from, transition.to].every(
+							(identity) => {
+								const key = host.factKey({
+									resource: transition.resource,
+									identity,
+									field: "$presence",
+								});
+								return (
+									current(host.cells.get(key)?.revision) &&
+									current(host.invalidations.get(key))
+								);
+							},
+						);
+						return accepted
+							? [{ ...transition, basis: filterBasis(transition.basis) }]
+							: [];
+					},
+				);
 				const facts = (batch.facts ?? []).flatMap((fact) => {
+					if (!current(host.identityRevision(fact.resource, fact.identity)))
+						return [];
 					const presenceKey = host.factKey({
 						resource: fact.resource,
 						identity: fact.identity,
@@ -278,6 +302,15 @@ export function createResourceContext(
 					];
 				});
 				const relationships = batch.relationships?.flatMap((relationship) => {
+					if (
+						!current(
+							host.identityRevision(
+								relationship.resource,
+								relationship.identity,
+							),
+						)
+					)
+						return [];
 					const key = host.factKey(relationship);
 					const presence = host.cells.get(
 						host.factKey({
@@ -348,27 +381,34 @@ export function createResourceContext(
 								) === false
 							)
 								return false;
+							let match: boolean | "unknown" = true;
 							if (membership.where) {
-								const excluded = definition.matches
-									? definition.matches(
-											values,
-											membership.where,
-											membership.scope,
-											cell.identity,
-										) === false
-									: Object.entries(membership.where).some(
-											([field, value]) =>
-												Object.hasOwn(values, field) &&
-												!equal(values[field], value),
-										);
-								if (excluded) return false;
+								match =
+									definition.matches && !isFilterExpression(membership.where)
+										? definition.matches(
+												values,
+												membership.where,
+												membership.scope,
+												cell.identity,
+											)
+										: matchesFilter(values, membership.where);
+								if (match === false) return false;
 							}
+							if (
+								included.has(host.recordKey(cell.resource, cell.identity)) &&
+								!current(host.identityRevision(cell.resource, cell.identity))
+							)
+								return true;
 							if (cell.field === "$presence")
 								return (
 									(cell.value === "present") !==
 									included.has(host.recordKey(cell.resource, cell.identity))
 								);
-							return Object.hasOwn(membership.where ?? {}, cell.field);
+							return (
+								filterFields(membership.where).includes(cell.field) &&
+								(match !== true ||
+									!included.has(host.recordKey(cell.resource, cell.identity)))
+							);
 						});
 						return {
 							...membership,
@@ -381,7 +421,10 @@ export function createResourceContext(
 									}),
 								);
 								return (
-									presence?.value !== "absent" || current(presence.revision)
+									current(
+										host.identityRevision(membership.resource, identity),
+									) &&
+									(presence?.value !== "absent" || current(presence.revision))
 								);
 							}),
 							complete: membership.complete && !contradicted,
@@ -393,6 +436,7 @@ export function createResourceContext(
 						...batch,
 						grants: undefined,
 						facts,
+						identityTransitions,
 						relationships,
 						memberships,
 						invalidateMemberships: batch.invalidateMemberships?.filter(

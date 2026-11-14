@@ -11,6 +11,7 @@ import {
 } from "../transfers/receipt.js";
 import type {
 	AccessBinding,
+	AccessSnapshot,
 	ActionJournal,
 	DisclosureProof,
 	GrantRef,
@@ -20,6 +21,7 @@ import type {
 	PersistenceSnapshot,
 } from "../types.js";
 export class MemoryPersistence implements PersistenceAdapter {
+	readonly access = new Map<string, AccessSnapshot>();
 	readonly facts = new Map<string, PersistedFact>();
 	readonly memberships = new Map<string, PersistedMembership>();
 	readonly actions = new Map<string, ActionJournal>();
@@ -46,12 +48,20 @@ export class MemoryPersistence implements PersistenceAdapter {
 	async load(): Promise<PersistenceSnapshot> {
 		this.check();
 		return structuredClone({
+			access: [...this.access.values()],
 			facts: [...this.facts.values()],
 			memberships: [...this.memberships.values()],
 			actions: [...this.actions.values()],
 			revoked: Object.fromEntries(this.revoked),
 			accessBindings: [...this.accessBindings.values()],
 		});
+	}
+	async writeAccess(snapshot: AccessSnapshot): Promise<void> {
+		this.check();
+		this.access.delete(snapshot.contextId);
+		this.access.set(snapshot.contextId, structuredClone(snapshot));
+		while (this.access.size > 16)
+			this.access.delete(this.access.keys().next().value as string);
 	}
 	async writeAccessBindings(bindings: readonly AccessBinding[]): Promise<void> {
 		this.check();
@@ -169,6 +179,7 @@ export class MemoryPersistence implements PersistenceAdapter {
 	}
 	async clear(): Promise<void> {
 		this.check();
+		this.access.clear();
 		this.facts.clear();
 		this.memberships.clear();
 		this.actions.clear();

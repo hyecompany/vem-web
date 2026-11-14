@@ -14,6 +14,7 @@ interface KeyedDelta<T> {
 }
 
 export interface ReadModelDelta {
+	identityTransitions?: ReadModelSnapshot["identityTransitions"];
 	revision: number;
 	records: KeyedDelta<ReadModelRecord>;
 	memberships: KeyedDelta<ReadModelMembership>;
@@ -45,6 +46,7 @@ export function readModelChanges(
 	if (previous === next)
 		return {
 			revision: next.revision,
+			identityTransitions: next.identityTransitions,
 			records: { upsert: [], remove: [] },
 			memberships: { upsert: [], remove: [] },
 		};
@@ -83,6 +85,7 @@ export function readModelDelta(
 	if (reset)
 		return {
 			revision: next.revision,
+			identityTransitions: next.identityTransitions,
 			records: { upsert: next.records, remove: [] },
 			memberships: { upsert: next.memberships, remove: [] },
 		};
@@ -90,6 +93,7 @@ export function readModelDelta(
 	if (known) return known;
 	const update = {
 		revision: next.revision,
+		identityTransitions: next.identityTransitions,
 		records: delta(previous.records, next.records),
 		memberships: delta(previous.memberships, next.memberships),
 	};
@@ -122,10 +126,18 @@ export function applyReadModel(
 	if (
 		previous.revision === update.revision &&
 		records === previous.records &&
-		memberships === previous.memberships
+		memberships === previous.memberships &&
+		equal(previous.identityTransitions, update.identityTransitions)
 	)
 		return previous;
-	const next = { revision: update.revision, records, memberships };
+	const next = {
+		revision: update.revision,
+		records,
+		memberships,
+		...(update.identityTransitions?.length
+			? { identityTransitions: update.identityTransitions }
+			: {}),
+	};
 	if (!reset) rememberReadModelChanges(previous, next, update);
 	return next;
 }

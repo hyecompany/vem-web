@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: © 2026 Joseph Maldjian <joseph.maldjian@hyecompany.com>
 // SPDX-License-Identifier: Apache-2.0
 
+import type { FeedbackClient, FeedbackObservation } from "../feedback-types.js";
 import type { EditAccess } from "../testing/types.js";
 import type {
 	ActionOutcome,
@@ -98,15 +99,12 @@ export interface EditScenario extends EditAccess<Values> {
 	values?: Values;
 	externalChange?: boolean;
 }
-export interface ScenarioFeedback {
+export interface ScenarioFeedback extends FeedbackClient {
 	subscribe(listener: () => void): () => void;
 	getSnapshot(): readonly string[];
 	claim(ids: readonly string[]): () => void;
 	claimQuery<T extends object, I>(query: QueryDescriptor<T, I>): () => void;
-	acknowledge(
-		id: string,
-		action?: Pick<ActionSnapshot, "phase" | "outcome">,
-	): void;
+	acknowledge(id: string, action?: FeedbackObservation): void;
 }
 export interface ScenarioClient extends ClientInspector {
 	readonly resources: readonly ResourceScenarios[];

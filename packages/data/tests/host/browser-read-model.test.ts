@@ -113,7 +113,11 @@ async function mirror(t: TestContext) {
 		maxInactiveQueries: 0,
 	});
 	const messages: { type: string }[] = [];
-	pair.port2.addEventListener("message", (event) => messages.push(event.data));
+	pair.port2.addEventListener("message", (event) =>
+		messages.push(
+			...(event.data.type === "batch" ? event.data.messages : [event.data]),
+		),
+	);
 	pair.port2.start();
 	pair.port2.postMessage({ type: "ready", compatibility });
 	let previous = emptyReadModel();
@@ -122,6 +126,7 @@ async function mirror(t: TestContext) {
 		const next = runtime.readModelSnapshot();
 		const publication: Publication = {
 			type: "publish",
+			readStatuses: [],
 			epoch: "owner",
 			base: revision,
 			revision: ++revision,
@@ -181,6 +186,18 @@ test("unseen filters, selected fields, details and resources synchronously proje
 			mode: "one",
 			identity: "extracted",
 			select: ["title"],
+		}),
+		query({
+			resource: "things",
+			mode: "list",
+			scope,
+			select: ["name"],
+			where: {
+				$or: [
+					{ name: { contains: "A", case: "insensitive" } },
+					{ description: { contains: "b" } },
+				],
+			},
 		}),
 	] as const satisfies readonly QueryDescriptor[];
 	for (const description of descriptions) {

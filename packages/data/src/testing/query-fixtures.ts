@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { stableKey } from "../descriptors.js";
+import { filterFields, matchesFilter } from "../filters.js";
 import type { QueryDescriptor, Values } from "../types.js";
 import { equal } from "../values.js";
 import type { QueryFixtureInput, TestClientOptions } from "./types.js";
@@ -55,23 +56,14 @@ export function reconcileQueryFixtures(
 			const updated = { identity: row.identity, data };
 			nextCandidates.push(updated);
 			const scope = inScope?.(row.identity, fixture.query.scope, data) ?? true;
-			const predicates = Object.entries(fixture.query.where ?? {});
-			if (
-				scope === false ||
-				predicates.some(
-					([field, value]) =>
-						Object.hasOwn(data, field) && !equal(data[field], value),
-				)
-			)
-				continue;
-			const uncertain =
-				scope === "unknown" ||
-				predicates.some(([field]) => !Object.hasOwn(data, field));
+			const match = matchesFilter(data, fixture.query.where);
+			if (scope === false || match === false) continue;
+			const uncertain = scope === "unknown" || match === "unknown";
 			(uncertain ? unresolved : rows).push(updated);
 		}
 		if (!changed) continue;
 		candidates.set(key, nextCandidates);
-		const predicateChanged = Object.keys(fixture.query.where ?? {}).length > 0;
+		const predicateChanged = filterFields(fixture.query.where).length > 0;
 		fixtures.set(key, {
 			...fixture,
 			rows,

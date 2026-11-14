@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { stableKey } from "../descriptors.js";
+import { isFilterExpression } from "../filters.js";
 import type { Values } from "../types.js";
 import { equal } from "../values.js";
 
@@ -25,6 +26,7 @@ export function broaderFilters(
 			comparisons++;
 			const first = pending[left] ?? {},
 				second = pending[right] ?? {};
+			if (isFilterExpression(first) || isFilterExpression(second)) continue;
 			const common = Object.fromEntries(
 				Object.entries(first).filter(
 					([field, value]) =>

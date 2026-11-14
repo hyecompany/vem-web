@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { command, edit, freezeValue, query } from "./descriptors.js";
+import { filterFields } from "./filters.js";
 import type {
 	ActionOutcome,
 	CommandDescriptor,
@@ -9,6 +10,7 @@ import type {
 	EditDescriptor,
 	QueryDescriptor,
 } from "./types.js";
+import type { Where } from "./where.js";
 
 export interface CommandContract<
 	Input = unknown,
@@ -89,12 +91,11 @@ type BoundEditors<E extends Editors, I> = {
 export interface QueryOptions<
 	T extends object,
 	S,
-	W extends object,
 	K extends readonly Field<T>[],
 > {
 	select?: K;
 	scope?: S;
-	where?: Readonly<W>;
+	where?: Where<T>;
 	orderBy?: readonly { field: Field<T>; direction?: "asc" | "desc" }[];
 	sample?: { fields: readonly K[number][]; intervalMs: number };
 }
@@ -107,20 +108,18 @@ type ScopeArgument<S, D> = [D] extends [undefined]
 export type ListArguments<
 	T extends object,
 	S,
-	W extends object,
 	K extends readonly Field<T>[],
 	D,
 > = [D] extends [undefined]
 	? undefined extends S
-		? [options?: QueryOptions<T, S, W, K>]
-		: [options: QueryOptions<T, S, W, K> & ScopeArgument<S, D>]
-	: [options?: QueryOptions<T, S, W, K>];
+		? [options?: QueryOptions<T, S, K>]
+		: [options: QueryOptions<T, S, K> & ScopeArgument<S, D>]
+	: [options?: QueryOptions<T, S, K>];
 
 export interface ResourceContract<
 	T extends object,
 	I,
 	S,
-	W extends object,
 	D extends readonly Field<T>[],
 	C extends Commands,
 	E extends Editors,
@@ -131,13 +130,13 @@ export interface ResourceContract<
 	readonly defaultSelect: D;
 	readonly commands: BoundCommands<C, I>;
 	readonly edits: BoundEditors<E, I>;
-	readonly __types?: { values: T; identity: I; scope: S; filter: W };
+	readonly __types?: { values: T; identity: I; scope: S; filter: Where<T> };
 	list<const K extends readonly Field<T>[] = D>(
-		...args: ListArguments<T, S, W, K, DefaultScope>
+		...args: ListArguments<T, S, K, DefaultScope>
 	): QueryDescriptor<Pick<T, K[number]>, I>;
 	get<const K extends readonly Field<T>[] = D>(
 		identity: I,
-		options?: QueryOptions<T, S, W, K>,
+		options?: QueryOptions<T, S, K>,
 	): QueryDescriptor<Pick<T, K[number]>, I>;
 }
 
@@ -155,12 +154,7 @@ export type ResourceFilter<R> =
 	ContractTypes<R> extends { filter: infer W } ? W : never;
 
 /** Define named, typed, side-effect-free queries, commands, and editors for one resource. Selected fields determine the query result type. */
-export function defineResource<
-	T extends object,
-	I,
-	S = undefined,
-	W extends object = Partial<T>,
->() {
+export function defineResource<T extends object, I, S = undefined>() {
 	return <
 		const F extends readonly Field<T>[],
 		const D extends readonly Field<T>[] = F,
@@ -175,7 +169,7 @@ export function defineResource<
 		scopeOf?(identity: I): S;
 		commands?: C;
 		edits?: E;
-	}): ResourceContract<T, I, S, W, D, C, E, DefaultScope> => {
+	}): ResourceContract<T, I, S, D, C, E, DefaultScope> => {
 		const { name, scopeOf } = definition;
 		const fields = Object.freeze([...new Set(definition.fields)]);
 		const defaultSelect = Object.freeze([
@@ -194,13 +188,13 @@ export function defineResource<
 		const describe = <K extends readonly Field<T>[]>(
 			mode: "one" | "list",
 			identity: I | undefined,
-			options: QueryOptions<T, S, W, K> = {},
+			options: QueryOptions<T, S, K> = {},
 		): QueryDescriptor<Pick<T, K[number]>, I> => {
 			const select = options.select ?? defaultSelect;
 			validate(select);
 			const scope =
 				mode === "one" && scopeOf ? scopeOf(identity as I) : defaultScope;
-			return query({
+			const descriptor = query({
 				resource: name,
 				mode,
 				...(mode === "one" ? { identity } : {}),
@@ -208,6 +202,8 @@ export function defineResource<
 				...options,
 				select,
 			}) as QueryDescriptor<Pick<T, K[number]>, I>;
+			validate(filterFields(descriptor.where));
+			return descriptor;
 		};
 		const commands = Object.fromEntries(
 			Object.keys(definition.commands ?? {}).map((commandName) => [
@@ -229,12 +225,12 @@ export function defineResource<
 			commands: Object.freeze(commands),
 			edits: Object.freeze(edits),
 			list: (
-				...[options]: ListArguments<T, S, W, readonly Field<T>[], DefaultScope>
+				...[options]: ListArguments<T, S, readonly Field<T>[], DefaultScope>
 			) => describe("list", undefined, options),
 			get: <const K extends readonly Field<T>[] = D>(
 				identity: I,
-				options?: QueryOptions<T, S, W, K>,
+				options?: QueryOptions<T, S, K>,
 			) => describe("one", identity, options),
-		}) as ResourceContract<T, I, S, W, D, C, E, DefaultScope>;
+		}) as ResourceContract<T, I, S, D, C, E, DefaultScope>;
 	};
 }

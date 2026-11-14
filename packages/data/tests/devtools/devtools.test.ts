@@ -53,6 +53,27 @@ const resource = defineScenarios(widgets, {
 	},
 });
 
+test("scenario and inspection wrappers preserve passive observation without synthesizing acquisition", async (t) => {
+	const scenario = createScenarioClient({ resources: [resource] });
+	t.after(() => scenario.close());
+	const selected = widgets.list({ select: ["name"] });
+	const passive = scenario.client.watch(selected, { acquire: false });
+	passive.subscribe(() => {});
+	const status = scenario.client.watchReadStatus(selected);
+	status.subscribe(() => {});
+	await tick();
+	assert.equal(passive.getSnapshot().rows.length, 0);
+	assert.equal(passive.getSnapshot().settled, true);
+	assert.equal(status.getSnapshot().pending, false);
+	const active = scenario.client.watch(selected);
+	const release = active.subscribe(() => {});
+	await until(() => passive.getSnapshot().rows.length > 0);
+	release();
+	assert.equal(passive.getSnapshot().rows[0]?.data.name, "One");
+	passive.dispose();
+	status.dispose();
+});
+
 test("inspection discovers only consumed watches and adds no acquisition or owner operations", async (t) => {
 	let requests = 0;
 	const runtime = createRuntime({
@@ -523,4 +544,23 @@ test("scenario watch construction is inert and subscription seeds only once acro
 	t.after(secondStop);
 	assert.equal(handle.getSnapshot().rows[0]?.data.name, "Selected scenario");
 	assert.equal(second.getSnapshot().rows[0]?.data.name, "Selected scenario");
+});
+
+test("a configured failure survives disposing and reopening an inline query", async (t) => {
+	const scenario = createScenarioClient({ resources: [resource] });
+	t.after(() => scenario.close());
+	const first = scenario.client.watch(widgets.list({ select: ["name"] }));
+	const release = first.subscribe(() => undefined);
+	await until(() => first.getSnapshot().settled);
+	const id = scenario.getSnapshot().queries[0]?.id;
+	assert.ok(id);
+	release();
+	first.dispose();
+	scenario.setQuery(id, { state: "failed", message: "Failed while closed" });
+	const second = scenario.client.watch(widgets.list({ select: ["name"] }));
+	const stop = second.subscribe(() => undefined);
+	t.after(stop);
+	await until(() => second.getSnapshot().settled);
+	assert.equal(second.getSnapshot().issues[0]?.message, "Failed while closed");
+	assert.equal(second.getSnapshot().confirmed.complete, false);
 });

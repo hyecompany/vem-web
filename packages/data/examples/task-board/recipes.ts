@@ -99,6 +99,22 @@ export function dismissShownFeedback(client: BrowserClient, id: string) {
 }
 // #endregion feedback
 
+export function observationTypes(client: DataClient) {
+	const descriptor = tasks.list({ select: ["title"] });
+	const passive = client.watch(descriptor, { acquire: false });
+	// @ts-expect-error Watching known values does not select additional fields.
+	passive.getSnapshot().rows[0]?.data.notes;
+	// @ts-expect-error Acquisition is a boolean option, not a cache policy name.
+	client.watch(descriptor, { acquire: "cache-only" });
+	const status = client.watchReadStatus(descriptor);
+	// @ts-expect-error Read status observes work, not materialized query rows.
+	status.getSnapshot().rows;
+	const retried: Promise<void> = status.retry();
+	passive.dispose();
+	status.dispose();
+	return retried;
+}
+
 export async function selectedTypes(client: DataClient) {
 	const result = await client.read(tasks.list({ select: ["title"] }));
 	// @ts-expect-error An unselected field is not part of this result.

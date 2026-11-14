@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { stableKey } from "../descriptors.js";
+import { filterFields, isFilterExpression } from "../filters.js";
 import type { QueryDescriptor } from "../types.js";
 import { equal } from "../values.js";
 import { evaluateAccess, readAccess } from "./access-requirements.js";
@@ -36,7 +37,7 @@ export class QueryRequirements {
 			fields: [
 				...new Set([
 					...descriptor.select,
-					...Object.keys(descriptor.where ?? {}),
+					...filterFields(descriptor.where),
 					...(descriptor.orderBy ?? []).map((order) => order.field),
 					...(definition.queryDependencies?.(descriptor) ?? []),
 					...forcedFields,
@@ -47,7 +48,7 @@ export class QueryRequirements {
 				(descriptor.orderBy ?? []).some((order) => order.field === field) ||
 				forcedFields.includes(field),
 			filterField: (field: string) =>
-				Object.hasOwn(descriptor.where ?? {}, field),
+				filterFields(descriptor.where).includes(field),
 		};
 	}
 	collection(
@@ -95,6 +96,7 @@ export class QueryRequirements {
 		key: string,
 		identity: unknown,
 		forcedFields: readonly string[],
+		match: boolean | "unknown" | undefined,
 	): MissingRequirement[] {
 		if (!this.allowed(descriptor)) return [];
 		const { definition, base, fields, selectedField, filterField } = this.shape(
@@ -104,6 +106,8 @@ export class QueryRequirements {
 		const requirements: MissingRequirement[] = [];
 		const original = this.host.records.get(key);
 		const record = original && this.matching.readable(descriptor, original);
+		const unresolved = descriptor.mode === "list" && match === "unknown";
+		const dependencies = definition.queryDependencies?.(descriptor) ?? [];
 		const presence = this.host.cells.get(
 			this.host.factKey({
 				resource: descriptor.resource,
@@ -117,19 +121,28 @@ export class QueryRequirements {
 		for (const field of fields) {
 			if (this.matching.fieldAccess(descriptor, identity, field) === "denied")
 				continue;
+			const needsValue =
+				!unresolved ||
+				dependencies.includes(field) ||
+				forcedFields.includes(field);
+			if (!needsValue && !filterField(field)) continue;
 			const info = record?.fields[field];
 			const selected =
-				descriptor.select.includes(field) ||
-				(descriptor.orderBy ?? []).some((order) => order.field === field);
+				needsValue &&
+				(descriptor.select.includes(field) ||
+					(descriptor.orderBy ?? []).some((order) => order.field === field));
+			const selectedValue = needsValue && selectedField(field);
 			const provenFilter =
 				record &&
 				filterField(field) &&
-				this.matching.membershipField(
-					descriptor,
-					record,
-					field,
-					descriptor.where?.[field],
-				);
+				(isFilterExpression(descriptor.where)
+					? (match ?? this.matching.match(descriptor, record)) !== "unknown"
+					: this.matching.membershipField(
+							descriptor,
+							record,
+							field,
+							descriptor.where?.[field],
+						));
 			const scopeDescriptor = { ...descriptor, where: undefined };
 			const provenScope =
 				!selected &&
@@ -148,14 +161,12 @@ export class QueryRequirements {
 					kind: "field",
 					identity,
 					field,
-					...(filterField(field) && !selectedField(field)
-						? { predicate: true }
-						: {}),
+					...(filterField(field) && !selectedValue ? { predicate: true } : {}),
 				});
 			}
 			if (
 				filterField(field) &&
-				selectedField(field) &&
+				selectedValue &&
 				!provenFilter &&
 				(!info || info.stale)
 			)

@@ -5,6 +5,7 @@ import type {
 	AccessState,
 	ActionSnapshot,
 	FactRef,
+	IdentityTransition,
 	KnownRecord,
 	QueryDescriptor,
 	QueryIssue,
@@ -25,6 +26,7 @@ export interface QueryKnowledge {
 	access(scope: string): AccessState;
 	revision(): number;
 	records: ReadonlyMap<string, KnownRecord>;
+	identityTransitions?(): readonly IdentityTransition[];
 	resourceRecords: ReadonlyMap<string, ReadonlySet<string>>;
 	memberships(): readonly ReadModelMembership[];
 	cells: ReadonlyMap<string, ReadModelFact>;

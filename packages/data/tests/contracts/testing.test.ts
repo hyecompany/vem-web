@@ -10,7 +10,7 @@ import {
 	reconcileQueryFixtures,
 } from "../../src/testing/query-fixtures.js";
 import type { QueryFixtureInput } from "../../src/testing/types.js";
-import { createTestClient } from "../../src/testing.js";
+import { createTestClient, deferred } from "../../src/testing.js";
 
 const tick = () => new Promise<void>((resolve) => setImmediate(resolve));
 async function until(predicate: () => boolean) {
@@ -327,4 +327,41 @@ test("changing a command scenario publishes current admission to subscribed cons
 	assert.equal(availability, "denied");
 	scenario.setOutcome({ command: selected, outcome: { kind: "succeeded" } });
 	assert.equal(availability, "available");
+});
+
+test("test feedback shares inline claims and outcome acknowledgement without acquiring a query", async (t) => {
+	const list = query<{ title: string }, string>({
+		resource: "tasks",
+		mode: "list",
+		select: ["title"],
+	});
+	const operation = command({
+		resource: "tasks",
+		name: "complete",
+		target: "a",
+		input: {},
+	});
+	const completion = deferred<{ kind: "succeeded" }>();
+	const scenario = createTestClient({
+		queries: [{ query: list, status: "loading" }],
+		commands: [{ command: operation, outcome: () => completion.promise }],
+	});
+	t.after(() => scenario.close());
+	const release = scenario.feedback.claimQueryFeedback(list);
+	assert.equal(scenario.client.watch(list).getSnapshot().fetching, false);
+	const action = scenario.client.run(operation);
+	await until(() => action.getSnapshot().phase === "running");
+	assert.deepEqual(scenario.client.feedback(), []);
+	release();
+	assert.deepEqual(scenario.client.feedback(), [action.id]);
+	const observed = action.getSnapshot();
+	scenario.client.acknowledgeFeedback(action.id, observed);
+	assert.deepEqual(scenario.client.feedback(), []);
+	completion.resolve({ kind: "succeeded" });
+	await action.result;
+	await until(() => scenario.client.feedback().includes(action.id));
+	scenario.client.acknowledgeFeedback(action.id, observed);
+	assert.deepEqual(scenario.client.feedback(), [action.id]);
+	scenario.client.acknowledgeFeedback(action.id, action.getSnapshot());
+	assert.deepEqual(scenario.client.feedback(), []);
 });

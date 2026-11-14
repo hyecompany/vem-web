@@ -51,3 +51,20 @@ export function TaskList() {
 	);
 }
 // #endregion list
+
+// #region conditional
+export function TaskSuggestions({ open }: { open: boolean }) {
+	const result = useQuery(tasks.list({ select: ["title"] }), { enabled: open });
+	if (!open) return null;
+	return (
+		<section>
+			<ReadStatus result={result} />
+			<ul>
+				{result.rows.map((row) => (
+					<li key={row.key}>{row.data.title ?? "Title unavailable"}</li>
+				))}
+			</ul>
+		</section>
+	);
+}
+// #endregion conditional

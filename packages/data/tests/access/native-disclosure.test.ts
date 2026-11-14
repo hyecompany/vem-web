@@ -12,7 +12,9 @@ import {
 import { deferred, MemoryPersistence } from "@hyecompany/vem-data/testing";
 import { IDBKeyRange, indexedDB } from "fake-indexeddb";
 import { AccessRegistry, grantKey } from "../../src/access.js";
+import { stableKey } from "../../src/descriptors.js";
 import { EditSession } from "../../src/edit.js";
+import type { DisclosureBasis, DisclosureProof } from "../../src/types.js";
 
 const tasks = defineResource<{ title: string; notes: string }, string>()({
 	name: "tasks",
@@ -340,4 +342,190 @@ test("late hydration registration preserves a freshly re-established grant after
 	assert.equal(grants.register([retired]).length, 1);
 	assert.equal(grants.visible(current), true);
 	assert.equal(grants.revoked(retired), true);
+});
+
+test("observation proof snapshots own shared trees without freezing mutable caller inputs", () => {
+	const registry = new AccessRegistry("alice");
+	registry.apply({ decisions: [{ scope: "read", state: "allowed" }] });
+	const shared: { all: DisclosureBasis[] } = { all: [registry.ref("read")] };
+	const basis = [shared];
+	registry.withObservation(
+		{
+			facts: [
+				{ resource: "tasks", identity: "one", basis },
+				{ resource: "tasks", identity: "two", basis: [shared] },
+			],
+		},
+		(snapshot) => {
+			const first = snapshot.facts?.[0]?.basis;
+			const second = snapshot.facts?.[1]?.basis;
+			assert.ok(first && second);
+			assert.equal(first[0], second[0]);
+			assert.equal(
+				registry.proofKey({ proof: first, omitted: undefined }),
+				stableKey({ omitted: undefined, proof: first }),
+			);
+			const captured = registry.capture(first);
+			assert.equal(registry.allowsAny(captured), true);
+			shared.all.splice(0, 1, { scope: "denied", generation: 0 });
+			assert.equal(Object.isFrozen(shared), false);
+			assert.equal(registry.allowsAny(captured), true);
+			assert.equal(registry.capture(first), captured);
+		},
+	);
+	assert.equal(registry.allowsAny(registry.capture(basis)), false);
+	shared.all.splice(0, 1, "public");
+	assert.equal(registry.allowsAny(registry.capture(basis)), true);
+});
+
+test("nested observation revocation and regrant invalidate enclosing proof results even after an error", () => {
+	const registry = new AccessRegistry("alice");
+	registry.apply({
+		decisions: ["read", "alternate"].map((scope) => ({
+			scope,
+			state: "allowed",
+		})),
+	});
+	registry.withObservation(
+		{
+			facts: [
+				{
+					resource: "tasks",
+					identity: "one",
+					basis: [registry.ref("read"), registry.ref("alternate")],
+				},
+			],
+		},
+		(snapshot) => {
+			const basis = registry.capture(snapshot.facts?.[0]?.basis);
+			const original = basis[0];
+			assert.ok(original);
+			assert.equal(registry.visible(original), true);
+			assert.throws(
+				() =>
+					registry.withObservation({}, () => {
+						registry.apply({ decisions: [{ scope: "read", state: "denied" }] });
+						registry.apply({
+							decisions: [{ scope: "read", state: "allowed" }],
+						});
+						throw new Error("Nested observation failed");
+					}),
+				/Nested observation failed/,
+			);
+			assert.equal(registry.visible(original), false);
+			assert.equal(registry.allowsAny(basis), true);
+			registry.apply({ decisions: [{ scope: "alternate", state: "denied" }] });
+			assert.equal(registry.allowsAny(basis), false);
+		},
+	);
+	registry.apply({ decisions: [{ scope: "alternate", state: "allowed" }] });
+	assert.equal(registry.visible(registry.ref("alternate")), true);
+});
+
+test("nested runtime observations preserve independent row disclosure and per-field policy", (t) => {
+	let revoke = false;
+	let nested = false;
+	const runtime = createRuntime({
+		contextId: "alice",
+		access: [{ scope: "read", state: "allowed" }],
+		resources: [
+			{
+				name: "tasks",
+				fieldAccess: { notes: "read" },
+				persist(field) {
+					if (revoke && !nested && field === "title") {
+						nested = true;
+						runtime.observe({
+							grants: [{ scope: "read", state: "denied" }],
+							facts: [
+								{
+									resource: "tasks",
+									identity: "public",
+									presence: "present",
+									values: { title: "Public" },
+									basis: ["public"],
+								},
+							],
+						});
+					}
+					return false;
+				},
+			},
+		],
+	});
+	t.after(() => runtime.close());
+	const snapshot = runtime.accessSnapshot();
+	const read = snapshot.scopes.read;
+	assert.ok(read);
+	const basis: DisclosureProof[] = [
+		{
+			all: [
+				{
+					scope: "read",
+					generation: read.generation,
+					contextId: snapshot.contextId,
+					epoch: snapshot.epoch,
+				},
+			],
+		},
+	];
+	revoke = true;
+	runtime.observe({
+		facts: ["one", "two"].map((identity) => ({
+			resource: "tasks",
+			identity,
+			presence: "present",
+			values: { title: "Shared", notes: "Private" },
+			basis: [...basis, "public"],
+		})),
+	});
+	for (const identity of ["one", "two"]) {
+		const view = runtime.watch(
+			tasks.get(identity, { select: ["title", "notes"] }),
+			{ acquire: false },
+		);
+		t.after(() => view.dispose());
+		assert.equal(view.getSnapshot().rows[0]?.data.title, "Shared");
+		assert.equal(view.getSnapshot().rows[0]?.data.notes, undefined);
+	}
+	runtime.setAccess({ decisions: [{ scope: "read", state: "allowed" }] });
+	const view = runtime.watch(tasks.get("two", { select: ["title", "notes"] }), {
+		acquire: false,
+	});
+	t.after(() => view.dispose());
+	assert.equal(view.getSnapshot().rows[0]?.data.notes, undefined);
+});
+
+test("hydration registration invalidates memoized grants immediately as tombstones advance", () => {
+	const registry = new AccessRegistry("caller", [
+		{ scope: "read", state: "allowed" },
+	]);
+	registry.apply({
+		contextId: "away",
+		decisions: [{ scope: "read", state: "allowed" }],
+	});
+	registry.apply({
+		contextId: "caller",
+		decisions: [{ scope: "read", state: "allowed" }],
+	});
+	const current = registry.ref("read");
+	registry.withObservation(
+		{
+			facts: [
+				{
+					resource: "tasks",
+					identity: "one",
+					basis: [current, { ...current, generation: current.generation + 1 }],
+				},
+			],
+		},
+		(snapshot) => {
+			const refs = registry.capture(snapshot.facts?.[0]?.basis);
+			const first = refs[0];
+			assert.ok(first);
+			registry.register(refs);
+			assert.equal(registry.visible(first), false);
+			assert.equal(registry.revoked(first), true);
+		},
+	);
 });

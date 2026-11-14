@@ -121,7 +121,7 @@ export function buildRequirements(
 					}
 					const result = required(state)(prerequisite, undefined, true);
 					if (result.issue) {
-						issues.set(state, result.issue);
+						node.issue = result.issue;
 						node.dependencies = [];
 						break;
 					}

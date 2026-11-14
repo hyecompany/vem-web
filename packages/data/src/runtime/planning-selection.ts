@@ -1,9 +1,19 @@
 // SPDX-FileCopyrightText: © 2026 Joseph Maldjian <joseph.maldjian@hyecompany.com>
 // SPDX-License-Identifier: Apache-2.0
 
+import {
+	addCosts,
+	compareCosts,
+	divideCost,
+	impossibleScore,
+	type SelectionCost,
+	type SelectionScore,
+	zeroScore,
+} from "./planning-score.js";
+
 export interface SelectionCandidate {
 	key: string;
-	cost: number;
+	cost: SelectionCost;
 }
 export type SelectionOption = ReadonlySet<string>;
 export interface SelectionDemand {
@@ -15,9 +25,13 @@ const OPTION_LIMIT = 96;
 export function planCost(
 	keys: Iterable<string>,
 	candidates: ReadonlyMap<string, SelectionCandidate>,
-): number {
-	let cost = 0;
-	for (const key of keys) cost += candidates.get(key)?.cost ?? Infinity;
+): SelectionScore {
+	let cost = zeroScore;
+	for (const key of keys) {
+		const candidate = candidates.get(key);
+		if (!candidate) return impossibleScore;
+		cost = addCosts(cost, candidate.cost);
+	}
 	return cost;
 }
 function contains(
@@ -48,7 +62,8 @@ export function combineOptions(
 		options = [...unique.values()]
 			.sort(
 				(a, b) =>
-					planCost(a, candidates) - planCost(b, candidates) || a.size - b.size,
+					compareCosts(planCost(a, candidates), planCost(b, candidates)) ||
+					a.size - b.size,
 			)
 			.slice(0, OPTION_LIMIT);
 	}
@@ -83,15 +98,16 @@ export function selectAcquisitions(
 	);
 	for (let round = 0; round < 128 && covered.some((value) => !value); round++) {
 		let choice: SelectionOption | undefined;
-		let score = Infinity;
+		let score: SelectionCost = impossibleScore;
 		for (const option of uniqueOptions.values()) {
 			const gained = option.serves.filter((index) => !covered[index]).length;
 			if (!gained) continue;
 			const additional = [...option.keys].filter((key) => !best.has(key));
-			const value = planCost(additional, candidates) / gained;
+			const value = divideCost(planCost(additional, candidates), gained);
 			if (
-				value < score ||
-				(value === score && additional.length < (choice?.size ?? Infinity))
+				compareCosts(value, score) < 0 ||
+				(compareCosts(value, score) === 0 &&
+					additional.length < (choice?.size ?? Infinity))
 			) {
 				choice = option.keys;
 				score = value;
@@ -112,13 +128,13 @@ export function selectAcquisitions(
 		)
 			continue;
 		let choice: SelectionOption | undefined;
-		let cost = Infinity;
+		let cost: SelectionCost = impossibleScore;
 		for (const option of demand.options) {
 			const marginal = planCost(
 				[...option].filter((key) => !best.has(key)),
 				candidates,
 			);
-			if (marginal < cost) {
+			if (compareCosts(marginal, cost) < 0) {
 				choice = option;
 				cost = marginal;
 			}
@@ -126,11 +142,11 @@ export function selectAcquisitions(
 		if (choice) for (const key of choice) best.add(key);
 	}
 	if (supported.length > 128 || candidates.size > 128) return best;
-	let bestCost = planCost(best, candidates);
+	let bestCost: SelectionCost = planCost(best, candidates);
 	let visited = 0;
 	const seen = new Set<string>();
-	const search = (selected: Set<string>, cost: number) => {
-		if (++visited > SEARCH_LIMIT || cost > bestCost) return;
+	const search = (selected: Set<string>, cost: SelectionCost) => {
+		if (++visited > SEARCH_LIMIT || compareCosts(cost, bestCost) > 0) return;
 		const key = [...selected].sort().join("\n");
 		if (seen.has(key)) return;
 		seen.add(key);
@@ -138,7 +154,10 @@ export function selectAcquisitions(
 			(demand) => !demand.options.some((option) => contains(selected, option)),
 		);
 		if (!missing.length) {
-			if (cost < bestCost || (cost === bestCost && selected.size < best.size)) {
+			if (
+				compareCosts(cost, bestCost) < 0 ||
+				(compareCosts(cost, bestCost) === 0 && selected.size < best.size)
+			) {
 				best = selected;
 				bestCost = cost;
 			}
@@ -149,7 +168,8 @@ export function selectAcquisitions(
 			.map((option) => append(selected, option))
 			.sort(
 				(a, b) =>
-					planCost(a, candidates) - planCost(b, candidates) || a.size - b.size,
+					compareCosts(planCost(a, candidates), planCost(b, candidates)) ||
+					a.size - b.size,
 			);
 		for (const next of alternatives) search(next, planCost(next, candidates));
 	};

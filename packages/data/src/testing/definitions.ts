@@ -69,10 +69,12 @@ export function editDefinitions(
 					etag: current.etag ?? null,
 					disclosure: "public",
 					fieldDisclosure: Object.fromEntries(
-						Object.keys(current.values).map((field) => [
-							field,
-							editScope(descriptor, field),
-						]),
+						[
+							...new Set([
+								...Object.keys(current.values),
+								...Object.keys(current.fields ?? {}),
+							]),
+						].map((field) => [field, editScope(descriptor, field)]),
 					),
 					writeAccess: editWriteScope(descriptor),
 				};

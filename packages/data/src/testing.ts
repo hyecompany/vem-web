@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 export { createTestClient } from "./testing/client.js";
+export { createTestFeedback } from "./testing/feedback.js";
 export { deferred, MemoryPersistence } from "./testing/memory.js";
 export type {
 	CommandFixture,
