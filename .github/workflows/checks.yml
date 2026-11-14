@@ -19,6 +19,15 @@ jobs:
       - run: npm ci
       - run: npm run check
       - run: npm run typecheck
+      - run: npx playwright install --with-deps chromium firefox webkit
       - run: npm test
-      - run: npx playwright install --with-deps chromium firefox
+      - name: Check UI behavior in Firefox
+        run: npm run test:browser --workspace @hyecompany/vem-ui
+        env:
+          VEM_BROWSER: firefox
+      - name: Check UI behavior in WebKit
+        run: npm run test:browser --workspace @hyecompany/vem-ui
+        env:
+          VEM_BROWSER: webkit
       - run: npm run test:package
+      - run: npm run test:docs-package

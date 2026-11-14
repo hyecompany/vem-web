@@ -8,6 +8,12 @@
       "package-name": "@hyecompany/vem-data",
       "release-type": "node",
       "initial-version": "1.0.0"
+    },
+    "packages/ui": {
+      "component": "vem-ui",
+      "package-name": "@hyecompany/vem-ui",
+      "release-type": "node",
+      "initial-version": "1.0.0"
     }
   }
 }
