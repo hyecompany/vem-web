@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: © 2026 Joseph Maldjian <joseph.maldjian@hyecompany.com>
 // SPDX-License-Identifier: Apache-2.0
 
+import { filterEqualities } from "../filters.js";
 import type { AcquisitionRequest, ObservationBatch } from "../types.js";
 import { equal } from "../values.js";
 import type { PlannedAcquisition } from "./planning-model.js";
@@ -11,7 +12,7 @@ export function inferSourceFacts(
 	request: AcquisitionRequest,
 	batch: ObservationBatch,
 ): ObservationBatch {
-	if (request.mode !== "list" || !work.source.filters?.length) return batch;
+	if (request.mode !== "list" || !work.source.filters) return batch;
 	const facts = (batch.memberships ?? []).flatMap((membership) => {
 		if (
 			membership.resource !== request.resource ||
@@ -19,11 +20,10 @@ export function inferSourceFacts(
 		)
 			return [];
 		const values = Object.fromEntries(
-			Object.entries(membership.where ?? {}).filter(
+			Object.entries(filterEqualities(membership.where)).filter(
 				([field, value]) =>
-					work.source.filters?.includes(field) &&
-					Object.hasOwn(request.where ?? {}, field) &&
-					equal(value, request.where?.[field]),
+					Object.hasOwn(filterEqualities(request.where), field) &&
+					equal(value, filterEqualities(request.where)[field]),
 			),
 		);
 		if (!Object.keys(values).length) return [];

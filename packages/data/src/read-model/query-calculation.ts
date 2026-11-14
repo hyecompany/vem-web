@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { stableKey } from "../descriptors.js";
+import { filterFields } from "../filters.js";
 import type {
 	KnownRecord,
 	QueryDescriptor,
@@ -60,12 +61,13 @@ export class QueryCalculation {
 		private readonly host: QueryKnowledge,
 		private readonly matching: QueryMatching,
 		private readonly acquisition: QueryRequirements,
+		private readonly presentation = true,
 	) {
 		const definition = host.definition(descriptor.resource);
 		this.requestedFields = [
 			...new Set([
 				...descriptor.select,
-				...Object.keys(descriptor.where ?? {}),
+				...filterFields(descriptor.where),
 				...(descriptor.orderBy ?? []).map((order) => order.field),
 				...(definition.queryDependencies?.(descriptor) ?? []),
 			]),
@@ -78,10 +80,11 @@ export class QueryCalculation {
 				this.confirmedOrder.set(key, this.sequence++);
 				keys.add(key);
 			}
-			for (const record of host.effectiveRecords(descriptor.resource)) {
-				this.effectiveOrder.set(record.key, this.sequence++);
-				keys.add(record.key);
-			}
+			if (presentation)
+				for (const record of host.effectiveRecords(descriptor.resource)) {
+					this.effectiveOrder.set(record.key, this.sequence++);
+					keys.add(record.key);
+				}
 			for (const membership of host.memberships()) {
 				if (
 					membership.resource !== descriptor.resource ||
@@ -113,7 +116,7 @@ export class QueryCalculation {
 		)
 			return;
 		const record = this.host.records.get(key);
-		const effective = this.host.effective(key);
+		const effective = this.presentation ? this.host.effective(key) : undefined;
 		const previous = this.confirmed.get(key);
 		if (
 			record?.resource !== descriptor.resource &&
@@ -151,64 +154,66 @@ export class QueryCalculation {
 		if (!equal(previous?.denied, next?.denied) || !!previous !== !!next)
 			this.issues = undefined;
 
-		const oldRow = this.matches.get(key);
-		let nextRow: RowContribution | undefined;
-		let actionIds: readonly string[] = [];
-		if (effective?.resource === descriptor.resource) {
-			if (!this.effectiveOrder.has(key))
-				this.effectiveOrder.set(key, this.sequence++);
-			const match = this.matching.match(descriptor, effective);
-			if (match !== false) {
-				const row = this.matching.row(descriptor, effective);
-				const values = descriptor.orderBy
-					? this.matching.readable(descriptor, effective).values
-					: {};
-				nextRow = {
-					row: oldRow && equal(oldRow.row, row) ? oldRow.row : row,
-					match,
-					order: Object.fromEntries(
-						(descriptor.orderBy ?? []).map((order) => [
-							order.field,
-							values[order.field],
-						]),
-					),
-				};
-			}
-			if (
-				descriptor.mode === "list" &&
-				effective.actionIds.length > 0 &&
-				this.matching.activityScope(
-					descriptor,
-					effective.identity ?? effective.requested,
-					effective,
+		if (this.presentation) {
+			const oldRow = this.matches.get(key);
+			let nextRow: RowContribution | undefined;
+			let actionIds: readonly string[] = [];
+			if (effective?.resource === descriptor.resource) {
+				if (!this.effectiveOrder.has(key))
+					this.effectiveOrder.set(key, this.sequence++);
+				const match = this.matching.match(descriptor, effective);
+				if (match !== false) {
+					const row = this.matching.row(descriptor, effective);
+					const values = descriptor.orderBy
+						? this.matching.readable(descriptor, effective).values
+						: {};
+					nextRow = {
+						row: oldRow && equal(oldRow.row, row) ? oldRow.row : row,
+						match,
+						order: Object.fromEntries(
+							(descriptor.orderBy ?? []).map((order) => [
+								order.field,
+								values[order.field],
+							]),
+						),
+					};
+				}
+				if (
+					descriptor.mode === "list" &&
+					effective.actionIds.length > 0 &&
+					this.matching.activityScope(
+						descriptor,
+						effective.identity ?? effective.requested,
+						effective,
+					)
 				)
-			)
-				actionIds = effective.actionIds;
-		} else {
-			this.effectiveOrder.delete(key);
-		}
-		if (nextRow) this.matches.set(key, nextRow);
-		else this.matches.delete(key);
-		if (
-			oldRow?.row !== nextRow?.row ||
-			oldRow?.match !== nextRow?.match ||
-			!equal(oldRow?.order, nextRow?.order)
-		)
-			this.rowsDirty = true;
-		const oldActions = this.recordActivities.get(key) ?? [];
-		if (!equal(oldActions, actionIds)) {
-			for (const id of oldActions) {
-				const count = (this.projectedActivities.get(id) ?? 0) - 1;
-				if (count > 0) this.projectedActivities.set(id, count);
-				else this.projectedActivities.delete(id);
+					actionIds = effective.actionIds;
+			} else {
+				this.effectiveOrder.delete(key);
 			}
-			for (const id of actionIds)
-				this.projectedActivities.set(
-					id,
-					(this.projectedActivities.get(id) ?? 0) + 1,
-				);
-			if (actionIds.length > 0) this.recordActivities.set(key, actionIds);
-			else this.recordActivities.delete(key);
+			if (nextRow) this.matches.set(key, nextRow);
+			else this.matches.delete(key);
+			if (
+				oldRow?.row !== nextRow?.row ||
+				oldRow?.match !== nextRow?.match ||
+				!equal(oldRow?.order, nextRow?.order)
+			)
+				this.rowsDirty = true;
+			const oldActions = this.recordActivities.get(key) ?? [];
+			if (!equal(oldActions, actionIds)) {
+				for (const id of oldActions) {
+					const count = (this.projectedActivities.get(id) ?? 0) - 1;
+					if (count > 0) this.projectedActivities.set(id, count);
+					else this.projectedActivities.delete(id);
+				}
+				for (const id of actionIds)
+					this.projectedActivities.set(
+						id,
+						(this.projectedActivities.get(id) ?? 0) + 1,
+					);
+				if (actionIds.length > 0) this.recordActivities.set(key, actionIds);
+				else this.recordActivities.delete(key);
+			}
 		}
 
 		const wasCandidate = this.candidates.has(key);
@@ -350,6 +355,7 @@ export class QueryCalculation {
 					key,
 					this.candidates.get(key),
 					variant.forced,
+					this.confirmed.get(key)?.match,
 				)
 			: [];
 		const previous = variant.records.get(key) ?? [];

@@ -2,151 +2,39 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import assert from "node:assert/strict";
-import { type TestContext, test } from "node:test";
-import { BrowserClient, protocolVersion } from "../../src/client.js";
+import { test } from "node:test";
+import { BrowserClient } from "../../src/client.js";
 import {
 	command,
 	commandKey,
 	query,
 	stableKey,
 } from "../../src/descriptors.js";
-import {
-	type Compatibility,
-	emptyResult,
-	type Publication,
-} from "../../src/protocol.js";
+import { emptyResult, type Publication } from "../../src/protocol.js";
 import {
 	emptyReadModel,
 	readModelDelta,
 } from "../../src/read-model/publication.js";
 import type { ReadModelRecord } from "../../src/read-model/types.js";
-import { createRuntime } from "../../src/runtime.js";
+import { AcquisitionError, createRuntime } from "../../src/runtime.js";
 import { deferred } from "../../src/testing.js";
 import type {
 	ActionOutcome,
 	PreparedEdit,
 	QueryResult,
 	ResourceDefinition,
-	ResourceReadDefinition,
 } from "../../src/types.js";
 import { createSharedHost } from "../../src/worker.js";
+import {
+	channel,
+	compatibility,
+	host,
+	Locks,
+	tick,
+	until,
+} from "../support/browser-client.js";
 
 const continuity = { channel: "test-events" };
-
-const compatibility: Compatibility = {
-	protocol: protocolVersion,
-	schema: 1,
-	definitions: 1,
-	build: "first",
-};
-const tick = () => new Promise<void>((resolve) => setImmediate(resolve));
-async function until(predicate: () => boolean): Promise<void> {
-	for (let attempt = 0; attempt < 100; attempt++) {
-		if (predicate()) return;
-		await tick();
-	}
-	assert.ok(predicate(), "Expected publication did not arrive");
-}
-
-class Locks implements LockManager {
-	#queues = new Map<string, { start(): void; abort(): void }[]>();
-	#active = new Map<string, { release(): void }>();
-	request<T>(
-		name: string,
-		options: LockOptions | ((lock: Lock | null) => T | PromiseLike<T>),
-		callback?: (lock: Lock | null) => T | PromiseLike<T>,
-	): Promise<T> {
-		const fn = typeof options === "function" ? options : callback;
-		const signal = typeof options === "function" ? undefined : options.signal;
-		return new Promise<T>((resolve, reject) => {
-			let granted = false;
-			const entry = {
-				start: () => {
-					granted = true;
-					signal?.removeEventListener("abort", entry.abort);
-					const held = {
-						release: () => {
-							if (this.#active.get(name) === held) this.#active.delete(name);
-							this.#drain(name);
-						},
-					};
-					this.#active.set(name, held);
-					void Promise.resolve()
-						.then(() => fn?.({ name, mode: "exclusive" }))
-						.then((value) => resolve(value as T), reject)
-						.finally(held.release);
-				},
-				abort: () => {
-					if (granted) return;
-					this.#queues.set(
-						name,
-						(this.#queues.get(name) ?? []).filter((item) => item !== entry),
-					);
-					reject(signal?.reason ?? new DOMException("Aborted", "AbortError"));
-				},
-			};
-			if (signal?.aborted) {
-				entry.abort();
-				return;
-			}
-			const queue = this.#queues.get(name) ?? [];
-			queue.push(entry);
-			this.#queues.set(name, queue);
-			signal?.addEventListener("abort", entry.abort, { once: true });
-			queueMicrotask(() => this.#drain(name));
-		});
-	}
-	#drain(name: string): void {
-		if (!this.#active.has(name)) this.#queues.get(name)?.shift()?.start();
-	}
-	abandon(name: string): void {
-		this.#active.get(name)?.release();
-	}
-	async query(): Promise<LockManagerSnapshot> {
-		return {
-			held: [...this.#active.keys()].map((name) => ({
-				name,
-				mode: "exclusive",
-			})),
-			pending: [],
-		};
-	}
-}
-
-function channel(
-	t: TestContext,
-	attach?: (port: MessagePort) => void,
-	options: {
-		locks?: LockManager;
-		compatibility?: Compatibility;
-		maxInactiveQueries?: number;
-		readDefinitions?: readonly ResourceReadDefinition[];
-	} = {},
-) {
-	const pair = new MessageChannel();
-	const client = new BrowserClient(
-		pair.port1,
-		options.compatibility ?? compatibility,
-		{
-			locks: options.locks,
-			maxInactiveQueries: options.maxInactiveQueries,
-			readDefinitions: options.readDefinitions ?? [{ name: "things" }],
-		},
-	);
-	const messages: Record<string, unknown>[] = [];
-	if (attach) attach(pair.port2);
-	else {
-		pair.port2.addEventListener("message", (event) =>
-			messages.push(event.data),
-		);
-		pair.port2.start();
-	}
-	t.after(() => {
-		client.close();
-		pair.port2.close();
-	});
-	return { client, peer: pair.port2, port: pair.port1, messages };
-}
 
 const descriptor = (identity: string) =>
 	query({ resource: "things", mode: "one", identity, select: ["name"] });
@@ -177,6 +65,7 @@ function publication(
 ): Publication {
 	return {
 		type: "publish",
+		readStatuses: [],
 		epoch: "owner",
 		base: revision - 1,
 		revision,
@@ -431,6 +320,95 @@ test("client demand is subscription owned while disclosed knowledge is readable 
 	again();
 });
 
+test("queued client messages capture invocation values and preserve order before and after attachment", async (t) => {
+	for (const ready of [false, true]) {
+		const { client, peer, messages } = channel(t);
+		if (ready) {
+			peer.postMessage({ type: "ready", compatibility });
+			await until(() => client.connectionSnapshot().phase === "ready");
+		}
+		const prepared: PreparedEdit<{ name: string }> = {
+			descriptor: {
+				kind: "edit",
+				resource: "things",
+				name: "edit",
+				target: "a",
+			},
+			values: { name: "baseline" },
+			baseline: {},
+			etag: "one",
+			fieldDisclosure: {
+				name: { scope: "read", generation: 1, contextId: "alice" },
+			},
+			writeAccess: "write",
+			contextId: "alice",
+			accessGeneration: 0,
+		};
+		const draft = { name: "at save" };
+		const input = { name: "at command" };
+		const ids = ["at claim"];
+		const stop = client.watch(descriptor("a")).subscribe(() => {});
+		client.revoke("old-permission");
+		client.claimFeedback(ids);
+		ids[0] = "after claim";
+		client.saveEdit(prepared, draft);
+		draft.name = "after save";
+		prepared.values.name = "after preparation";
+		client.run({
+			kind: "command",
+			resource: "things",
+			name: "go",
+			target: "a",
+			input,
+		});
+		input.name = "after command";
+		if (!ready) peer.postMessage({ type: "ready", compatibility });
+		await until(() => messages.some((message) => message.type === "run"));
+		const sent = messages.filter((message) => message.type !== "hello");
+		assert.deepEqual(
+			sent.map((message) => message.type),
+			["watch", "revoke", "feedback", "save-edit", "run"],
+		);
+		assert.deepEqual(sent[2]?.ids, ["at claim"]);
+		assert.deepEqual(sent[3]?.values, { name: "at save" });
+		assert.deepEqual(
+			(sent[3]?.prepared as PreparedEdit<{ name: string }>).values,
+			{ name: "baseline" },
+		);
+		assert.deepEqual((sent[4]?.command as { input: unknown }).input, {
+			name: "at command",
+		});
+		stop();
+	}
+});
+
+test("serialization failure clears pending client messages before and after attachment", async (t) => {
+	for (const ready of [false, true]) {
+		const { client, peer, messages } = channel(t);
+		if (ready) {
+			peer.postMessage({ type: "ready", compatibility });
+			await until(() => client.connectionSnapshot().phase === "ready");
+		}
+		client.watch(descriptor("a")).subscribe(() => {});
+		const action = client.run({
+			kind: "command",
+			resource: "things",
+			name: "go",
+			target: "a",
+			input: new WeakMap(),
+		});
+		assert.equal(client.connectionSnapshot().phase, "failed");
+		assert.equal((await action.result).kind, "unknown");
+		if (!ready) peer.postMessage({ type: "ready", compatibility });
+		await tick();
+		await tick();
+		assert.deepEqual(
+			messages.filter((message) => message.type !== "hello"),
+			[],
+		);
+	}
+});
+
 test("an edit submitted after client closure settles as unknown without dispatch", async (t) => {
 	const { client } = channel(t);
 	client.close();
@@ -454,33 +432,6 @@ test("an edit submitted after client closure settles as unknown without dispatch
 	assert.equal((await retry.result).kind, "unknown");
 	assert.equal(retry.getSnapshot().phase, "settled");
 });
-
-async function host(
-	t: TestContext,
-	definition: ResourceDefinition,
-	locks = new Locks(),
-	limits: { runtime?: number; resources?: readonly ResourceDefinition[] } = {},
-) {
-	const runtime = createRuntime({
-		resources: [definition, ...(limits.resources ?? [])],
-		maxInactiveQueries: limits.runtime,
-		contextId: "alice",
-		access: [{ scope: "read", state: "allowed" }],
-	});
-	await runtime.ready;
-	const disposed = deferred<void>();
-	const attach = await createSharedHost({
-		compatibility,
-		lockName: "owner",
-		locks,
-		create: async () => ({
-			client: runtime,
-			dispose: () => disposed.resolve(),
-		}),
-	});
-	t.after(() => runtime.close());
-	return { runtime, locks, attach, disposed };
-}
 
 test("withdrawn action observers settle without retaining protected identities or canceling server work", async (t) => {
 	for (const timing of ["after-publication", "during-dispatch"] as const) {
@@ -558,12 +509,28 @@ test("withdrawn action observers settle without retaining protected identities o
 	}
 });
 
-test("compatible builds share the owner while incompatible definitions are rejected", async (t) => {
+test("compatible builds share the owner while incompatible definitions and query protocols are rejected", async (t) => {
 	const owner = await host(t, { name: "things" });
 	const accepted = channel(t, owner.attach, {
 		locks: owner.locks,
 		compatibility: { ...compatibility, build: "next" },
 	}).client;
+	const legacy = new MessageChannel();
+	let legacyReply: { type?: string } = {};
+	legacy.port1.addEventListener("message", (event) => {
+		legacyReply = event.data;
+	});
+	legacy.port1.start();
+	owner.attach(legacy.port2);
+	t.after(() => {
+		legacy.port1.close();
+		legacy.port2.close();
+	});
+	legacy.port1.postMessage({
+		type: "hello",
+		id: "legacy",
+		compatibility: { ...compatibility, protocol: compatibility.protocol - 1 },
+	});
 	const rejected = channel(t, owner.attach, {
 		locks: owner.locks,
 		compatibility: { ...compatibility, definitions: 2 },
@@ -571,7 +538,8 @@ test("compatible builds share the owner while incompatible definitions are rejec
 	await until(
 		() =>
 			accepted.connectionSnapshot().phase === "ready" &&
-			rejected.connectionSnapshot().phase === "incompatible",
+			rejected.connectionSnapshot().phase === "incompatible" &&
+			legacyReply.type === "incompatible",
 	);
 	assert.equal(accepted.connectionSnapshot().updateAvailable, true);
 	assert.equal(accepted.connectionSnapshot().owner?.build, "first");
@@ -1360,6 +1328,8 @@ test("connection failure publishes query and command state atomically", async (t
 	};
 	const view = client.watch(selected);
 	const available = client.watchAvailability(command);
+	const status = client.watchReadStatus(selected);
+	status.subscribe(() => undefined);
 	view.subscribe(() => undefined);
 	available.subscribe(() => undefined);
 	peer.postMessage({ type: "ready", compatibility });
@@ -1376,10 +1346,22 @@ test("connection failure publishes query and command state atomically", async (t
 		),
 	);
 	await until(() => available.getSnapshot().state === "available");
-	const seen: string[] = [];
-	view.subscribe(() => seen.push(available.getSnapshot().state));
+	const seen: {
+		admission: string;
+		issue: string | undefined;
+		canRetry: boolean;
+	}[] = [];
+	view.subscribe(() =>
+		seen.push({
+			admission: available.getSnapshot().state,
+			issue: status.getSnapshot().issues[0]?.kind,
+			canRetry: status.getSnapshot().canRetry,
+		}),
+	);
 	client.close();
-	assert.deepEqual(seen, ["blocked"]);
+	assert.deepEqual(seen, [
+		{ admission: "blocked", issue: "read", canRetry: false },
+	]);
 	assert.equal(view.getSnapshot().rows[0]?.data.name, "known");
 	assert.equal(view.getSnapshot().issues[0]?.kind, "read");
 });
@@ -1536,4 +1518,278 @@ test("canceling the only browser reader stops subsequent pages but retains permi
 		() => owner.runtime.peekQuery(selected)?.rows[0]?.data.name === "retained",
 	);
 	assert.equal(calls, 1);
+});
+
+test("another tab controls retained work by ID and the owner rechecks withdrawn authority", async (t) => {
+	let calls = 0,
+		cancellations = 0;
+	const first = deferred<ActionOutcome>();
+	const owner = await host(t, {
+		name: "things",
+		commands: {
+			go: {
+				access: "read",
+				disclosure: "read",
+				run: async () => {
+					calls++;
+					return calls === 1 ? first.promise : { kind: "succeeded" };
+				},
+				cancel: async () => {
+					cancellations++;
+					first.resolve({
+						kind: "failed",
+						submitted: false,
+						error: { message: "Canceled before dispatch" },
+					});
+				},
+			},
+			uncertain: {
+				access: "read",
+				disclosure: "read",
+				run: async () => ({
+					kind: "unknown",
+					message: "Uncertain server result",
+				}),
+			},
+		},
+	});
+	const client = channel(t, owner.attach, { locks: owner.locks }).client;
+	await until(() => client.connectionSnapshot().phase === "ready");
+	const original = owner.runtime.run(
+		command({ resource: "things", name: "go", input: {} }),
+	);
+	const observed = client.action(original.id);
+	await until(() => observed.getSnapshot()?.controls.canCancel === true);
+	assert.equal("result" in observed, false);
+	await observed.cancel();
+	assert.equal(cancellations, 1);
+	await until(() => observed.getSnapshot()?.controls.canRetry === true);
+	const retried = observed.retry();
+	assert.equal((await retried.result).kind, "succeeded");
+	assert.equal(calls, 2);
+	const uncertain = owner.runtime.run(
+		command({ resource: "things", name: "uncertain", input: {} }),
+	);
+	await uncertain.result;
+	await until(
+		() => client.action(uncertain.id).getSnapshot()?.phase === "settled",
+	);
+	assert.throws(() => client.action(uncertain.id).retry(), /safely be retried/);
+	owner.runtime.revoke("read");
+	const denied = observed.retry();
+	assert.equal((await denied.result).kind, "failed");
+	assert.equal(calls, 2);
+	await until(() => observed.getSnapshot() === undefined);
+	await assert.rejects(observed.cancel(), /no longer available/);
+	assert.throws(
+		() => owner.runtime.action(original.id).retry(),
+		/no longer available/,
+	);
+});
+
+test("classified source denial reaches watched browser queries and clears on retry without revoking authority", async (t) => {
+	let deny = true;
+	const definition: ResourceDefinition = {
+		name: "things",
+		access: "read",
+		sources: [
+			{
+				key: "collection",
+				mode: "list",
+				fields: ["name"],
+				membership: true,
+				run: async () => {
+					if (deny)
+						throw new AcquisitionError({
+							kind: "access",
+							message: "Listing is not permitted",
+						});
+					return {
+						memberships: [
+							{
+								resource: "things",
+								identities: [],
+								complete: true,
+								basis: ["read"],
+							},
+						],
+					};
+				},
+			},
+		],
+	};
+	const owner = await host(t, definition);
+	const { client } = channel(t, owner.attach, {
+		readDefinitions: [definition],
+	});
+	const selected = query({
+		resource: "things",
+		mode: "list",
+		select: ["name"],
+	});
+	const view = client.watch(selected);
+	view.subscribe(() => undefined);
+	await until(
+		() => view.getSnapshot().settled && view.getSnapshot().issues.length > 0,
+	);
+	assert.deepEqual(view.getSnapshot().issues, [
+		{ kind: "access", message: "Listing is not permitted" },
+	]);
+	assert.equal(client.access("read"), "allowed");
+	owner.runtime.setAccess({
+		decisions: [{ scope: "unrelated", state: "allowed" }],
+	});
+	await until(() => client.access("unrelated") === "allowed");
+	assert.deepEqual(view.getSnapshot().issues, [
+		{ kind: "access", message: "Listing is not permitted" },
+	]);
+	deny = false;
+	await view.retry();
+	await until(() => view.getSnapshot().confirmed.complete);
+	assert.deepEqual(view.getSnapshot().issues, []);
+	owner.runtime.revoke("read");
+	await until(() => client.access("read") === "denied");
+	assert.equal(
+		view.getSnapshot().issues.filter((issue) => issue.kind === "access").length,
+		1,
+	);
+	assert.ok(
+		view
+			.getSnapshot()
+			.issues.every((issue) => issue.message !== "Listing is not permitted"),
+	);
+});
+
+test("browser demand from one turn is planned jointly against the known population", async (t) => {
+	for (const [population, mode, state] of [
+		[5, "watch", "live"],
+		[500, "watch", "live"],
+		[5, "read", "live"],
+		[500, "read", "live"],
+		[5, "watch", "interrupted"],
+		[5, "read", "first-connection"],
+		[5, "watch", "native-interrupted"],
+	] as const) {
+		const calls: string[] = [];
+		const identities = Array.from({ length: population }, (_, index) =>
+			String(index),
+		);
+		const facts = (ids: readonly string[], details = false) =>
+			ids.map((identity) => ({
+				resource: "things",
+				identity,
+				presence: "present" as const,
+				values: {
+					name: identity,
+					...(details ? { description: `Description ${identity}` } : {}),
+				},
+				basis: ["read"],
+				liveness: continuity,
+			}));
+		const membership = {
+			resource: "things",
+			identities,
+			complete: true,
+			basis: ["read"],
+			liveness: continuity,
+		};
+		const definition: ResourceDefinition = {
+			name: "things",
+			access: "read",
+			...(state === "native-interrupted" ? {} : { matches: () => true }),
+			sources: [
+				{
+					key: "names",
+					mode: "list",
+					fields: ["name"],
+					membership: true,
+					run: async () => {
+						calls.push("names");
+						return { facts: facts(identities), memberships: [membership] };
+					},
+				},
+				{
+					key: "collection",
+					mode: "list",
+					fields: ["name", "description"],
+					membership: true,
+					run: async () => {
+						calls.push("collection");
+						return {
+							facts: facts(identities, true),
+							memberships: [membership],
+						};
+					},
+				},
+				{
+					key: "detail",
+					mode: "one",
+					fields: ["name", "description"],
+					run: async (request) => {
+						calls.push(String(request.identity));
+						return { facts: facts([String(request.identity)], true) };
+					},
+				},
+			],
+		};
+		const owner = await host(t, definition);
+		if (state !== "first-connection")
+			owner.runtime.setContinuity(continuity, "live");
+		const { client } = channel(t, owner.attach, {
+			readDefinitions: [definition],
+		});
+		const names = await client.read(
+			query({ resource: "things", mode: "list", select: ["name"] }),
+		);
+		assert.equal(names.rows.length, population);
+		if (state !== "live") {
+			owner.runtime.setContinuity(
+				continuity,
+				state === "first-connection" ? "live" : "interrupted",
+			);
+			const historical = owner.runtime
+				.watch(query({ resource: "things", mode: "list", select: ["name"] }))
+				.getSnapshot();
+			assert.equal(historical.rows.length, population);
+			assert.equal(historical.confirmed.complete, false);
+			assert.equal(historical.stale, true);
+		}
+		const requests = identities.slice(0, 5).map((identity) =>
+			query({
+				resource: "things",
+				mode: "one",
+				identity,
+				select: ["description"],
+			}),
+		);
+		const views =
+			mode === "watch" ? requests.map((request) => client.watch(request)) : [];
+		const stops = views.map((view) => view.subscribe(() => {}));
+		const results =
+			mode === "read"
+				? await Promise.all(requests.map((request) => client.read(request)))
+				: await (async () => {
+						await until(() =>
+							views.every((view) => view.getSnapshot().settled),
+						);
+						return views.map((view) => view.getSnapshot());
+					})();
+		assert.ok(results.every((result) => result.confirmed.complete));
+		assert.deepEqual(
+			calls,
+			population === 5
+				? ["names", "collection"]
+				: ["names", "0", "1", "2", "3", "4"],
+			`${population} ${mode} ${state}`,
+		);
+		if (state !== "live") {
+			const refreshed = await client.read(
+				query({ resource: "things", mode: "list", select: ["name"] }),
+			);
+			assert.equal(refreshed.stale, false);
+			assert.equal(refreshed.rows.length, population);
+			assert.equal(calls.length, 2);
+		}
+		for (const stop of stops) stop();
+	}
 });

@@ -101,7 +101,8 @@ test("mandatory prior information is shared before optimizing the remaining cons
 						key: "auth",
 						mode: "one",
 						fields: ["auth"],
-						run: async () => {
+						run: async (_request, context) => {
+							assert.equal(context.fetchPriority, "high");
 							calls.push("auth");
 							return { facts: [serverFact()] };
 						},

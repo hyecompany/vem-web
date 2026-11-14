@@ -1,0 +1,24 @@
+---
+title: "Use Vem UI with Data"
+description: "Bind application state to controls while keeping data behavior in Vem Data."
+order: 4
+---
+
+Core UI components work without Vem Data. When your application uses Data, `@hyecompany/vem-ui/data` connects the same controls to its public state.
+
+Put the feature inside your existing DataProvider. Its resource definitions still decide what a task means, how to read it, and which commands are supported.
+
+| Need | Use |
+| --- | --- |
+| Search shared information from a text field | [useSearch](/docs/ui/components/data-bindings#search-shared-information) |
+| Show permitted rows with acquisition status | [QueryStatus](/docs/ui/components/query-status) |
+| Admit a command and track its last action | [CommandButton](/docs/ui/components/command-button) |
+| Render action progress on the page | [ActivityFeedback](/docs/ui/components/activity-feedback) |
+| Move assigned feedback into notifications | [ActivityToasts](/docs/ui/components/activity-toasts) |
+| Bind a custom control or protected field | [Data bindings](/docs/ui/components/data-bindings) |
+
+The examples below these guides use this small resource contract. A host supplies its [domain implementation](/docs/data/connect).
+
+<Example package="ui" file="data-model.tsx" region="example" />
+
+These components present Data's result; they do not acquire independently, infer permissions, retry uncertain work, or copy drafts into an unrelated store.

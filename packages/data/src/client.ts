@@ -1,8 +1,11 @@
 // SPDX-FileCopyrightText: © 2026 Joseph Maldjian <joseph.maldjian@hyecompany.com>
 // SPDX-License-Identifier: Apache-2.0
 
+import { ClientOutbox } from "./client-outbox.js";
 import { BrowserQueries } from "./client-queries.js";
+import { BrowserReadStatuses } from "./client-read-status.js";
 import { commandKey, stableKey } from "./descriptors.js";
+import type { FeedbackClient, FeedbackObservation } from "./feedback-types.js";
 import {
 	type AccessSnapshot,
 	type Compatibility,
@@ -18,6 +21,7 @@ import {
 import type {
 	AccessState,
 	ActionHandle,
+	ActionObservation,
 	ActionOutcome,
 	ActionSnapshot,
 	Availability,
@@ -29,6 +33,8 @@ import type {
 	QueryDescriptor,
 	QueryHandle,
 	QueryResult,
+	QueryWatchOptions,
+	ReadStatusHandle,
 	ResourceReadDefinition,
 	Watch,
 } from "./types.js";
@@ -52,12 +58,14 @@ export interface ConnectionSnapshot {
 	error?: string;
 }
 
-export class BrowserClient implements DataClient {
+export class BrowserClient implements DataClient, FeedbackClient {
 	readonly id: string;
 	#port: MessagePort;
+	#outbox: ClientOutbox;
 	#worker?: SharedWorker;
 	#workerError = () => this.#fail(new Error("The shared worker could not run"));
 	#queries: BrowserQueries;
+	#readStatuses: BrowserReadStatuses;
 	#readModel = emptyReadModel();
 	#commands = new Map<string, CommandEntry>();
 	#activities: readonly ActionSnapshot[] = [];
@@ -73,7 +81,6 @@ export class BrowserClient implements DataClient {
 	#queue: unknown[] = [];
 	#release?: () => void;
 	#error?: Error;
-	#connecting?: ReturnType<typeof setTimeout>;
 	#fallbacks = new Map<string, ActionSnapshot>();
 	#compatibility: Compatibility;
 	#connection: ConnectionSnapshot = {
@@ -102,6 +109,7 @@ export class BrowserClient implements DataClient {
 		const maxInactiveQueries = options.maxInactiveQueries ?? 100;
 		if (!Number.isInteger(maxInactiveQueries) || maxInactiveQueries < 0)
 			throw new RangeError("maxInactiveQueries must be a nonnegative integer");
+		this.#outbox = new ClientOutbox(port, (error) => this.#fail(error));
 		this.#queries = new BrowserQueries(
 			options.readDefinitions ?? [],
 			{
@@ -110,6 +118,10 @@ export class BrowserClient implements DataClient {
 			},
 			maxInactiveQueries,
 		);
+		this.#readStatuses = new BrowserReadStatuses({
+			send: (message) => this.#send(message),
+			retry: (query) => this.#request("retry-read-status", { query }),
+		});
 		this.id = options.id ?? crypto.randomUUID();
 		this.#compatibility = compatibility;
 		this.#locks = options.locks;
@@ -121,10 +133,6 @@ export class BrowserClient implements DataClient {
 			this.#fail(new Error("Unreadable runtime message")),
 		);
 		port.start();
-		this.#connecting = setTimeout(
-			() => this.#fail(new Error("The shared runtime did not become ready")),
-			30_000,
-		);
 		const hello = () =>
 			port.postMessage({
 				type: "hello",
@@ -162,7 +170,6 @@ export class BrowserClient implements DataClient {
 				"closed",
 			);
 		if (message.type === "ready") {
-			clearTimeout(this.#connecting);
 			this.#ready = true;
 			this.#connection = {
 				phase: "ready",
@@ -195,8 +202,10 @@ export class BrowserClient implements DataClient {
 					if (!signal.aborted) this.#fail(error);
 				});
 			}
-			for (const queued of this.#queue.splice(0))
-				this.#port.postMessage(queued);
+			for (const queued of this.#queue.splice(0)) {
+				if (this.#closed || this.#error) break;
+				this.#outbox.send(queued);
+			}
 			for (const listener of this.#listeners) listener();
 			return;
 		}
@@ -258,6 +267,7 @@ export class BrowserClient implements DataClient {
 				reset: true,
 				readModel: readModelDelta(emptyReadModel(), emptyReadModel(), true),
 				queries: [],
+				readStatuses: [],
 			};
 		}
 		this.#epoch = publication.epoch;
@@ -323,6 +333,11 @@ export class BrowserClient implements DataClient {
 			publication.forgottenQueries,
 		))
 			notify.add(listener);
+		for (const listener of this.#readStatuses.apply(
+			publication.readStatuses ?? [],
+			publication.reset || accessChanged,
+		))
+			notify.add(listener);
 		for (const listener of this.#listeners) notify.add(listener);
 		for (const listener of notify) listener();
 	};
@@ -356,7 +371,6 @@ export class BrowserClient implements DataClient {
 	#fail(error: unknown, phase: ConnectionSnapshot["phase"] = "failed") {
 		this.#worker?.removeEventListener("error", this.#workerError);
 		this.#worker = undefined;
-		clearTimeout(this.#connecting);
 		this.#error = error instanceof Error ? error : new Error(String(error));
 		this.#connection = {
 			...this.#connection,
@@ -364,6 +378,7 @@ export class BrowserClient implements DataClient {
 			error: this.#error.message,
 		};
 		this.#queue = [];
+		this.#outbox.clear();
 		for (const id of this.#admissions.keys())
 			this.#admissions.set(id, undefined);
 		if (!this.#retiring || phase !== "closed") this.#ownerWatch?.abort();
@@ -401,6 +416,8 @@ export class BrowserClient implements DataClient {
 			this.#access,
 			this.#activities,
 		);
+		for (const listener of this.#readStatuses.fail(this.#error))
+			notify.add(listener);
 		for (const entry of this.#commands.values()) {
 			entry.value = { state: "blocked", reason: this.#error.message };
 			for (const listener of entry.listeners) notify.add(listener);
@@ -411,21 +428,34 @@ export class BrowserClient implements DataClient {
 
 	#send(message: unknown) {
 		if (this.#closed || this.#error) return;
-		if (this.#ready) this.#port.postMessage(message);
+		if (this.#ready) this.#outbox.send(message);
 		else {
 			const update = message as { type?: string; id?: string };
 			if (
-				["unwatch", "forget-query", "unavailability"].includes(
-					update.type ?? "",
-				)
+				[
+					"unwatch",
+					"forget-query",
+					"unavailability",
+					"unwatch-read-status",
+				].includes(update.type ?? "")
 			) {
 				const pendingType =
-					update.type === "unavailability" ? "availability" : "watch";
+					update.type === "unavailability"
+						? "availability"
+						: update.type === "unwatch-read-status"
+							? "watch-read-status"
+							: "watch";
 				this.#queue = this.#queue.filter((value) => {
 					const queued = value as { type?: string; id?: string };
 					return queued.type !== pendingType || queued.id !== update.id;
 				});
-			} else this.#queue.push(message);
+			} else {
+				try {
+					this.#queue.push(structuredClone(message));
+				} catch (error) {
+					this.#fail(error);
+				}
+			}
 		}
 	}
 
@@ -463,8 +493,15 @@ export class BrowserClient implements DataClient {
 
 	watch<T extends object, I>(
 		descriptor: QueryDescriptor<T, I>,
+		options?: QueryWatchOptions,
 	): QueryHandle<T, I> {
-		return this.#queries.watch(descriptor);
+		return this.#queries.watch(descriptor, options);
+	}
+
+	watchReadStatus<T extends object, I>(
+		query: QueryDescriptor<T, I>,
+	): ReadStatusHandle {
+		return this.#readStatuses.watch(query as QueryDescriptor);
 	}
 
 	read<T extends object, I>(
@@ -529,19 +566,25 @@ export class BrowserClient implements DataClient {
 			},
 			subscribe: (listener) => this.subscribe(listener),
 			cancel: () => this.#request("cancel", { id }),
-			retry: (options) => {
-				const nextId = options?.id ?? crypto.randomUUID();
-				const fresh = this.#admit(nextId, { retry: id });
-				const next = this.#handle<O>(nextId, retryDescriptor);
-				if (fresh) this.#send({ type: "retry-action", id, nextId });
-				if (this.#error || this.#closed)
-					this.#fail(
-						this.#error ?? new Error("Client closed"),
-						this.#closed ? "closed" : "failed",
-					);
-				return next;
-			},
+			retry: (options) => this.#retry<O>(id, retryDescriptor, options),
 		};
+	}
+
+	#retry<O extends ActionOutcome>(
+		id: string,
+		descriptor: Pick<CommandDescriptor<unknown, O>, "resource" | "name">,
+		options?: { id?: string; origin?: string },
+	): ActionHandle<O> {
+		const nextId = options?.id ?? crypto.randomUUID();
+		const fresh = this.#admit(nextId, { retry: id });
+		const next = this.#handle<O>(nextId, descriptor);
+		if (fresh) this.#send({ type: "retry-action", id, nextId });
+		if (this.#error || this.#closed)
+			this.#fail(
+				this.#error ?? new Error("Client closed"),
+				this.#closed ? "closed" : "failed",
+			);
+		return next;
 	}
 
 	#admit(id: string, input: unknown): boolean {
@@ -570,10 +613,26 @@ export class BrowserClient implements DataClient {
 		return handle;
 	}
 
-	action(id: string): Watch<ActionSnapshot | undefined> {
+	action(id: string): ActionObservation {
+		const current = () => {
+			const action = this.#activities.find((action) => action.id === id);
+			if (!action) throw new Error("This activity is no longer available");
+			return action;
+		};
 		return {
 			getSnapshot: () => this.#activities.find((action) => action.id === id),
 			subscribe: (listener) => this.subscribe(listener),
+			cancel: async () => {
+				if (!current().controls.canCancel)
+					throw new Error("This action cannot be canceled");
+				return this.#request("cancel", { id });
+			},
+			retry: (options) => {
+				const action = current();
+				if (!action.controls.canRetry)
+					throw new Error("The action cannot safely be retried");
+				return this.#retry(id, action, options);
+			},
 		};
 	}
 	listActivities = () => this.#activities;
@@ -652,11 +711,9 @@ export class BrowserClient implements DataClient {
 	revoke(scope: string): void {
 		this.#send({ type: "revoke", scope });
 	}
+	subscribeFeedback = (listener: () => void) => this.subscribe(listener);
 	feedback = () => this.#feedback;
-	acknowledgeFeedback(
-		id: string,
-		observed?: Pick<ActionSnapshot, "phase" | "outcome">,
-	): void {
+	acknowledgeFeedback(id: string, observed?: FeedbackObservation): void {
 		const action =
 			observed ?? this.#activities.find((action) => action.id === id);
 		if (action)
@@ -696,6 +753,7 @@ export class BrowserClient implements DataClient {
 		if (this.#closed) return;
 		this.#retiring = false;
 		this.#send({ type: "disconnect" });
+		this.#outbox.flush();
 		this.#closed = true;
 		this.#fail(new Error("Client closed"), "closed");
 		this.#port.removeEventListener("message", this.#message);

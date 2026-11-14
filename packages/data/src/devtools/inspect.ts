@@ -169,13 +169,13 @@ export function inspectClient(
 	});
 	const stopActions = source.subscribeActivities(publish);
 	const client = delegateClient(source, {
-		watch(descriptor) {
-			const handle = source.watch(descriptor);
-			const id = idFor(descriptor);
+		watch(descriptor, watchOptions) {
+			const handle = source.watch(descriptor, watchOptions);
 			return {
 				...handle,
 				...inspectWatch(handle, (read) => {
 					if (closed) return () => undefined;
+					const id = idFor(descriptor);
 					const token = Symbol();
 					const readers =
 						queryReaders.get(id) ?? new Map<symbol, () => QueryResult>();

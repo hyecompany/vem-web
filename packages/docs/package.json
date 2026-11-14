@@ -8,15 +8,12 @@
 		"build": "next build --webpack",
 		"start": "next start",
 		"test": "fumadocs-mdx && tsc --noEmit",
-		"typecheck": "fumadocs-mdx && tsc --noEmit"
+		"typecheck": "fumadocs-mdx && tsc --noEmit",
+		"postbuild": "node scripts/finalize-export.mjs"
 	},
 	"dependencies": {
 		"@fontsource/poppins": "^5.3.0",
-		"@hyecompany/vem-data": "file:../data",
-		"@radix-ui/react-slot": "^1.2.4",
-		"@radix-ui/react-switch": "^1.4.1",
-		"@radix-ui/react-tabs": "^1.1.13",
-		"class-variance-authority": "^0.7.1",
+		"@hyecompany/vem-data": "2.0.0",
 		"clsx": "^2.1.1",
 		"fumadocs-core": "^16.18.3",
 		"fumadocs-mdx": "^15.5.2",
@@ -25,7 +22,9 @@
 		"next": "^16.4.5",
 		"react": "^19.0.0",
 		"react-dom": "^19.0.0",
-		"tailwind-merge": "^3.0.2"
+		"tailwind-merge": "^3.0.2",
+		"@hyecompany/vem-ui": "file:../ui",
+		"next-themes": "^0.4.6"
 	},
 	"devDependencies": {
 		"@tailwindcss/postcss": "^4.0.9",

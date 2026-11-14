@@ -3,9 +3,15 @@
 
 import "@fontsource/poppins/600.css";
 import { DocsLayout } from "fumadocs-ui/layouts/docs";
+import {
+	SidebarProvider,
+	SidebarTrigger,
+	useSidebar,
+} from "fumadocs-ui/layouts/docs/slots/sidebar";
 import Image from "next/image";
 import type { ReactNode } from "react";
 import { Appearance } from "@/components/Appearance";
+import { DocsSidebar } from "@/components/DocsSidebar";
 import { source } from "@/lib/source";
 export default function RootDocsLayout({ children }: { children: ReactNode }) {
 	return (
@@ -13,6 +19,14 @@ export default function RootDocsLayout({ children }: { children: ReactNode }) {
 			tree={source.pageTree}
 			themeSwitch={{ enabled: false }}
 			sidebar={{ footer: <Appearance /> }}
+			slots={{
+				sidebar: {
+					root: DocsSidebar,
+					provider: SidebarProvider,
+					trigger: SidebarTrigger,
+					useSidebar,
+				},
+			}}
 			nav={{
 				title: (
 					<span className="inline-flex items-start">
@@ -38,8 +52,9 @@ export default function RootDocsLayout({ children }: { children: ReactNode }) {
 				url: "/",
 			}}
 			links={[
-				{ text: "Task board", url: "/docs/data/start/quickstart" },
-				{ text: "API", url: "/docs/data/reference/api-map" },
+				{ text: "Data", url: "/docs/data" },
+				{ text: "UI", url: "/docs/ui" },
+				{ text: "Task board", url: "/docs/task-board" },
 				{
 					text: "GitHub",
 					url: "https://github.com/hyecompany/vem-web",

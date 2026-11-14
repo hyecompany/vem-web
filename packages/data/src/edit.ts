@@ -13,6 +13,21 @@ import type {
 	PreparedEdit,
 } from "./types.js";
 
+/** A readable unset field is distinct from a loading, withdrawn, or undeclared field. */
+export type EditField<V> =
+	| {
+			state: "readable";
+			value: V | undefined;
+			canEdit: boolean;
+			reason?: string;
+			setValue(value: V): void;
+	  }
+	| {
+			state: "loading" | "restricted" | "unavailable";
+			canEdit: false;
+			reason: string;
+	  };
+
 export interface EditSnapshot<
 	T extends object,
 	O extends ActionOutcome = ActionOutcome,
@@ -22,6 +37,8 @@ export interface EditSnapshot<
 	dirty: boolean;
 	saving: boolean;
 	canSave: boolean;
+	/** At least one readable field accepts input; saving admission is independent. */
+	canEdit: boolean;
 	reason?: string;
 	outcome?: CommandResult<O>;
 	missing: readonly (keyof T & string)[];
@@ -40,6 +57,7 @@ export class EditSession<
 		dirty: false,
 		saving: false,
 		canSave: false,
+		canEdit: false,
 		missing: [],
 	};
 	#listeners = new Set<() => void>();
@@ -51,6 +69,7 @@ export class EditSession<
 	#draft: Partial<T> = {};
 	#needsBaseline = false;
 	#prepareError?: string;
+	#unreadable = new Set<keyof T & string>();
 
 	constructor(client: DataClient, descriptor: EditDescriptor<T, unknown, O>) {
 		this.#client = client;
@@ -71,7 +90,17 @@ export class EditSession<
 		};
 	};
 	#publish(update: Partial<EditSnapshot<T, O>>) {
-		this.#snapshot = { ...this.#snapshot, ...update };
+		const canEdit =
+			!this.#preparing &&
+			this.#prepared !== undefined &&
+			Object.keys(this.#prepared.fieldDisclosure).some(
+				(field) =>
+					!this.#unreadable.has(field as keyof T & string) &&
+					!(update.missing ?? this.#snapshot.missing).includes(
+						field as keyof T & string,
+					),
+			);
+		this.#snapshot = { ...this.#snapshot, canEdit, ...update };
 		for (const listener of this.#listeners) listener();
 	}
 	#accessChanged() {
@@ -90,6 +119,7 @@ export class EditSession<
 		const values = { ...this.#draft };
 		const baselineValues = { ...prepared.values };
 		const removed = new Set(this.#snapshot.missing);
+		this.#unreadable = new Set();
 		for (const [name, proof] of Object.entries(
 			prepared.fieldDisclosure as Readonly<
 				Record<string, DisclosureProof | undefined>
@@ -110,6 +140,7 @@ export class EditSession<
 				);
 			});
 			if (!visible) {
+				this.#unreadable.add(field);
 				delete values[field];
 				const surviving = proofEvery(proof, (ref) => {
 					const scope = ref.scope;
@@ -152,7 +183,7 @@ export class EditSession<
 			});
 			return;
 		}
-		if (Object.keys(values).length !== Object.keys(this.#draft).length) {
+		if (this.#unreadable.size > 0) {
 			this.#publish({
 				status: "restricted",
 				values,
@@ -177,7 +208,13 @@ export class EditSession<
 			!this.#needsBaseline &&
 			!this.#snapshot.saving &&
 			this.#snapshot.dirty;
+		const reason = writeDenied
+			? "Write access is unavailable"
+			: this.#needsBaseline
+				? "Review the outcome and reload the current baseline before saving again."
+				: undefined;
 		if (
+			reason !== this.#snapshot.reason ||
 			canSave !== this.#snapshot.canSave ||
 			writeDenied ||
 			this.#snapshot.status === "restricted" ||
@@ -222,6 +259,7 @@ export class EditSession<
 				saving: false,
 				missing: [],
 				canSave: false,
+				canEdit: Object.keys(prepared.fieldDisclosure).length > 0,
 				outcome: retainOutcome ? this.#snapshot.outcome : undefined,
 			};
 			this.#snapshot = next;
@@ -240,23 +278,51 @@ export class EditSession<
 			}
 		}
 	}
+	field<K extends keyof T & string>(name: K): EditField<T[K]> {
+		if (!this.#prepared)
+			return {
+				state: this.#snapshot.status === "loading" ? "loading" : "unavailable",
+				canEdit: false,
+				reason: this.#snapshot.reason ?? "The edit baseline is not available",
+			};
+		if (!Object.hasOwn(this.#prepared.fieldDisclosure, name))
+			return {
+				state: "unavailable",
+				canEdit: false,
+				reason: "This field is not declared by the edit representation",
+			};
+		if (this.#unreadable.has(name) || this.#snapshot.missing.includes(name))
+			return {
+				state: "restricted",
+				canEdit: false,
+				reason: "Read access to this field is unavailable",
+			};
+		return {
+			state: "readable",
+			value: this.#snapshot.values[name],
+			canEdit: !this.#preparing,
+			reason: this.#preparing ? "The edit baseline is loading" : undefined,
+			setValue: (value) => this.set(name, value),
+		};
+	}
 	set<K extends keyof T>(field: K, value: T[K]): void {
 		this.#accessChanged();
-		if (
-			this.#snapshot.status !== "ready" ||
-			this.#snapshot.missing.includes(field as keyof T & string)
-		)
+		if (!this.field(field as keyof T & string).canEdit)
 			throw new Error("This field is not currently editable");
 		this.#version++;
 		const values = {
-			...this.#snapshot.values,
+			...this.#draft,
 			[field]: structuredClone(value),
 		};
 		this.#draft = values;
 		const dirty =
 			JSON.stringify(values) !== JSON.stringify(this.#prepared?.values);
 		this.#publish({
-			values,
+			values: Object.fromEntries(
+				Object.entries(values).filter(
+					([key]) => !this.#unreadable.has(key as keyof T & string),
+				),
+			) as unknown as Partial<T>,
 			dirty,
 			outcome:
 				this.#snapshot.outcome?.kind === "succeeded"
@@ -312,12 +378,14 @@ export class EditSession<
 		this.#prepareError = undefined;
 		this.#draft = {};
 		this.#needsBaseline = false;
+		this.#unreadable.clear();
 		this.#snapshot = {
 			status: "loading",
 			values: {} as Partial<T>,
 			dirty: false,
 			saving: false,
 			canSave: false,
+			canEdit: false,
 			missing: [],
 		};
 		this.#started = false;

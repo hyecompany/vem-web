@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: © 2026 Joseph Maldjian <joseph.maldjian@hyecompany.com>
 // SPDX-License-Identifier: Apache-2.0
 
+import type { FeedbackClient } from "../feedback-types.js";
+
 import type {
 	AccessState,
 	ActionContext,
@@ -78,7 +80,8 @@ export interface TestClientOptions {
 	edits?: readonly EditFixtureInput[];
 }
 export interface TestClient {
-	client: DataClient;
+	client: DataClient & FeedbackClient;
+	readonly feedback: FeedbackClient;
 	readonly calls: readonly CommandDescriptor[];
 	readonly saves: readonly {
 		edit: Omit<EditDescriptor, "__values">;

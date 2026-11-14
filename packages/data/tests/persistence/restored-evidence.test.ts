@@ -170,3 +170,78 @@ for (const backend of ["memory", "dexie"] as const) {
 		);
 	});
 }
+
+for (const separate of [false, true]) {
+	test(`restored ${separate ? "separate observations" : "alternative permissions"} retain pending authority while independently readable`, async (t) => {
+		const persistence = new MemoryPersistence();
+		const resources = [{ name: "tasks", persist: () => true }];
+		const first = createRuntime({
+			contextId: "alice",
+			resources,
+			persistence,
+			access: [
+				{ scope: "a", state: "allowed" },
+				{ scope: "b", state: "allowed" },
+			],
+		});
+		await first.ready;
+		for (const basis of separate ? [["a"], ["b"]] : [["a", "b"]])
+			first.observe({
+				facts: [
+					{
+						resource: "tasks",
+						identity: "walk",
+						presence: "present",
+						values: { title: "Saved" },
+						basis,
+						liveness: "immutable",
+					},
+				],
+				memberships: [
+					{
+						resource: "tasks",
+						identities: ["walk"],
+						complete: true,
+						basis,
+						liveness: "immutable",
+					},
+				],
+			});
+		await first.flush();
+		first.close();
+		const second = createRuntime({
+			contextId: "alice",
+			resources,
+			persistence,
+			access: [{ scope: "a", state: "allowed" }],
+		});
+		t.after(() => second.close());
+		await second.ready;
+		const selected = second.watch(
+			query({
+				resource: "tasks",
+				mode: "one",
+				identity: "walk",
+				select: ["title"],
+			}),
+		);
+		second.setAccess({ decisions: [{ scope: "unrelated", state: "allowed" }] });
+		assert.equal(selected.getSnapshot().rows[0]?.data.title, "Saved");
+		assert.equal(second.membership("tasks")?.complete, true);
+		second.setAccess({ decisions: [{ scope: "b", state: "allowed" }] });
+		second.revoke("a");
+		assert.equal(selected.getSnapshot().rows[0]?.data.title, "Saved");
+		assert.equal(second.membership("tasks")?.complete, true);
+		second.revoke("b");
+		assert.equal(selected.getSnapshot().rows[0]?.data.title, undefined);
+		assert.equal(second.membership("tasks"), undefined);
+		second.setAccess({
+			decisions: [
+				{ scope: "a", state: "allowed" },
+				{ scope: "b", state: "allowed" },
+			],
+		});
+		assert.equal(selected.getSnapshot().rows[0]?.data.title, undefined);
+		assert.equal(second.membership("tasks"), undefined);
+	});
+}

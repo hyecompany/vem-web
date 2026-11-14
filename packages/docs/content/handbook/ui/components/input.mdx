@@ -1,0 +1,21 @@
+---
+title: "Input"
+description: "Collect a short text value."
+order: 2
+---
+
+Import from `@hyecompany/vem-ui` after [adding the package](/docs/ui#add-the-package).
+
+<ComponentPreview name="input" />
+
+## Use it
+
+<Example package="ui" file="input.tsx" region="example" />
+
+## Behavior and choices
+
+Use native input props for type, validation, autofill, and form submission. Associate a visible label with `id`. A placeholder is a hint, not a label.
+
+For related controls, compose Input and Button in your own form layout. Use `aria-describedby` to connect a hint or validation message; set `aria-invalid` only when a value has been found invalid.
+
+<UiReference name="Input" />

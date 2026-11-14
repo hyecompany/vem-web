@@ -138,7 +138,10 @@ export class EditAdmission {
 						throw new Error("Access context changed while preparing the edit");
 					const resource = this.host.definitions.get(descriptor.resource);
 					const fieldDisclosure: Record<string, DisclosureProof> = {};
-					for (const field of Object.keys(prepared.values)) {
+					for (const field of new Set([
+						...Object.keys(prepared.values),
+						...Object.keys(prepared.fieldDisclosure ?? {}),
+					])) {
 						const supplied = captureBasis(
 							prepared.fieldDisclosure?.[field] ?? prepared.disclosure,
 							(scope) => this.host.grants.ref(scope),
@@ -204,6 +207,9 @@ export class EditAdmission {
 			throw new Error("The edit belongs to a retired access context");
 		if (prepared.ownerEpoch !== this.host.grants.epoch)
 			throw new Error("The edit belongs to a previous runtime owner");
+		for (const field of Object.keys(values))
+			if (!Object.hasOwn(prepared.fieldDisclosure, field))
+				throw new Error("The draft contains an undeclared field");
 		for (const [field, proof] of Object.entries(
 			prepared.fieldDisclosure as Readonly<
 				Record<string, DisclosureProof | undefined>

@@ -47,7 +47,7 @@ export function trimKnowledge(host: RetentionHost): void {
 		const record = host.knowledge.records.get(key);
 		const demanded = [...host.queries.states.values()].some(
 			(query) =>
-				query.active &&
+				(query.active || query.users > 0) &&
 				query.descriptor.resource === cell.resource &&
 				(query.descriptor.mode === "one"
 					? host.knowledge.recordKey(

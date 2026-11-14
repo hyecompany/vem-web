@@ -1,0 +1,27 @@
+---
+title: "Spinner"
+description: "Show progress without taking focus away from an action."
+order: 16
+---
+
+Use a spinner beside a readable activity label. It inherits the current text color and has small, medium, and large sizes.
+
+<UiPreview name="spinner" />
+
+[Add the package](/docs/ui#add-the-package) first. Import its components and include the stylesheet once:
+
+<Example package="ui" file="components.tsx" region="imports" />
+
+<Example package="ui" file="components.tsx" region="spinner" />
+
+The defaults are medium size and the accessible label “Loading”.
+
+## Give progress a name
+
+When adjacent text already says what is happening, make the spinner decorative with `aria-hidden="true"`. For a standalone spinner, supply `aria-label` or `aria-labelledby` describing the activity.
+
+A spinner communicates ongoing work; it does not manage requests, timing, or completion announcements. Keep the label tied to the actual activity, and use a status region when the result needs to be announced.
+
+Reduced-motion preferences disable the animation while leaving its visual indicator and accessible label available.
+
+<UiReference name="Spinner" /> · [OverflowText](/docs/ui/components/overflow-text)

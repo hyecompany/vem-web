@@ -2,11 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 "use client";
+import type { DataClient, FeedbackClient } from "@hyecompany/vem-data";
 import { DataProvider } from "@hyecompany/vem-data/react";
-import type { Runtime } from "@hyecompany/vem-data/runtime";
 import { type ReactNode, useEffect, useState } from "react";
 
-export function Session<T extends { client: Runtime; close(): void }>({
+export function Session<
+	T extends { client: DataClient; feedback?: FeedbackClient; close(): void },
+>({
 	create,
 	children,
 }: {
@@ -30,6 +32,8 @@ export function Session<T extends { client: Runtime; close(): void }>({
 			</div>
 		);
 	return (
-		<DataProvider client={session.client}>{children(session)}</DataProvider>
+		<DataProvider client={session.client} feedback={session.feedback}>
+			{children(session)}
+		</DataProvider>
 	);
 }

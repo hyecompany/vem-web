@@ -1,0 +1,33 @@
+---
+title: "Virtual list"
+description: "Keep long lists responsive while rows grow and shrink."
+order: 11
+---
+
+VirtualList renders the rows near its viewport instead of mounting the whole collection. Scroll through these tasks, then show their notes: visible rows are measured as their content changes.
+
+<ComponentPreview name="virtual-list" />
+
+## Use it
+
+Import `VirtualList` from `@hyecompany/vem-ui` after [adding the package](/docs/ui#add-the-package). Supply stable unique keys and a maximum height. The list uses a 32px estimate until each row is measured; choose `estimateItemHeight` when your rows are usually taller.
+
+<Example package="ui" file="virtual-list.tsx" region="example" />
+
+Use [ComboboxVirtualList](/docs/ui/components/combobox#large-choice-lists) for selectable choices. It adds the keyboard and active-option behavior a plain list does not supply.
+
+## Load details for visible rows
+
+The render callback also receives `{ index, visible }`. `visible` is true when the row intersects the list viewport. Nearby rows rendered as overscan have `visible=false`. Use this distinction to enable a row's detail query only while needed; keep known collection identities available for filtering and navigation.
+
+VirtualList does not fetch or retain row data. Offscreen rows retain measured sizes; readable content, access withdrawal, and acquisition still belong to the data layer. An active descendant can stay mounted outside the viewport through `activeIndex`, without becoming visible.
+
+## Sizing and motion
+
+`overscan` defaults to 3 extra rows on each side; use 0 when no offscreen rendering is wanted. Rows and the viewport respond to resizing. Newly added identities appear gently, and content-height changes animate unless reduced motion is preferred. Scrolling existing identities does not trigger entry animations. Removed items leave immediately; surviving rows move into their new positions without preserving removed content.
+
+The default maximum height is 20rem. Override it with `style` or `className`. `actionsRef` supplies `scrollToIndex` and `scrollToKey` for explicit navigation; scrolling is immediate so measurement changes can settle accurately. Use `initialIndex` to reveal a row on the first mount. The component forwards its ordinary `ref` to the scroll container.
+
+This is a single vertical list, not a table or grid virtualizer. Browser Find searches mounted rows only. Use a normal list for short content or when searching every rendered word is more useful than virtualization.
+
+<UiReference name="VirtualList" />

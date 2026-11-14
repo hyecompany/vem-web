@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2026 Joseph Maldjian <joseph.maldjian@hyecompany.com>
+// SPDX-FileCopyrightText: 2026 Joseph Maldjian <joseph.maldjian@hyecompany.com>
 // SPDX-License-Identifier: Apache-2.0
 
 import assert from "node:assert/strict";
@@ -236,7 +236,7 @@ test("Dexie persists permission bindings before payload hydration and preserves 
 	assert.deepEqual(firstEmpty.value?.accessBindings, [binding]);
 });
 
-test("restored permission bindings quarantine aliases until canonical authority is established", {
+test("same-caller restoration resumes canonical permissions and their dependent aliases", {
 	timeout: 5000,
 }, async (t) => {
 	const persistence = new MemoryPersistence();
@@ -247,7 +247,18 @@ test("restored permission bindings quarantine aliases until canonical authority 
 		persistence,
 	});
 	await first.ready;
-	first.observe({ facts });
+	first.observe({
+		facts,
+		memberships: [
+			{
+				resource: "tasks",
+				identities: ["walk"],
+				complete: true,
+				basis: [alias],
+				liveness: "immutable",
+			},
+		],
+	});
 	first.setAccess({
 		decisions: [{ scope: alias, state: "allowed", requires }],
 	});
@@ -263,11 +274,16 @@ test("restored permission bindings quarantine aliases until canonical authority 
 	await restored.ready;
 	const view = restored.watch(descriptor);
 	t.after(() => view.dispose());
-	assert.equal(view.getSnapshot().rows[0]?.data.notes, undefined);
+	assert.equal(view.getSnapshot().rows[0]?.data.notes, "Protected");
 	assert.equal(view.getSnapshot().rows[0]?.data.title, "Walk");
+	assert.equal(restored.membership("tasks")?.complete, true);
+	restored.setAccess({ decisions: [{ scope: "unrelated", state: "allowed" }] });
+	assert.equal(view.getSnapshot().rows[0]?.data.notes, "Protected");
 	restored.setAccess({ decisions: initialAccess });
+	assert.equal(restored.membership("tasks")?.complete, true);
 	assert.equal(view.getSnapshot().rows[0]?.data.notes, "Protected");
 	restored.revoke(requires.all[0]);
+	assert.equal(restored.membership("tasks"), undefined);
 	assert.equal(view.getSnapshot().rows[0]?.data.notes, undefined);
 	await restored.flush();
 	assert.equal(

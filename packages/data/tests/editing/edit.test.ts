@@ -6,7 +6,7 @@ import { type TestContext, test } from "node:test";
 import { command, edit } from "../../src/descriptors.js";
 import { EditSession } from "../../src/edit.js";
 import { createRuntime } from "../../src/runtime.js";
-import { deferred } from "../../src/testing.js";
+import { createTestClient, deferred } from "../../src/testing.js";
 import type {
 	ActionOutcome,
 	EditBaseline,
@@ -193,6 +193,7 @@ test("conflicting, partial and unknown outcomes preserve input and require expli
 		session.set("title", "another unsaved title");
 		assert.deepEqual(session.getSnapshot().outcome, outcome);
 		assert.equal(session.getSnapshot().canSave, false);
+		assert.equal(session.field("title").canEdit, true);
 		assert.throws(() => session.save(), /reload/);
 		await session.reload();
 		session.set("title", "new edit");
@@ -492,4 +493,75 @@ test("failed reload remains failed through notifications and save attempts until
 	assert.equal(session.getSnapshot().reason, undefined);
 	session.set("title", "new draft");
 	assert.equal(session.getSnapshot().canSave, true);
+});
+
+test("field state separates readable optional input, write denial, and undeclared fields", async (t) => {
+	const optional = edit<{ title: string; notes?: string }>({
+		resource: "notes",
+		name: "settings",
+		target: "a",
+	});
+	const scenario = createTestClient({
+		edits: [
+			{
+				edit: optional,
+				values: { title: "Title" },
+				fields: { notes: "allowed" },
+			},
+		],
+	});
+	const session = new EditSession(scenario.client, optional);
+	t.after(() => scenario.close());
+	t.after(session.subscribe(() => undefined));
+	await until(() => session.getSnapshot().status === "ready");
+	assert.equal(session.getSnapshot().canSave, false);
+	assert.equal(session.getSnapshot().canEdit, true);
+	const notes = session.field("notes");
+	assert.equal(notes.state, "readable");
+	if (notes.state !== "readable")
+		throw new Error("Expected an unset readable optional field");
+	assert.equal(notes.value, undefined);
+	notes.setValue("New notes");
+	scenario.setEditAccess(optional, { write: "denied" });
+	assert.equal(session.field("notes").canEdit, true);
+	assert.equal(session.getSnapshot().canSave, false);
+	session.set("notes", "Readable work survives write loss");
+	assert.equal(
+		session.getSnapshot().values.notes,
+		"Readable work survives write loss",
+	);
+	assert.throws(
+		() => session.set("undeclared" as "notes", "secret"),
+		/not currently editable/,
+	);
+	const prepared = await scenario.client.prepareEdit(optional);
+	assert.ok(Object.hasOwn(prepared.fieldDisclosure, "notes"));
+	assert.throws(
+		() =>
+			scenario.client.saveEdit(prepared, {
+				title: "Title",
+				unexpected: "no",
+			} as { title: string }),
+		/undeclared/,
+	);
+	scenario.setEditAccess(optional, { fields: { notes: "denied" } });
+	assert.equal(session.field("notes").state, "restricted");
+	assert.equal(session.getSnapshot().values.notes, undefined);
+	scenario.setEditAccess(optional, { fields: { title: "denied" } });
+	assert.equal(session.getSnapshot().canEdit, false);
+	assert.equal(session.field("title").canEdit, false);
+});
+
+test("editing a readable field does not erase another field quarantined by unknown access", async (t) => {
+	const { runtime, session } = fixture(t);
+	await until(() => session.getSnapshot().status === "ready");
+	session.set("secret", "Protected draft");
+	runtime.setAccess({ decisions: [{ scope: "read", state: "unknown" }] });
+	assert.equal(session.field("secret").state, "restricted");
+	assert.equal(session.field("title").canEdit, true);
+	session.set("title", "Public draft");
+	assert.equal(session.getSnapshot().values.secret, undefined);
+	runtime.setAccess({ decisions: [{ scope: "read", state: "allowed" }] });
+	assert.equal(session.getSnapshot().values.secret, "Protected draft");
+	assert.equal(session.getSnapshot().values.title, "Public draft");
 });

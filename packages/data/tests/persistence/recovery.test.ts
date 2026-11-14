@@ -302,7 +302,7 @@ test("revocation forgets quarantined activity metadata even when durable removal
 		decisions: [],
 	});
 	assert.equal(restoration.pendingRecovery.length, 2);
-	assert.equal(second.listActivities().length, 1);
+	assert.equal(second.listActivities().length, 2);
 	persistence.failure = new Error("Cannot erase durable payloads");
 	second.revoke("read");
 	assert.deepEqual(

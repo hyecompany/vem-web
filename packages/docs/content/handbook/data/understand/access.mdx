@@ -23,7 +23,9 @@ Derived values and relationships also depend on the information and permissions 
 
 ## Unknown is different from denied
 
-A fresh owner may not yet know who the caller is. Protected restored data stays hidden until the host establishes access. That uncertainty is not proof that permission was revoked.
+A fresh owner may not yet know who the caller is. Protected restored data stays hidden until the host identifies the caller. Once the same caller is established, Vem resumes saved permission decisions and makes the supported stale data available immediately. Restarting the browser does not expire those permissions or require a separate permission request for each resource. New decisions and known revocations take precedence.
+
+Quarantine controls what Vem publishes to consumers; it does not encrypt browser storage.
 
 Likewise, a network error during an established session is not a logout. Only an actual access decision or authority retirement withdraws the old permission. A logout can retire private access while leaving public data and the runtime alive.
 

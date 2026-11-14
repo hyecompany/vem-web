@@ -17,6 +17,7 @@ export async function executeSource(
 	work: PlannedAcquisition,
 	context: ResourceContext,
 	needed: () => boolean = () => true,
+	dispatched?: () => void,
 ): Promise<ObservationResult> {
 	const { source } = work;
 	const capture = (batch: ObservationBatch) => {
@@ -32,6 +33,9 @@ export async function executeSource(
 		...context,
 		get acquisitionFence() {
 			return context.acquisitionFence;
+		},
+		get fetchPriority() {
+			return context.fetchPriority;
 		},
 		observe(batch) {
 			const observed = inferSourceFacts(work, request, batch);
@@ -79,7 +83,9 @@ export async function executeSource(
 			throw new Error("Source read access is unavailable");
 		if (source.available?.(request, context) === false)
 			throw new Error("The source is no longer available");
-		const result = await source.run(request, sourceContext);
+		const response = source.run(request, sourceContext);
+		if (page === 0) dispatched?.();
+		const result = await response;
 		if (!result || !("batch" in result)) {
 			if (!result) return;
 			const observed = inferSourceFacts(work, request, result);

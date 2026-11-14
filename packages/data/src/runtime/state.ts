@@ -9,6 +9,7 @@ import type {
 	QueryResult,
 	Values,
 } from "../types.js";
+import type { QueryFailure } from "./query-issues.js";
 export interface Cell extends PersistedFact {
 	stale?: boolean;
 	currencyRevision?: number;
@@ -30,7 +31,10 @@ export interface QueryState {
 	forced: number;
 	fetching: number;
 	users: number;
+	demands: number;
+	waiters: number;
 	issues: QueryIssue[];
+	failures?: readonly QueryFailure[];
 	active: boolean;
 	timer?: ReturnType<typeof setInterval>;
 }

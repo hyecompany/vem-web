@@ -3,7 +3,6 @@
 
 import { stableKey } from "../descriptors.js";
 import type { QueryDescriptor, Values } from "../types.js";
-import { equal } from "../values.js";
 
 export interface MissingRequirement {
 	kind:
@@ -32,13 +31,4 @@ export function requirementKey(requirement: MissingRequirement): string {
 	return stableKey(identity);
 }
 
-/** A broader enumeration covers a stricter equality filter, never the reverse. */
-export function filterCovers(
-	coverage: Readonly<Values> | undefined,
-	requested: Readonly<Values> | undefined,
-): boolean {
-	return Object.entries(coverage ?? {}).every(
-		([field, value]) =>
-			Object.hasOwn(requested ?? {}, field) && equal(requested?.[field], value),
-	);
-}
+export { filterCovers } from "../filters.js";

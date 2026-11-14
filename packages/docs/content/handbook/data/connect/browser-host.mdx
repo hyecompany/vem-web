@@ -38,6 +38,8 @@ Pass the same `taskRead` rules used by the owner. `ownerModule` is the URL of th
 
 Create the client once in the application entry point, then pass it into this provider. The browser needs HTTPS or loopback, SharedWorker, and Web Locks. Connection failures are application-level errors, separate from an individual query's failure.
 
+A slow worker download, owner-lock wait, or host initialization keeps `connectionSnapshot().phase` at `connecting`. Elapsed time alone does not fail the connection; a late owner can still become ready. Worker errors, rejected initialization, and incompatible versions report an actual failure. Keep the application's connecting state visible, and let users reconnect or leave. An imperative read can stop waiting through its `AbortSignal` without closing the shared client. The host waits for the owner client's optional `ready` promise and delivers its initial knowledge snapshot before admitting queued demand. Restored rows can therefore supply nested consumers before their requirements are planned together. Give backend operations their own documented deadlines; the client handshake does not infer one.
+
 <Example file="host-guide/browser.tsx" region="provider" />
 
 Put your routes inside the provider. Close the client when the app is permanently disposed; do not recreate it on route changes.
@@ -46,7 +48,9 @@ Put your routes inside the provider. Close the client when the app is permanentl
 
 Storage is optional: omit `persistence` for an in-memory owner. With `DexiePersistence`, a definition's `persist` decides which fields can be saved. For example, the task definition allows `$presence`, `title`, and `status`, and leaves private notes out. Relationships have a separate `persistRelationship` allowance. The starter uses the explicit IndexedDB name `vem-data:task-board:v1`; the constructor uses that name directly. Choose a namespace your application owns.
 
-`runtime.ready` means restoration was attempted. It does not grant permission to show protected data. Establish the current caller through [access decisions](/docs/data/connect/access); protected saved data stays quarantined until then. Report persistence errors through `RuntimeOptions.onError`, and inspect `action.recovery` before promising restart recovery.
+`runtime.ready` means restoration was attempted. Establish the current caller through [access decisions](/docs/data/connect/access); storage must not choose the caller. Until then, protected saved data stays quarantined. Identifying the same caller resumes saved permissions and exposes supported stale values immediately, so mounted consumers can express their current needs together. Acquiring fresh values does not require clearing readable old ones.
+
+`DexiePersistence` retains permission snapshots for up to 16 caller contexts; evicted snapshots require new permission evidence. The storage format upgrades automatically. Report persistence errors through `RuntimeOptions.onError`, and inspect `action.recovery` before promising restart recovery.
 
 ## Let the browser continue an upload
 

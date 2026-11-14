@@ -101,6 +101,10 @@ export function createPlanning(lesson: PlanningLesson) {
 					: [],
 		};
 	}
+	const matchingTasks = (request: AcquisitionRequest) =>
+		planningTasks.filter(
+			(task) => !request.where?.status || task.status === request.where.status,
+		);
 	const client = createRuntime({
 		resources: [
 			{
@@ -115,7 +119,6 @@ export function createPlanning(lesson: PlanningLesson) {
 									mode: "list" as const,
 									fields: ["title", "status"],
 									membership: true,
-									cost: 0.25,
 									async run(request: AcquisitionRequest) {
 										await visit("summaries", "Task list", "Titles and status");
 										const result = batch(planningTasks, request);
@@ -136,7 +139,7 @@ export function createPlanning(lesson: PlanningLesson) {
 						key: "one-task",
 						mode: "one",
 						fields: ["title", "status", "notes"],
-						cost: 1,
+						...(lesson === "pages" ? { cost: 1 } : {}),
 						async run(request) {
 							const records = planningTasks.filter(
 								(task) => task.id === (request.identity as { id: string }).id,
@@ -154,7 +157,7 @@ export function createPlanning(lesson: PlanningLesson) {
 						mode: "list",
 						fields: ["title", "status", "notes"],
 						membership: true,
-						cost: 2,
+						...(lesson === "pages" ? { cost: planningTasks.length } : {}),
 						async run(request) {
 							await visit(
 								"all",
@@ -173,15 +176,12 @@ export function createPlanning(lesson: PlanningLesson) {
 									fields: ["title", "status", "notes"],
 									membership: true,
 									filters: ["status"],
+									// This simulated service charges one unit per returned task, with a one-unit minimum.
 									cost: (request: AcquisitionRequest) =>
-										request.where?.status ? 1.5 : 4,
+										Math.max(1, matchingTasks(request).length),
 									pagination: { pageSize: 1, maxPages: 4 },
 									async run(request: AcquisitionRequest) {
-										const records = planningTasks.filter(
-											(task) =>
-												!request.where?.status ||
-												task.status === request.where.status,
-										);
+										const records = matchingTasks(request);
 										const index = Number(request.page?.cursor ?? 0);
 										await visit(
 											"page",

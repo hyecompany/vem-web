@@ -2,8 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { stableKey } from "../descriptors.js";
-import { requirementKey } from "../read-model/requirements.js";
-import type { QueryIssue, ResourceContext } from "../types.js";
+import {
+	type MissingRequirement,
+	requirementKey,
+} from "../read-model/requirements.js";
+import type { ResourceContext } from "../types.js";
 import { buildCandidates } from "./planning-candidates.js";
 import type {
 	AttemptedSource,
@@ -18,6 +21,8 @@ import {
 	type SelectionOption,
 	selectAcquisitions,
 } from "./planning-selection.js";
+import { acquisitionSupersessions } from "./planning-supersession.js";
+import type { QueryFailure } from "./query-issues.js";
 import type { QueryState } from "./state.js";
 
 export type { PlannedAcquisition } from "./planning-model.js";
@@ -72,6 +77,8 @@ export function planAcquisitions(
 	);
 	const requiredBy = new Map<string, Set<QueryState>>();
 	const revalidates = new Map<string, Map<string, Set<string>>>();
+	const requirements = new Map<string, Map<string, MissingRequirement[]>>();
+	const requirementKeys = new Map<string, Map<string, Set<string>>>();
 	const witnessCosts = new Map(
 		[...candidates].map(([key]) => [key, { key, cost: 1 }]),
 	);
@@ -104,11 +111,31 @@ export function planAcquisitions(
 					: root.requirement.stale
 						? [requirementKey(root.requirement)]
 						: [];
-			if (!checking.length) continue;
+			const original =
+				stableKey(root.requirement.query) !== stableKey(state.descriptor)
+					? host.requirements(state.descriptor)
+					: [root.requirement];
 			const path = (root.options ?? [])
 				.filter((option) => [...option].every((key) => witness.has(key)))
 				.sort((a, b) => a.size - b.size)[0];
 			for (const key of path ?? []) {
+				const demands =
+					requirements.get(key) ?? new Map<string, MissingRequirement[]>();
+				const requested = demands.get(state.key) ?? [];
+				const keys = requirementKeys.get(key) ?? new Map<string, Set<string>>();
+				const seen = keys.get(state.key) ?? new Set<string>();
+				for (const requirement of original) {
+					const identity = requirementKey(requirement);
+					if (!seen.has(identity)) {
+						seen.add(identity);
+						requested.push(requirement);
+					}
+				}
+				keys.set(state.key, seen);
+				requirementKeys.set(key, keys);
+				demands.set(state.key, requested);
+				requirements.set(key, demands);
+				if (!checking.length) continue;
 				const queries = revalidates.get(key) ?? new Map<string, Set<string>>();
 				const evidence = queries.get(state.key) ?? new Set<string>();
 				for (const requirement of checking) evidence.add(requirement);
@@ -124,6 +151,7 @@ export function planAcquisitions(
 		if (!candidate) continue;
 		candidate.states = [...(requiredBy.get(key) ?? [])];
 		candidate.revalidates = revalidates.get(key);
+		candidate.requirements = requirements.get(key);
 		if (!candidate.states.length) continue;
 		(inflight.some((value) => value.key === key) ? waiting : work).push(
 			candidate,
@@ -133,15 +161,66 @@ export function planAcquisitions(
 		[...work, ...waiting].flatMap((value) => value.states),
 	);
 	const uncovered = states.filter((state) => !assigned.has(state));
-	const issues = new Map<QueryState, QueryIssue>();
-	const blockedByState = new Map<QueryState, QueryIssue>();
-	for (const admission of blocked)
-		for (const state of admission.candidate.states)
-			if (!blockedByState.has(state))
-				blockedByState.set(state, admission.issue);
+	const failures = new Map<QueryState, QueryFailure[]>();
+	const coveredBy = (need: Need, covers: ReadonlySet<string>): boolean =>
+		covers.has(need.key) ||
+		need.dependencies.some((dependency) => coveredBy(dependency, covers));
 	for (const state of uncovered) {
-		const issue = prerequisiteIssues.get(state) ?? blockedByState.get(state);
-		if (issue) issues.set(state, issue);
+		const prerequisite = prerequisiteIssues.get(state);
+		if (prerequisite) {
+			failures.set(state, [
+				{
+					issue: prerequisite,
+					retryable: prerequisite.kind !== "access",
+					requirements: host.requirements(state.descriptor),
+				},
+			]);
+			continue;
+		}
+		const explanations = (node: Need): QueryFailure["issue"][] => [
+			...(node.issue ? [node.issue] : []),
+			...node.dependencies.flatMap(explanations),
+		];
+		for (const root of byState.get(state) ?? []) {
+			const requirements =
+				stableKey(root.requirement.query) === stableKey(state.descriptor)
+					? [root.requirement]
+					: host.requirements(state.descriptor);
+			const entries = failures.get(state) ?? [];
+			for (const issue of explanations(root))
+				entries.push({
+					issue,
+					requirements,
+					retryable: issue.kind !== "access",
+				});
+			if (entries.length) failures.set(state, entries);
+		}
+		for (const admission of blocked) {
+			const affected = (byState.get(state) ?? []).filter((root) =>
+				coveredBy(root, admission.candidate.covers),
+			);
+			const requirements = affected.flatMap((root) =>
+				stableKey(root.requirement.query) === stableKey(state.descriptor)
+					? [root.requirement]
+					: host.requirements(state.descriptor),
+			);
+			if (!requirements.length) continue;
+			const entries = failures.get(state) ?? [];
+			entries.push({ issue: admission.issue, requirements, retryable: false });
+			failures.set(state, entries);
+		}
 	}
-	return { work, waiting, uncovered, issues };
+	return {
+		work,
+		waiting,
+		uncovered,
+		failures,
+		supersessions: acquisitionSupersessions(
+			host,
+			inflight,
+			[...waiting, ...work],
+			candidates,
+			needs,
+		),
+	};
 }

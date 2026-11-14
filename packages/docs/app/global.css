@@ -1,3 +1,5 @@
+@layer theme, base, vem, components, utilities;
+
 @import "tailwindcss";
 @import "fumadocs-ui/css/preset.css";
 @import "fumadocs-ui/css/neutral.css";

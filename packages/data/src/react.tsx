@@ -1,59 +1,62 @@
 // SPDX-FileCopyrightText: © 2026 Joseph Maldjian <joseph.maldjian@hyecompany.com>
 // SPDX-License-Identifier: Apache-2.0
 
-import {
-	createContext,
-	type ReactNode,
-	useContext,
-	useMemo,
-	useSyncExternalStore,
-} from "react";
+"use client";
+
+import { useMemo, useSyncExternalStore } from "react";
 import { commandKey, stableKey } from "./descriptors.js";
 import { EditSession } from "./edit.js";
+import { emptyResult } from "./protocol.js";
 import type {
 	ActionHandle,
 	ActionOutcome,
 	ActionSnapshot,
 	CommandDescriptor,
-	DataClient,
 	EditDescriptor,
 	QueryDescriptor,
 	QueryResult,
+	QueryWatchOptions,
 } from "./types.js";
 
-const ClientContext = createContext<DataClient | null>(null);
-/** Install one consumer client for descendant hooks. The application host owns the client lifetime. */
-export function DataProvider({
-	client,
-	children,
-}: {
-	client: DataClient;
-	children: ReactNode;
-}) {
-	return (
-		<ClientContext.Provider value={client}>{children}</ClientContext.Provider>
-	);
+export { DataProvider, useDataClient } from "./react-context.js";
+export { useFeedback, useInlineFeedback } from "./react-feedback.js";
+export {
+	type UseReadStatusOptions,
+	useReadStatus,
+} from "./react-read-status.js";
+
+import { useDataClient } from "./react-context.js";
+
+/** Controls whether this mounted consumer currently needs its query. */
+export interface UseQueryOptions extends QueryWatchOptions {
+	/** Defaults to true. False releases demand and returns no protected data; enabling reuses shared knowledge synchronously. */
+	enabled?: boolean;
 }
-/** Return the provider client; throws when no DataProvider is installed. */
-export function useDataClient(): DataClient {
-	const client = useContext(ClientContext);
-	if (!client)
-		throw new Error(
-			"Install DataProvider at the application root before using Vem Data",
-		);
-	return client;
-}
+
 /** Subscribe to selected information. Equivalent inline descriptions share value-based identity; retry belongs to the returned result. */
 export function useQuery<T extends object, I>(
 	descriptor: QueryDescriptor<T, I>,
+	{ enabled = true, acquire = true }: UseQueryOptions = {},
 ) {
 	const client = useDataClient();
 	const key = stableKey(descriptor);
 	// biome-ignore lint/correctness/useExhaustiveDependencies: The value key makes equivalent inline descriptions share one subscription.
-	const binding = useMemo(
-		() => ({ handle: client.watch(descriptor), query: descriptor }),
-		[client, key],
-	);
+	const binding = useMemo(() => {
+		if (enabled)
+			return {
+				handle: client.watch(descriptor, { acquire }),
+				query: descriptor,
+			};
+		const snapshot = emptyResult<T, I>();
+		return {
+			query: descriptor,
+			handle: {
+				getSnapshot: () => snapshot,
+				subscribe: () => () => {},
+				retry: async () => snapshot,
+			},
+		};
+	}, [client, key, enabled, acquire]);
 	const { handle } = binding;
 	const value = useSyncExternalStore(
 		handle.subscribe,
@@ -81,15 +84,16 @@ export function useCommand<I, O extends ActionOutcome>(
 		handle.getSnapshot,
 		handle.getSnapshot,
 	);
-	// biome-ignore lint/correctness/useExhaustiveDependencies: Equivalent command values intentionally keep the same run binding.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: Equivalent command values intentionally retain one run binding across admission updates.
+	const run = useMemo(() => () => client.run(descriptor), [client, key]);
 	return useMemo(
 		() => ({
 			availability,
 			canRun:
 				availability.state === "available" || availability.state === "unknown",
-			run: () => client.run(descriptor),
+			run,
 		}),
-		[client, key, availability],
+		[availability, run],
 	);
 }
 /** Observe shared action records visible under the current disclosure context. */
@@ -136,6 +140,7 @@ export function useEdit<
 	return useMemo(
 		() => ({
 			...value,
+			field: session.field.bind(session),
 			set: session.set.bind(session),
 			save: session.save.bind(session),
 			reload: session.reload.bind(session),
@@ -155,4 +160,4 @@ export function queryView<T extends object, I>(result: QueryResult<T, I>) {
 	return "incomplete" as const;
 }
 
-export type { EditSnapshot } from "./edit.js";
+export type { EditField, EditSnapshot } from "./edit.js";

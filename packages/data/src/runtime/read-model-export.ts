@@ -34,7 +34,9 @@ export class ReadModelExport {
 		return this.cached ?? this.update();
 	}
 	update(): ReadModelSnapshot {
+		const identityTransitions = this.knowledge.identities.snapshot();
 		const changes: ReadModelDelta = {
+			identityTransitions,
 			revision: this.knowledge.revision,
 			records: { upsert: [], remove: [] },
 			memberships: { upsert: [], remove: [] },
@@ -77,13 +79,15 @@ export class ReadModelExport {
 			this.cached &&
 			this.cached.revision === this.knowledge.revision &&
 			sameRecords &&
-			sameMemberships
+			sameMemberships &&
+			equal(this.cached.identityTransitions ?? [], identityTransitions)
 		)
 			return this.cached;
 		const previous = this.cached;
 		this.memberships = memberships;
 		this.cached = frozen({
 			revision: this.knowledge.revision,
+			...(identityTransitions.length ? { identityTransitions } : {}),
 			records:
 				sameRecords && previous ? previous.records : [...this.records.values()],
 			memberships:
@@ -146,6 +150,10 @@ export class ReadModelExport {
 					where,
 					identities,
 					complete,
+					observedComplete: membership.supports.some(
+						(support) =>
+							support.complete && this.grants.allowsAny(support.bases),
+					),
 					revision,
 					currencyRevision: membership.currencyRevision,
 					stale: membership.stale,

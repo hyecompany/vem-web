@@ -14,3 +14,5 @@ packages/docs/content/docs/
 packages/docs/public/examples/
 **/.build/
 *.tsbuildinfo
+
+.artifacts/

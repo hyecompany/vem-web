@@ -1,0 +1,39 @@
+---
+title: "OverflowText"
+description: "Keep long names readable in compact buttons and list items."
+order: 15
+---
+
+Give the component its full text and a container with a constrained width. It shortens the visible label when needed and can reveal the rest on hover or focus.
+
+<UiPreview name="overflow" />
+
+## Put a label in a fixed space
+
+[Add the package](/docs/ui#add-the-package) first. Import its components and include the stylesheet once:
+
+<Example package="ui" file="components.tsx" region="imports" />
+
+<Example package="ui" file="components.tsx" region="overflow" />
+
+While moving, text fades gently at the edges of its available space. The stationary label and the containing control stay crisp.
+
+The component inherits typography and color. In a flex row, give the text space to shrink; avoid a parent whose minimum width is its entire content.
+
+## Activate it from the whole control
+
+Add `data-vem-overflow-trigger` to a containing button or option. Hovering or focusing that control activates the label. A parent with `data-highlighted` also activates it, so keyboard highlighting in a combobox works.
+
+<Example package="ui" file="components.tsx" region="parent-trigger" />
+
+Use this behavior with your existing interaction component. OverflowText does not create a button, option, tooltip, or additional focus stop.
+
+## Keep the name accessible
+
+The complete string stays in the accessible text. Motion respects the user's reduced-motion preference. Text is shortened at grapheme boundaries, preserving emoji and combined characters.
+
+Do not make animation the only way to read important content. For touch and reduced-motion users, show the full selected name in nearby details, allow a popup label to wrap, or provide an accessible disclosure. A native `title` alone is not a dependable touch alternative.
+
+Measurements update after resizing and font loading. The first server render contains the full string; the stylesheet constrains it until the browser can measure.
+
+<UiReference name="OverflowText" /> · [Spinner](/docs/ui/components/spinner)

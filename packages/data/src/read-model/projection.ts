@@ -51,6 +51,7 @@ export class ReadModelProjection {
 			access: (scope) => this.access.scopes[scope]?.state ?? "unknown",
 			revision: () => this.snapshot?.revision ?? 0,
 			records: this.records,
+			identityTransitions: () => this.snapshot?.identityTransitions ?? [],
 			effective: (key) => this.effective.get(key),
 			effectiveRecords: (resource) =>
 				this.effectiveResources.get(resource)?.values() ?? [],

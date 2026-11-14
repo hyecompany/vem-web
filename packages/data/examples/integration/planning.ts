@@ -19,14 +19,12 @@ export function taskSources(api: TaskReads): readonly AcquisitionSource[] {
 			mode: "list",
 			fields: ["title", "status", "notes"],
 			membership: true,
-			cost: 3,
 			run: (_request, context) => api.all(context),
 		},
 		{
 			key: "one-task",
 			mode: "one",
 			fields: ["title", "status", "notes"],
-			cost: 1,
 			run: (request, context) =>
 				api.one((request.identity as { id: string }).id, context),
 		},
@@ -136,3 +134,15 @@ export function taskUrlSource(
 	};
 }
 // #endregion url-source
+
+// #region source-cost
+export function meteredTaskSources(
+	api: TaskReads,
+	charges: { perRequest: number; perItem: number },
+): readonly AcquisitionSource[] {
+	return taskSources(api).map((source) => ({
+		...source,
+		cost: { request: charges.perRequest, perItem: charges.perItem },
+	}));
+}
+// #endregion source-cost
