@@ -1,0 +1,23 @@
+/* SPDX-FileCopyrightText: © 2026 Joseph Maldjian <joseph.maldjian@hyecompany.com> */
+/* SPDX-License-Identifier: Apache-2.0 */
+
+@layer vem {
+	[data-vem-activity],
+	[data-vem-query-status] {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.5rem;
+	}
+	.vem-command-button {
+		display: inline-flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.35rem;
+	}
+	.vem-command-reason {
+		color: var(--muted-foreground);
+		font-size: 0.8125rem;
+		max-inline-size: 32rem;
+	}
+}
