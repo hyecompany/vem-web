@@ -3,11 +3,9 @@
 
 "use client";
 import type { QueryResult } from "@hyecompany/vem-data";
+import { Badge, Button, Card } from "@hyecompany/vem-ui";
 import { Check, Circle, CircleHelp, ListTodo, LockKeyhole } from "lucide-react";
 import type { ReactNode } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import type { Task } from "../labs/model";
 
 export function TaskApp({
@@ -108,7 +106,7 @@ export function TaskList({
 								)}
 							</div>
 							{proposed ? (
-								<Badge variant="warning">Unconfirmed</Badge>
+								<Badge variant="outline">Unconfirmed</Badge>
 							) : done ? (
 								<Badge variant="secondary">Done</Badge>
 							) : null}
@@ -136,7 +134,7 @@ export function TaskList({
 									)}
 								</div>
 								{row.data.status && (
-									<Badge variant="warning">
+									<Badge variant="outline">
 										{row.data.status === "done" ? "Done" : "To do"}
 										{row.fields.status?.stale && " · last known"}
 									</Badge>

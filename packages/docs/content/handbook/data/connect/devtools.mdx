@@ -1,39 +1,49 @@
 ---
 title: "Inspect consumers and try UI scenarios"
-description: "Connect development tools to the same public contract your features use."
+description: "Inspect a real screen or exercise its loading, access, and failure states."
 order: 6
 ---
 
-Use **live inspection** to understand what a mounted screen requests. Use **scenarios** to see how that screen handles missing data, denied access, or a failed command. The choice belongs to the development host, not the feature component.
+Use **live inspection** to understand what a mounted screen requests. Use **scenarios** to see how that same screen handles missing data, denied access, or a failed command. Feature components use their usual queries, commands, and editors in either mode.
 
-## Inspect a real screen
+## Mount the inspector
 
-`inspectClient` from `/devtools` returns a wrapper. Pass `inspection.client` to `DataProvider`; mount your panel against `inspection.subscribe` and `inspection.getSnapshot`. Only consumers using that wrapper appear in the inspection.
+Vem UI's `DataInspector` shows discovered queries, commands, editors, and activities. Put it in your existing developer-tools surface, such as TanStack Devtools:
 
-<Example file="host-guide/devtools.ts" region="inspect" />
+<Example package="ui" file="devtools.tsx" region="panel" />
 
-The snapshot includes active queries, commands, editors, and actions. Inspection observes existing consumers; it does not fetch extra data. Call `inspection.close()` when removing the panel to detach inspection without closing the real client.
+The panel accepts an existing inspector; it does not create or close clients or request data. The optional `header` prop holds application-specific connection information or mode controls. Both stylesheets are required.
+
+For live inspection, wrap the application's client with `inspectClient`:
+
+<Example package="ui" file="devtools.tsx" region="prepare" />
+
+Pass the returned `client` to `DataProvider` and `panel` to your developer-tools host. Only consumers using the wrapper appear in the inspection. The host calls `dispose()` when retiring this development session; it detaches inspection without closing the real client. Closing the visible panel alone need not retire the session.
+
+The inspector shows consumer demand and results, not owner-side source comparisons. See [how Vem chooses reads](/docs/data/connect/planning#choose-using-available-evidence) for the selection policy; service or network observations identify the actual reads.
 
 ## Give the screen controlled data
 
-A scenario catalog supplies example values and useful choices. The catalog is checked against the resource contract:
+A scenario catalog supplies example values and useful choices, checked against the resource contract:
 
 <Example file="host-guide/devtools.ts" region="scenarios" />
 
-Pass the returned `scenario.client` to the same `DataProvider` used by the real application. It runs an isolated runtime instead of sending commands to your server.
+Pass `scenario.client` to the application's `DataProvider`. Give that same scenario to the panel as both its inspection and its controls:
 
-Once a screen is mounted, a panel can change its discovered query:
+<Example package="ui" file="devtools.tsx" region="scenario-panel" />
 
-<Example file="host-guide/devtools.ts" region="scenario-change" />
+Open a screen to discover its consumers. The panel can then change query states and sample values, command admission and outcomes, or editor permissions. Commands run against an isolated runtime, not your server. Call `scenario.close()` when disposing that session; recreate it for a full reset.
 
-The screen should keep the known row and show its missing title. Other query states are `ready`, `loading`, `empty`, `failed`, and `denied`. `setCommand` and `setEdit` control operation and editor scenarios. Call `scenario.close()` on disposal; recreate it for a full reset.
+A partial query with a missing display field keeps its matching row visible. A missing filter field leaves an unresolved candidate. These controls exercise feature behavior; they do not simulate worker ownership, persistence, or real network traffic.
 
 ## Keep the integration in development
 
-For a Vite application, use a build-time branch and a separate development module:
+Load the module containing the inspector **and its styles** through a build-time development branch. For Vite:
 
-<Example file="host-guide/development.ts" region="development" />
+<Example package="ui" file="devtools-host.tsx" region="development" />
 
-The `devtools.js` module above exports `inspectDevelopmentClient`. Pass the returned client into the provider and the optional inspection into your panel. With other build tools, use their equivalent compile-time development entry point.
+The `devtools.js` module is the panel and preparation code above. Other build tools should use their equivalent compile-time development constant. Keep imports of inspection, scenarios, the panel, and its stylesheet inside that development module graph.
 
-Place the panel in your existing developer-tools surface, such as TanStack Devtools. Vem supplies inspection and scenarios, not a bundled panel. Verify the final **client and worker** bundles exclude development imports and initialization; hiding the panel is not sufficient.
+Verify the final **client and worker** bundles exclude development imports and initialization; hiding the panel is not sufficient. Vem Data's `/devtools` entry also exposes `subscribe` and `getSnapshot` if your host needs a custom inspector view.
+
+<UiReference name="DataInspector" />

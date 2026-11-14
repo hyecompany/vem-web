@@ -4,8 +4,8 @@
 "use client";
 import { useQuery } from "@hyecompany/vem-data/react";
 import { createRuntime } from "@hyecompany/vem-data/runtime";
+import { Button } from "@hyecompany/vem-ui";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Session } from "../lesson/Session";
 import { TaskApp, TaskList } from "../lesson/TaskApp";
 import { QueryEvidence, Teaching } from "../lesson/Teaching";

@@ -2,10 +2,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 "use client";
+import {
+	Button,
+	Tabs,
+	TabsContent,
+	TabsList,
+	TabsTrigger,
+} from "@hyecompany/vem-ui";
 import { ArrowRight } from "lucide-react";
 import { useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Actions } from "./labs/Actions";
 import { Editor } from "./labs/Editor";
 import { Knowledge } from "./labs/Knowledge";
@@ -26,7 +31,7 @@ export function TaskBoardDemo() {
 	return (
 		<div className="lesson-tour not-prose" ref={container}>
 			<Tabs value={lesson} onValueChange={setLesson}>
-				<TabsList aria-label="Task board walkthrough">
+				<TabsList activateOnFocus aria-label="Task board walkthrough">
 					{lessons.map(([name, title], i) => (
 						<TabsTrigger value={name} key={name}>
 							<span>{i + 1}</span>
@@ -54,7 +59,7 @@ export function TaskBoardDemo() {
 							requestAnimationFrame(() => {
 								container.current
 									?.querySelector<HTMLElement>(
-										'[role="tab"][data-state="active"]',
+										'[role="tab"][aria-selected="true"]',
 									)
 									?.focus({ preventScroll: true });
 								container.current?.scrollIntoView({

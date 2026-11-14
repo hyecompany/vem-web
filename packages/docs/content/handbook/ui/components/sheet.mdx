@@ -1,0 +1,21 @@
+---
+title: "Sheet"
+description: "Open a focused task beside the current page."
+order: 15
+---
+
+Import from `@hyecompany/vem-ui` after [adding the package](/docs/ui#add-the-package).
+
+<ComponentPreview name="sheet" />
+
+## Use it
+
+<Example package="ui" file="sheet.tsx" region="example" />
+
+## Behavior and choices
+
+SheetTrigger opens SheetContent; SheetClose dismisses it. Keep a SheetTitle and, when useful, SheetDescription inside the content. The dialog handles focus, Escape, and returning focus to the trigger.
+
+Use `side` on SheetContent to select the edge. Use controlled `open` and `onOpenChange` when another part of the application owns visibility. Keep forms and their state in your application; dismissing a sheet does not save a draft.
+
+<UiReference name="Sheet" />

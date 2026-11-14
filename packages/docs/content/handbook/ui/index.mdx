@@ -1,0 +1,43 @@
+---
+title: "Vem UI"
+description: "React components with a consistent design, shared updates, and application-owned branding."
+order: 20
+---
+
+Vem UI provides controls, navigation, and feedback for React applications. Install one package and receive component fixes through ordinary package updates. Your application keeps its router, content, and layouts.
+
+## Add the package
+
+Use React 19 and React DOM 19:
+
+```sh
+npm install @hyecompany/vem-ui
+```
+
+Include `@hyecompany/vem-ui/styles.css` once at your application entry. The package ships its own CSS; Tailwind and shadcn source installation are not required.
+
+<Example package="ui" file="setup.tsx" region="example" />
+
+<details>
+<summary>Using Next.js</summary>
+
+The examples are ordinary React. In Next.js, put a `"use client"` boundary around your application components that use state, event handlers, or browser APIs. Import the stylesheet in the root layout. Vite and other client applications do not need that directive.
+
+</details>
+
+## Choose what to build
+
+| Your task | Go here |
+| --- | --- |
+| Add a control or navigation | [Components](/docs/ui/components) |
+| Match the application's appearance | [Branding and appearance](/docs/ui/customize) |
+| Connect a Data query, command, or edit | [Use Vem UI with Data](/docs/ui/with-data) |
+| Look up props | [API reference](/docs/ui/reference) |
+
+The [task board](/docs/task-board) uses these same public components with Vem Data.
+
+## Update the package
+
+Use your package manager to update the dependency and review the release notes. Component implementation stays in Vem; application branding stays in your stylesheet. There are no copied registry files to merge.
+
+The controls use shadcn’s Base UI composition and Nova styling, with ordinary semantic CSS variables for [application branding](/docs/ui/customize). Existing theme variables are respected through CSS; build-time `components.json` settings are not read by an installed npm package.

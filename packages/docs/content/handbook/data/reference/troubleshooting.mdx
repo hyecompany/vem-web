@@ -7,7 +7,7 @@ order: 2
 ## Nothing fetched or no event socket
 
 - **In the embedded examples:** the service is simulated inside the page. The counter measures calls to that source, not HTTP requests.
-- **In your application:** inspect the existing query's `issues` and whether its requested fields and membership are already known. A satisfied query needs no acquisition.
+- **In your application:** inspect the existing query's `issues` and whether its requested fields and membership are already known. A satisfied query needs no acquisition. `enabled: false`, `acquire: false`, and `useReadStatus` also create no automatic acquisition.
 - **With a SharedWorker host:** inspect the worker's network activity. Page developer tools may not show its requests. Your host opens the event transport; Vem does not choose or open one automatically.
 
 A failed HTTP request is not proof of logout. Check the source URL, proxy, and authentication separately. See [when acquisition happens](/docs/data/understand/acquisition).
@@ -25,6 +25,10 @@ If the required information is present and permitted, a loading flash is a defec
 ## Partial rows or no confirmed total
 
 A row's `missing` fields, unresolved filter candidates, and incomplete membership mean different things. Keep known rows visible. Only `confirmed.complete` establishes the matching set, and only `result.empty` proves emptiness. [Partial-result rendering](/docs/data/build/partial-results) provides the code.
+
+## Read status is idle while some data is missing
+
+`useReadStatus` observes work, not completeness. Missing notes on an offscreen task do not start a read. The component that needs notes declares a normal query; the status observer then follows matching work. Its retry only covers unsuccessful acquisition for current demands. Use a query result's `confirmed`, `unresolved`, and row fields to determine what is known. [Related read status](/docs/data/build/display#show-progress-for-related-reads).
 
 ## Save conflict
 

@@ -22,12 +22,14 @@ The task example needs only a name and a public read permission:
 
 <Example file="task-board/read.ts" region="read-definition" />
 
-Here `ResourceReadDefinition` is imported from `@hyecompany/vem-data/client`. Install these same pure rules in the owner and each tab. Vem already compares ordinary `where` fields and includes them when deciding whether a row matches.
+Here `ResourceReadDefinition` is imported from `@hyecompany/vem-data/client`. Install these same pure rules in the owner and each tab. Vem evaluates typed `where` conditions, including their required fields when deciding whether a row matches. [Text and combined filters](/docs/data/build/display#filter-text) need no custom matcher.
 
 <details>
-<summary>If your backend has custom filters or project scopes</summary>
+<summary>Project scopes and advanced matching</summary>
 
-Vem's default matching handles equality filters. For a custom predicate, add `matches` and list the additional fields it reads in `queryDependencies`; return `"unknown"` when those inputs are absent. Add `inScope` when a collection has project or tenant boundaries. A resource identity must distinguish otherwise identical names in different projects.
+Add `inScope` when a collection has project or tenant boundaries. A resource identity must distinguish otherwise identical names in different projects.
+
+Most resources need no custom matcher. If your integration overrides equality matching with `matches`, it receives normalized equality maps, including equivalent `$and` conditions. List additional fields it reads in `queryDependencies` and return `"unknown"` when those inputs are absent. Vem evaluates the remaining normalized filter expressions itself.
 
 </details>
 
@@ -54,7 +56,7 @@ Returning a batch lets the runtime apply it through the acquisition's context. F
 | The entire matching collection | Membership with `complete: true`, for its actual scope and filter |
 | One task's details | Its facts; no claim about the whole collection |
 
-Missing display fields keep a known task visible. Unknown filter fields keep a candidate unresolved. If a successful response cannot provide everything, return what it does establish; reads settle partial. Throw on an acquisition failure so the result can explain it and offer retry.
+Missing display fields keep a known task visible. Unknown filter fields keep a candidate unresolved unless other evidence, such as exact filtered membership, establishes the match. If a successful response cannot provide everything, return what it does establish; reads settle partial. Throw on an acquisition failure so the result can explain it and offer retry.
 
 <details>
 <summary>When omission means deletion</summary>

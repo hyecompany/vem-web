@@ -3,10 +3,9 @@
 
 "use client";
 import { useEdit, useQuery } from "@hyecompany/vem-data/react";
+import { Button, Input, Textarea } from "@hyecompany/vem-ui";
+import { bindText } from "@hyecompany/vem-ui/data";
 import { useId, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Session } from "../lesson/Session";
 import { TaskApp } from "../lesson/TaskApp";
 import { Situation, Teaching } from "../lesson/Teaching";
@@ -16,6 +15,8 @@ import { createEditor } from "./sources/editor";
 function Board({ session }: { session: ReturnType<typeof createEditor> }) {
 	const id = useId();
 	const edit = useEdit(tasks.edits.notes(target));
+	const title = edit.field("title");
+	const notes = edit.field("notes");
 	const saved = useQuery(tasks.get(target, { select: ["notes"] }));
 	const [external, setExternal] = useState(false);
 	const [writeLost, setWriteLost] = useState(false);
@@ -50,26 +51,16 @@ function Board({ session }: { session: ReturnType<typeof createEditor> }) {
 						if (edit.canSave) edit.save();
 					}}
 				>
-					{Object.hasOwn(edit.values, "title") && (
+					{title.state === "readable" && (
 						<label htmlFor={`${id}-title`}>
 							Title
-							<Input
-								id={`${id}-title`}
-								value={edit.values.title ?? ""}
-								onChange={(event) => edit.set("title", event.target.value)}
-								readOnly={edit.status !== "ready"}
-							/>
+							<Input id={`${id}-title`} {...bindText(title)} />
 						</label>
 					)}
-					{Object.hasOwn(edit.values, "notes") ? (
+					{notes.state === "readable" ? (
 						<label htmlFor={`${id}-notes`}>
 							Notes
-							<Textarea
-								id={`${id}-notes`}
-								value={edit.values.notes ?? ""}
-								onChange={(event) => edit.set("notes", event.target.value)}
-								readOnly={edit.status !== "ready"}
-							/>
+							<Textarea id={`${id}-notes`} {...bindText(notes)} />
 						</label>
 					) : (
 						<p className="app-message">
@@ -127,7 +118,7 @@ function Board({ session }: { session: ReturnType<typeof createEditor> }) {
 							setWriteLost(true);
 						}}
 					>
-						Make read-only
+						Remove save access
 					</Button>
 					<Button
 						variant="outline"

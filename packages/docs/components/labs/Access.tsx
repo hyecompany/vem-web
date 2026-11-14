@@ -3,9 +3,8 @@
 
 "use client";
 import { useQuery } from "@hyecompany/vem-data/react";
+import { Button, Switch } from "@hyecompany/vem-ui";
 import { useId, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Session } from "../lesson/Session";
 import { PrivateNote, TaskApp, TaskList } from "../lesson/TaskApp";
 import { Situation, Teaching } from "../lesson/Teaching";

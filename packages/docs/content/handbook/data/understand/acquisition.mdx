@@ -14,6 +14,8 @@ Vem first projects information it already knows and is allowed to show. Vem comb
 
 <Flow name="acquisition" />
 
+A consumer can also follow existing knowledge with `acquire: false`, or observe work with `useReadStatus`. Neither adds missing-information requirements. These options control whether a consumer asks for data, not how the planner chooses sources. [The display guide](/docs/data/build/display#show-known-data-without-requesting-it) shows both.
+
 ## What is actually missing?
 
 | The view needs… | What Vem must know |
@@ -31,7 +33,7 @@ Different queries can reuse the same facts. A list response that includes notes 
 
 To see Vem choose between competing reads across several views, try [the automatic planning example](/docs/data/connect/planning#plan-for-the-whole-application).
 
-The definition declares `sources`: available representations, fields, membership, supported filters, access, and relative cost. Vem plans automatically across the combined demand. [Connect a resource](/docs/data/connect/resources) shows the declarations; [how Vem chooses reads](/docs/data/connect/planning) explains the selection and its bounds. Feature components only describe information.
+The definition declares `sources`: available representations, fields, membership, supported filters, and access. Vem plans automatically across the combined demand. [Connect a resource](/docs/data/connect/resources) shows the declarations; [how Vem chooses reads](/docs/data/connect/planning) explains the selection and its bounds. Feature components only describe information.
 
 ## Is this field kept current?
 

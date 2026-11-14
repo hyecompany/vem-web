@@ -1,0 +1,21 @@
+---
+title: "Textarea"
+description: "Edit a longer text value."
+order: 3
+---
+
+Import from `@hyecompany/vem-ui` after [adding the package](/docs/ui#add-the-package).
+
+<ComponentPreview name="textarea" />
+
+## Use it
+
+<Example package="ui" file="textarea.tsx" region="example" />
+
+## Behavior and choices
+
+Use native textarea props, including `rows`, `required`, and `maxLength`. Keep its visible label even when the field has a placeholder.
+
+For protected Vem Data drafts, use [managed text bindings](/docs/ui/components/data-bindings); an independent `useState` copy cannot follow selective disclosure withdrawal.
+
+<UiReference name="Textarea" />

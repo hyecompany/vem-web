@@ -4,7 +4,7 @@ description: "Keep useful content visible when some information is missing."
 order: 2
 ---
 
-A task without a title is still a task. A task without a status cannot yet match a “To do” filter. A failed read does not erase the information already on screen.
+A task without a title is still a task. A task without enough evidence to match a “To do” filter stays unresolved. A failed read does not erase the information already on screen.
 
 <Lab name="results" />
 
@@ -28,7 +28,7 @@ Render missing cells with a fallback such as `row.data.title ?? "Title unavailab
 | “3 tasks total” | `confirmed.total`, only when `confirmed.complete` |
 | “No matching tasks” | `empty`, never `rows.length === 0` |
 
-`rows` includes known matches with missing display values and visible action proposals. `unresolved` contains candidates whose filter or scope cannot be evaluated. Do not render those as established matches.
+`rows` includes known matches with missing display values and visible action proposals. `unresolved` contains candidates whose filter or scope cannot be evaluated. Do not render those as established matches. A matching `$or` branch or exact filtered backend membership can establish a match even when another filter field is unknown; that does not fill in its missing display value.
 
 A proposed creation is not a confirmed resource and does not inflate the confirmed count. `activities` holds related action progress and outcomes, separate from the rows.
 

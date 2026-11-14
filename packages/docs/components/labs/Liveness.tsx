@@ -3,6 +3,7 @@
 
 "use client";
 import { useQuery } from "@hyecompany/vem-data/react";
+import { Badge, Button, Card } from "@hyecompany/vem-ui";
 import {
 	Check,
 	Database,
@@ -15,9 +16,6 @@ import {
 	WifiOff,
 } from "lucide-react";
 import { useSyncExternalStore } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Session } from "../lesson/Session";
 import { TaskApp } from "../lesson/TaskApp";
 import { Teaching } from "../lesson/Teaching";
@@ -63,7 +61,7 @@ function Board({ session }: { session: ReturnType<typeof createLiveness> }) {
 				<TaskApp
 					label="Field currency task board"
 					toolbar={
-						<Badge variant={connected ? "success" : "warning"}>
+						<Badge variant={connected ? "default" : "outline"}>
 							{connected ? (
 								<Wifi aria-hidden="true" />
 							) : (
@@ -100,9 +98,9 @@ function Board({ session }: { session: ReturnType<typeof createLiveness> }) {
 											<Badge
 												variant={
 													status.stale
-														? "warning"
+														? "outline"
 														: status.liveness === "live"
-															? "success"
+															? "default"
 															: "secondary"
 												}
 											>

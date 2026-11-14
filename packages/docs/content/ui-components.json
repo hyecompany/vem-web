@@ -1,0 +1,312 @@
+[
+  {
+    "name": "button",
+    "title": "Button",
+    "description": "Run an action with clear emphasis.",
+    "url": "/docs/ui/components/button",
+    "exports": [
+      "Button"
+    ]
+  },
+  {
+    "name": "input",
+    "title": "Input",
+    "description": "Collect a short text value.",
+    "url": "/docs/ui/components/input",
+    "exports": [
+      "Input"
+    ]
+  },
+  {
+    "name": "textarea",
+    "title": "Textarea",
+    "description": "Edit a longer text value.",
+    "url": "/docs/ui/components/textarea",
+    "exports": [
+      "Textarea"
+    ]
+  },
+  {
+    "name": "switch",
+    "title": "Switch",
+    "description": "Toggle a setting immediately.",
+    "url": "/docs/ui/components/switch",
+    "exports": [
+      "Switch"
+    ]
+  },
+  {
+    "name": "tabs",
+    "title": "Tabs",
+    "description": "Switch between related views without navigation.",
+    "url": "/docs/ui/components/tabs",
+    "exports": [
+      "Tabs",
+      "TabsList",
+      "TabsTrigger",
+      "TabsContent"
+    ]
+  },
+  {
+    "name": "badge",
+    "title": "Badge",
+    "description": "Add a short status label.",
+    "url": "/docs/ui/components/badge",
+    "exports": [
+      "Badge"
+    ]
+  },
+  {
+    "name": "card",
+    "title": "Card",
+    "description": "Group a small piece of related content.",
+    "url": "/docs/ui/components/card",
+    "exports": [
+      "Card",
+      "CardHeader",
+      "CardFooter",
+      "CardTitle",
+      "CardAction",
+      "CardDescription",
+      "CardContent"
+    ]
+  },
+  {
+    "name": "separator",
+    "title": "Separator",
+    "description": "Visually separate adjacent groups.",
+    "url": "/docs/ui/components/separator",
+    "exports": [
+      "Separator"
+    ]
+  },
+  {
+    "name": "tooltip",
+    "title": "Tooltip",
+    "description": "Repeat a visual label on hover or focus.",
+    "url": "/docs/ui/components/tooltip",
+    "exports": [
+      "Tooltip",
+      "TooltipTrigger",
+      "TooltipContent",
+      "TooltipProvider"
+    ]
+  },
+  {
+    "name": "combobox",
+    "title": "Combobox",
+    "description": "Choose a value from a searchable list.",
+    "url": "/docs/ui/components/combobox",
+    "exports": [
+      "Combobox",
+      "ComboboxInput",
+      "ComboboxContent",
+      "ComboboxList",
+      "ComboboxItem",
+      "ComboboxGroup",
+      "ComboboxLabel",
+      "ComboboxCollection",
+      "ComboboxEmpty",
+      "ComboboxSeparator",
+      "ComboboxChips",
+      "ComboboxChip",
+      "ComboboxChipsInput",
+      "ComboboxTrigger",
+      "ComboboxValue",
+      "useComboboxAnchor",
+      "ComboboxVirtualList"
+    ]
+  },
+  {
+    "name": "virtual-list",
+    "title": "Virtual list",
+    "description": "Render long lists with measured, changing row heights.",
+    "url": "/docs/ui/components/virtual-list",
+    "exports": [
+      "VirtualList"
+    ]
+  },
+  {
+    "name": "sidebar",
+    "title": "Sidebar",
+    "description": "Provide desktop navigation and a mobile drawer.",
+    "url": "/docs/ui/components/sidebar",
+    "exports": [
+      "Sidebar",
+      "SidebarContent",
+      "SidebarFooter",
+      "SidebarGroup",
+      "SidebarGroupAction",
+      "SidebarGroupContent",
+      "SidebarGroupLabel",
+      "SidebarHeader",
+      "SidebarInput",
+      "SidebarInset",
+      "SidebarMenu",
+      "SidebarMenuAction",
+      "SidebarMenuBadge",
+      "SidebarMenuButton",
+      "SidebarMenuItem",
+      "SidebarMenuSkeleton",
+      "SidebarMenuSub",
+      "SidebarMenuSubButton",
+      "SidebarMenuSubItem",
+      "SidebarProvider",
+      "SidebarRail",
+      "SidebarSeparator",
+      "SidebarTrigger",
+      "useSidebar",
+      "SidebarMenuBranch",
+      "SidebarNavigation"
+    ]
+  },
+  {
+    "name": "breadcrumb",
+    "title": "Breadcrumb",
+    "description": "Show a page’s place in a hierarchy.",
+    "url": "/docs/ui/components/breadcrumb",
+    "exports": [
+      "Breadcrumb",
+      "BreadcrumbEllipsis",
+      "BreadcrumbItem",
+      "BreadcrumbLink",
+      "BreadcrumbList",
+      "BreadcrumbPage",
+      "BreadcrumbSeparator"
+    ]
+  },
+  {
+    "name": "toast",
+    "title": "Toasts",
+    "description": "Show brief application feedback away from a control.",
+    "url": "/docs/ui/components/toast",
+    "exports": [
+      "Toaster",
+      "Toast",
+      "ToastAction",
+      "ToastClose",
+      "ToastContent",
+      "ToastDescription",
+      "ToastPortal",
+      "ToastProvider",
+      "ToastTitle",
+      "ToastViewport",
+      "createToastManager",
+      "toast",
+      "useToastManager"
+    ]
+  },
+  {
+    "name": "skeleton",
+    "title": "Skeleton",
+    "description": "Reserve space while initial content is unavailable.",
+    "url": "/docs/ui/components/skeleton",
+    "exports": [
+      "Skeleton"
+    ]
+  },
+  {
+    "name": "sheet",
+    "title": "Sheet",
+    "description": "Open a focused task beside the current page.",
+    "url": "/docs/ui/components/sheet",
+    "exports": [
+      "Sheet",
+      "SheetTrigger",
+      "SheetClose",
+      "SheetContent",
+      "SheetHeader",
+      "SheetFooter",
+      "SheetTitle",
+      "SheetDescription"
+    ]
+  },
+  {
+    "name": "input-group",
+    "title": "Input group",
+    "description": "Combine an input with supporting text or actions.",
+    "url": "/docs/ui/components/input-group",
+    "exports": [
+      "InputGroup",
+      "InputGroupAddon",
+      "InputGroupButton",
+      "InputGroupText",
+      "InputGroupInput",
+      "InputGroupTextarea"
+    ]
+  },
+  {
+    "name": "overflow",
+    "title": "OverflowText",
+    "description": "Keep a full name readable in a compact space.",
+    "url": "/docs/ui/components/overflow-text",
+    "exports": [
+      "OverflowText"
+    ]
+  },
+  {
+    "name": "spinner",
+    "title": "Spinner",
+    "description": "Indicate ongoing work beside a readable label.",
+    "url": "/docs/ui/components/spinner",
+    "exports": [
+      "Spinner"
+    ]
+  },
+  {
+    "name": "command-button",
+    "title": "CommandButton",
+    "description": "Run a Data command with shared admission and progress.",
+    "url": "/docs/ui/components/command-button",
+    "exports": [
+      "CommandButton"
+    ]
+  },
+  {
+    "name": "query-status",
+    "title": "QueryStatus",
+    "description": "Explain partial results, acquisition, and retry.",
+    "url": "/docs/ui/components/query-status",
+    "exports": [
+      "QueryStatus"
+    ]
+  },
+  {
+    "name": "activity-feedback",
+    "title": "ActivityFeedback",
+    "description": "Show evidence-supported action progress and outcomes.",
+    "url": "/docs/ui/components/activity-feedback",
+    "exports": [
+      "ActivityFeedback"
+    ]
+  },
+  {
+    "name": "activity-toasts",
+    "title": "ActivityToasts",
+    "description": "Present Data feedback assigned to this tab.",
+    "url": "/docs/ui/components/activity-toasts",
+    "exports": [
+      "ActivityToasts"
+    ]
+  },
+  {
+    "name": "data-bindings",
+    "title": "Data bindings",
+    "description": "Connect an existing control to a command or protected field.",
+    "url": "/docs/ui/components/data-bindings",
+    "exports": [
+      "bindCommand",
+      "bindText",
+      "useSearch"
+    ]
+  },
+  {
+    "name": "data-inspector",
+    "title": "DataInspector",
+    "description": "Inspect consumers and try controlled scenarios during development.",
+    "url": "/docs/data/connect/devtools",
+    "exports": [
+      "DataInspector"
+    ]
+  }
+]

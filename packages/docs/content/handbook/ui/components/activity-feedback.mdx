@@ -1,0 +1,19 @@
+---
+title: "ActivityFeedback"
+description: "Present progress and outcomes supported by action evidence."
+order: 23
+---
+
+Pass a query description or the IDs of actions the page presents. ActivityFeedback observes their shared state and owns the inline feedback claim for as long as it is visible.
+
+<ComponentPreview name="activity-feedback" />
+
+<Example package="ui" file="activity-feedback.tsx" region="example" />
+
+With `query={description}`, the component follows activities related to that query and shares its demand with other consumers. With `actionIds`, it follows the named actions. Set `active={false}` for a hidden region to release its query demand and inline claim.
+
+The component preserves succeeded, partially applied, failed, and unknown outcomes. Numeric progress is shown only when the action supplies a total. Label it with the operation the user understands.
+
+Cancel and Retry follow the action’s admitted controls and use its shared identity automatically. Supply `onCancel` or `onRetry` only to add an application-specific step such as confirmation. Dismissing feedback, stopping observation, and canceling server work remain separate choices. An unknown result is not evidence that nothing happened.
+
+<UiReference name="ActivityFeedback" />

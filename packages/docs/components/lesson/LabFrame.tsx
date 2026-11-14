@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 "use client";
+import { Button } from "@hyecompany/vem-ui";
 import { RotateCcw } from "lucide-react";
 import { Fragment, type ReactNode, useState } from "react";
-import { Button } from "@/components/ui/button";
 import experiments from "@/content/experiments.json";
 
 export function LabFrame({

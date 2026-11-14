@@ -1,0 +1,10 @@
+{
+  "overflow": {
+    "title": "A long project name",
+    "explanation": "The label fits a narrow control. Hover or focus the control to reveal the end of its name. Change the width to see it measure the available space. The full name is also written beneath the control, so reading it never requires animation."
+  },
+  "spinner": {
+    "title": "Loading feedback",
+    "explanation": "Choose a size and activate Load tasks to show progress inside the button. The button keeps a readable loading label; its spinner is decorative. The example returns to idle after a short delay."
+  }
+}

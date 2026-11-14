@@ -1,0 +1,21 @@
+---
+title: "Tabs"
+description: "Switch between related views without navigation."
+order: 5
+---
+
+Import from `@hyecompany/vem-ui` after [adding the package](/docs/ui#add-the-package).
+
+<ComponentPreview name="tabs" />
+
+## Use it
+
+<Example package="ui" file="tabs.tsx" region="example" />
+
+## Behavior and choices
+
+Pair each trigger and panel with the same `value`. Use `defaultValue` for a local selection or `value` and `onValueChange` for controlled state. Label the tab list. Arrow keys move focus between tabs. This example uses `activateOnFocus` to open a tab immediately; without it, Enter or Space activates the focused tab. Tab continues into the active panel.
+
+Inactive content unmounts by default. Use `keepMounted` on a panel only when that lifetime is intentional: hidden Data consumers still express demand. Use links and [Sidebar](/docs/ui/components/sidebar) for application routes.
+
+<UiReference name="Tabs" />
