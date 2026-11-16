@@ -1,30 +1,40 @@
 version = 1
 
+# Manifests and configuration without source comments.
 [[annotations]]
-path = "**"
-SPDX-FileCopyrightText = "© 2026 Joseph Maldjian <joseph.maldjian@hyecompany.com>"
+path = [
+  ".release-please-manifest.json",
+  "biome.json",
+  "package.json",
+  "package-lock.json",
+  "release-please-config.json",
+  "packages/*/package.json",
+  "packages/*/tsconfig*.json",
+  "docs/package.json",
+  "docs/tsconfig.json",
+  "docs/components.json",
+  "docs/content/*.json",
+  "docs/public/deployment.json",
+]
+SPDX-FileCopyrightText = "2026 Joseph Maldjian <joseph.maldjian@hyecompany.com>"
 SPDX-License-Identifier = "Apache-2.0"
 
+# Generated declarations, release notes, and documentation exports.
 [[annotations]]
-path = ["packages/docs/public/shadcn-LICENSE.txt"]
+path = ["docs/next-env.d.ts", "packages/*/CHANGELOG.md", "docs/public/llms.txt"]
 precedence = "override"
-SPDX-FileCopyrightText = ["2023 shadcn", "2026 Joseph Maldjian <joseph.maldjian@hyecompany.com>"]
-SPDX-License-Identifier = "MIT"
+SPDX-FileCopyrightText = "2026 Joseph Maldjian <joseph.maldjian@hyecompany.com>"
+SPDX-License-Identifier = "Apache-2.0"
 
+# These exports include reference material derived from both packages.
 [[annotations]]
-path = "packages/docs/public/Poppins-LICENSE.txt"
+path = ["docs/public/docs.json", "docs/public/llms-full.txt"]
 precedence = "override"
-SPDX-FileCopyrightText = "2020 The Poppins Project Authors"
-SPDX-License-Identifier = "OFL-1.1"
+SPDX-FileCopyrightText = ["2026 Joseph Maldjian <joseph.maldjian@hyecompany.com>", "2023 shadcn", "2019 Material-UI SAS"]
+SPDX-License-Identifier = "Apache-2.0 AND MIT"
 
+# The supplied logos remain reserved Hye branding.
 [[annotations]]
-path = ["packages/docs/public/branding/**"]
-precedence = "override"
+path = ["docs/public/branding/*.png", "docs/public/branding/*.webp"]
 SPDX-FileCopyrightText = "Hye Hosting LLC"
 SPDX-License-Identifier = "LicenseRef-Hye-Branding"
-
-[[annotations]]
-path = ["packages/ui/THIRD-PARTY-NOTICES.txt"]
-precedence = "override"
-SPDX-FileCopyrightText = "2023 shadcn"
-SPDX-License-Identifier = "MIT"

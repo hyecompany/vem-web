@@ -11,14 +11,15 @@
 			"packages/*/src/**",
 			"packages/*/tests/**",
 			"packages/*/examples/**",
-			"packages/docs/app/**",
-			"packages/docs/components/**",
-			"packages/docs/lib/**",
+			"docs/app/**",
+			"docs/components/**",
+			"docs/lib/**",
 			"tests/**",
-			"packages/docs/*.ts",
-			"packages/docs/*.mjs",
+			"docs/*.ts",
+			"docs/*.mjs",
 			"packages/*/*.json",
-			"packages/*/scripts/**"
+			"packages/*/scripts/**",
+			"vitest.config.mjs"
 		]
 	},
 	"formatter": {

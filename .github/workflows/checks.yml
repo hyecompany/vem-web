@@ -1,7 +1,14 @@
 # SPDX-FileCopyrightText: © 2026 Joseph Maldjian <joseph.maldjian@hyecompany.com>
 # SPDX-License-Identifier: Apache-2.0
 name: Packages
-on: [push, pull_request, workflow_dispatch]
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+concurrency:
+  group: packages-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
@@ -12,22 +19,18 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: '24'
-          package-manager-cache: false
+          cache: npm
       - run: npm ci
-      - run: npm run check
-      - run: npm run typecheck
       - run: npx playwright install --with-deps chromium firefox webkit
-      - run: npm test
-      - name: Check UI behavior in Firefox
-        run: npm run test:browser --workspace @hyecompany/vem-ui
+      - name: Validate affected suites
+        if: github.event_name == 'pull_request'
+        run: npm run test:affected
         env:
-          VEM_BROWSER: firefox
-      - name: Check UI behavior in WebKit
-        run: npm run test:browser --workspace @hyecompany/vem-ui
-        env:
-          VEM_BROWSER: webkit
-      - run: npm run test:package
-      - run: npm run test:docs-package
+          VEM_TEST_BASE: ${{ github.event.pull_request.base.sha }}
+      - name: Validate the complete release surface
+        if: github.event_name != 'pull_request'
+        run: npm run test:all

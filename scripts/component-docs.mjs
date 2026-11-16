@@ -6,10 +6,7 @@ import { resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
 export const components = JSON.parse(
-	await readFile(
-		resolve(root, "packages/docs/content/ui-components.json"),
-		"utf8",
-	),
+	await readFile(resolve(root, "docs/content/ui-components.json"), "utf8"),
 );
 
 export async function renderComponentDocs(text) {
@@ -19,7 +16,7 @@ export async function renderComponentDocs(text) {
 	);
 	const references = [...text.matchAll(/<UiReference name="([\w]+)"\s*\/>/g)];
 	if (!references.length) return text;
-	const files = await readdir(resolve(root, "packages/docs/.generated/ui-api"));
+	const files = await readdir(resolve(root, "docs/.generated/ui-api"));
 	function entry(name) {
 		return files.find((file) => file.endsWith(`.${name}.md`));
 	}

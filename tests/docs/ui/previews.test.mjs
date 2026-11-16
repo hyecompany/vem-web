@@ -10,7 +10,7 @@ import { browser } from "../../support/browser.mjs";
 import { root, serve } from "../support/site.mjs";
 
 const name = "Research · São Paulo · shared development";
-const screenshots = resolve(root, "packages/docs/.generated/screenshots");
+const screenshots = resolve(root, "docs/.generated/screenshots");
 async function screenshot(page, file) {
 	await mkdir(screenshots, { recursive: true });
 	await page.screenshot({ path: resolve(screenshots, file), fullPage: true });

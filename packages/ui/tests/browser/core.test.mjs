@@ -6,14 +6,19 @@ import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import AxeBuilder from "@axe-core/playwright";
 import { createServer } from "vite";
-import { browser as launchBrowser } from "../../../../tests/support/browser.mjs";
+import {
+	browserCacheDirectory,
+	browser as launchBrowser,
+} from "../../../../tests/support/browser.mjs";
 
+const fixtureRoot = fileURLToPath(new URL("./fixture", import.meta.url));
 let server, browser, url;
 before(async () => {
 	server = await createServer({
 		configFile: false,
 		optimizeDeps: { force: true },
-		root: fileURLToPath(new URL("./fixture", import.meta.url)),
+		root: fixtureRoot,
+		cacheDir: browserCacheDirectory(fixtureRoot),
 		server: { host: "127.0.0.1", port: 0 },
 	});
 	await server.listen();

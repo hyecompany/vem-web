@@ -6,14 +6,19 @@ import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { expect } from "@playwright/test";
 import { createServer } from "vite";
-import { browser as launchBrowser } from "../../../../tests/support/browser.mjs";
+import {
+	browserCacheDirectory,
+	browser as launchBrowser,
+} from "../../../../tests/support/browser.mjs";
 
+const fixtureRoot = fileURLToPath(new URL("./fixture", import.meta.url));
 let server, browser, url;
 before(async () => {
 	server = await createServer({
 		configFile: false,
 		optimizeDeps: { force: true },
-		root: fileURLToPath(new URL("./fixture", import.meta.url)),
+		root: fixtureRoot,
+		cacheDir: browserCacheDirectory(fixtureRoot),
 		server: { host: "127.0.0.1", port: 0 },
 	});
 	await server.listen();
@@ -165,29 +170,32 @@ test("popup size eases status insertion and removal without retaining the remove
 				node.getAnimations().map((animation) => animation.finished),
 			),
 		);
+		await popup.evaluate((node) => {
+			window.popupAnimations = [];
+			const animate = node.animate;
+			node.animate = function (frames, options) {
+				const animation = animate.call(this, frames, options);
+				if (animation.effect.getKeyframes()[0]?.height !== undefined) {
+					// Hold real animations at creation so browser round trips cannot miss them.
+					animation.pause();
+					window.popupAnimations.push(animation);
+				}
+				return animation;
+			};
+		});
 		const original = (await popup.boundingBox()).height;
 		await page.evaluate(() => window.setStatus("Could not load projects"));
 		await expect(
 			page.getByRole("status", { name: "Read status" }),
 		).toBeVisible();
 		await expect
-			.poll(() =>
-				popup.evaluate((node) =>
-					node
-						.getAnimations()
-						.some((animation) =>
-							animation.effect
-								?.getKeyframes()
-								.some((frame) => frame.height !== undefined),
-						),
-				),
-			)
-			.toBe(true);
-		await popup.evaluate(async (node) =>
-			Promise.allSettled(
-				node.getAnimations().map((animation) => animation.finished),
-			),
-		);
+			.poll(() => page.evaluate(() => window.popupAnimations.length))
+			.toBe(1);
+		await page.evaluate(async () => {
+			const animation = window.popupAnimations[0];
+			animation.finish();
+			await animation.finished;
+		});
 		const expanded = (await popup.boundingBox()).height;
 		assert.ok(expanded > original + 20);
 		await page.evaluate(() => window.setStatus(""));
@@ -195,28 +203,18 @@ test("popup size eases status insertion and removal without retaining the remove
 			0,
 		);
 		await expect
-			.poll(() =>
-				popup.evaluate((node) =>
-					node.getAnimations().some((animation) => {
-						const frames = animation.effect?.getKeyframes() ?? [];
-						return (
-							Number.parseFloat(frames[0]?.height) >
-							Number.parseFloat(frames.at(-1)?.height)
-						);
-					}),
-				),
-			)
-			.toBe(true);
-		await popup.evaluate((node) => {
-			const animation = node
-				.getAnimations()
-				.find(
-					(candidate) =>
-						candidate.effect?.getKeyframes()[0]?.height !== undefined,
-				);
-			animation.pause();
+			.poll(() => page.evaluate(() => window.popupAnimations.length))
+			.toBe(2);
+		const shrinking = await page.evaluate(() => {
+			const animation = window.popupAnimations[1];
+			const frames = animation.effect.getKeyframes();
 			animation.currentTime = animation.effect.getTiming().duration / 2;
+			return (
+				Number.parseFloat(frames[0].height) >
+				Number.parseFloat(frames.at(-1).height)
+			);
 		});
+		assert.ok(shrinking);
 		const midway = (await popup.boundingBox()).height;
 		assert.ok(midway > original && midway < expanded);
 		await page.evaluate(() => window.setStatus("Another failure"));
@@ -224,33 +222,36 @@ test("popup size eases status insertion and removal without retaining the remove
 			"Another failure",
 		);
 		await expect
-			.poll(() =>
-				popup.evaluate(
-					(node) =>
-						node
-							.getAnimations()
-							.filter(
-								(animation) =>
-									animation.playState === "running" &&
-									animation.effect?.getKeyframes()[0]?.height !== undefined,
-							).length,
-				),
-			)
-			.toBe(1);
-		const restart = await popup.evaluate((node) => {
-			const animation = node
-				.getAnimations()
-				.find(
-					(candidate) =>
-						candidate.effect?.getKeyframes()[0]?.height !== undefined,
-				);
-			return Number.parseFloat(animation.effect.getKeyframes()[0].height);
-		});
+			.poll(() => page.evaluate(() => window.popupAnimations.length))
+			.toBe(3);
+		assert.equal(
+			await page.evaluate(() => window.popupAnimations[1].playState),
+			"idle",
+			"retargeting cancels the obsolete animation",
+		);
+		assert.equal(
+			await popup.evaluate(
+				(node) =>
+					node
+						.getAnimations()
+						.filter(
+							(animation) =>
+								animation.effect?.getKeyframes()[0]?.height !== undefined,
+						).length,
+			),
+			1,
+		);
+		const restart = await page.evaluate(() =>
+			Number.parseFloat(
+				window.popupAnimations[2].effect.getKeyframes()[0].height,
+			),
+		);
 		assert.ok(
 			Math.abs(restart - midway) < 1,
 			"new content retargets from the visible frame instead of completing an obsolete size",
 		);
 		await popup.evaluate(async (node) => {
+			delete node.animate;
 			const animations = node.getAnimations();
 			for (const animation of animations) animation.finish();
 			await Promise.allSettled(

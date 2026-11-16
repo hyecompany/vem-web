@@ -22,8 +22,13 @@ const lock = JSON.parse(
 const manifest = JSON.parse(
 	await readFile(join(root, "packages/data/package.json"), "utf8"),
 );
+if (!process.env.VEM_TEST_ARTIFACTS)
+	throw Error("Run npm run test:data-package to prepare the artifact.");
 const tarball = await realpath(
-	resolve(root, `hyecompany-vem-data-${manifest.version}.tgz`),
+	resolve(
+		process.env.VEM_TEST_ARTIFACTS,
+		`hyecompany-vem-data-${manifest.version}.tgz`,
+	),
 );
 const npm = [
 	process.env.npm_execpath,
@@ -46,7 +51,7 @@ const dependencies = Object.fromEntries(
 		const version = [
 			"node_modules",
 			"packages/data/node_modules",
-			"packages/docs/node_modules",
+			"docs/node_modules",
 		]
 			.map((prefix) => lock.packages[`${prefix}/${name}`]?.version)
 			.find(Boolean);
@@ -87,8 +92,6 @@ try {
 		"--ignore-scripts",
 		"--no-audit",
 		"--no-fund",
-		"--cache",
-		join(directory, "npm-cache"),
 	]);
 	const installed = JSON.parse(
 		await readFile(

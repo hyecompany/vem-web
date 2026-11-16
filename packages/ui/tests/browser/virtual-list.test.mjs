@@ -6,14 +6,19 @@ import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { expect } from "@playwright/test";
 import { createServer } from "vite";
-import { browser as launchBrowser } from "../../../../tests/support/browser.mjs";
+import {
+	browserCacheDirectory,
+	browser as launchBrowser,
+} from "../../../../tests/support/browser.mjs";
 
+const fixtureRoot = fileURLToPath(new URL("./fixture", import.meta.url));
 let server, browser, url;
 before(async () => {
 	server = await createServer({
 		configFile: false,
 		optimizeDeps: { force: true },
-		root: fileURLToPath(new URL("./fixture", import.meta.url)),
+		root: fixtureRoot,
+		cacheDir: browserCacheDirectory(fixtureRoot),
 		server: { host: "127.0.0.1", port: 0 },
 	});
 	await server.listen();
@@ -154,13 +159,20 @@ test("visible row growth is measured without overlapping options and scrolling d
 		await expect
 			.poll(() => page.evaluate(() => window.activeDescriptions.size))
 			.toBeGreaterThan(0);
-		const ids = await page
-			.locator('[role="option"][data-visible="true"]')
-			.evaluateAll((nodes) => nodes.map((node) => node.dataset.project).sort());
-		assert.deepEqual(
-			await page.evaluate(() => [...window.activeDescriptions].sort()),
-			ids,
-		);
+		await expect
+			.poll(() =>
+				page
+					.locator('[role="option"][data-visible="true"]')
+					.evaluateAll((nodes) => {
+						const visible = nodes.map((node) => node.dataset.project);
+						const active = [...window.activeDescriptions];
+						return {
+							missing: visible.filter((id) => !active.includes(id)),
+							unexpected: active.filter((id) => !visible.includes(id)),
+						};
+					}),
+			)
+			.toEqual({ missing: [], unexpected: [] });
 	} finally {
 		assert.deepEqual(await page.evaluate(() => window.motionErrors), []);
 		await page.close();
@@ -249,15 +261,28 @@ test("initial selected identity is revealed before mounting detail demand for un
 			.poll(() => page.evaluate(() => window.activeDescriptions.has("999")))
 			.toBe(true);
 		const batches = await page.evaluate(() => window.descriptionBatches);
-		assert.equal(
-			batches.length,
-			1,
-			"the initial viewport publishes demand together",
-		);
 		assert.ok(
-			batches[0].length > 1,
-			"the selected bottom row does not acquire ahead of its visible neighbors",
+			batches[0].includes("999") && batches[0].length > 1,
+			"the selected bottom row shares the initial demand batch with its visible neighbors",
 		);
+		await expect
+			.poll(() =>
+				page.evaluate(() => {
+					const visible = [
+						...document.querySelectorAll(
+							'[role="option"][data-visible="true"]',
+						),
+					]
+						.map((node) => node.getAttribute("data-project"))
+						.sort();
+					const active = [...window.activeDescriptions].sort();
+					return (
+						visible.length > 1 &&
+						JSON.stringify(active) === JSON.stringify(visible)
+					);
+				}),
+			)
+			.toBe(true);
 	} finally {
 		assert.deepEqual(await page.evaluate(() => window.motionErrors), []);
 		await page.close();

@@ -7,7 +7,7 @@ import { Application } from "typedoc";
 import { documentedPackages } from "./documented-packages.mjs";
 
 const root = resolve(import.meta.dirname, "..");
-const generated = resolve(root, "packages/docs/.generated");
+const generated = resolve(root, "docs/.generated");
 await mkdir(generated, { recursive: true });
 
 for (const { id, title, reference } of documentedPackages) {

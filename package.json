@@ -3,33 +3,39 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "docs"
   ],
   "scripts": {
     "build": "npm run docs:build",
-    "typecheck": "npm run typecheck --workspaces",
-    "test": "npm run test --workspaces && npm run test:workflows && npm run test:ui-maintenance",
+    "typecheck": "node scripts/validate.mjs types",
+    "test": "node scripts/validate.mjs unit",
     "check": "biome check .",
     "format": "biome check --write .",
     "docs:dev": "npm run docs:prepare && npm run dev --workspace @hyecompany/vem-docs",
-    "docs:build": "npm run docs:prepare && npm run build --workspace @hyecompany/vem-docs",
+    "docs:build": "node scripts/validate.mjs docs:build",
     "docs:llms": "node scripts/generate-docs.mjs",
-    "test:package": "npm run test:data-package && npm run test:ui-package",
+    "test:package": "node scripts/validate.mjs packages",
     "commitlint": "commitlint --from=HEAD~1 --to=HEAD --verbose",
     "example:dev": "npm run build --workspace @hyecompany/vem-data && node packages/data/examples/task-board/dev.mjs",
     "example:build": "npm run build --workspace @hyecompany/vem-data && vite build --config packages/data/examples/task-board/vite.config.ts",
-    "docs:prepare": "npm run build:packages && node scripts/generate-reference.mjs && node scripts/generate-docs.mjs",
+    "docs:prepare": "node scripts/validate.mjs docs:prepare",
     "test:docs": "node --test --test-concurrency=1 \"tests/docs/**/*.test.mjs\"",
-    "pretypecheck": "npm run docs:prepare",
-    "pretest": "npm run docs:prepare",
     "build:packages": "npm run build --workspace @hyecompany/vem-data && npm run build --workspace @hyecompany/vem-ui",
-    "test:data-package": "npm run build --workspace @hyecompany/vem-data && npm pack --workspace @hyecompany/vem-data && node scripts/check-package.mjs",
-    "test:ui-package": "node scripts/check-ui-package.mjs",
+    "test:data-package": "node scripts/validate.mjs package:data",
+    "test:ui-package": "node scripts/validate.mjs package:ui",
     "test:workflows": "node --test \"tests/github/**/*.test.mjs\"",
     "check:ui-provenance": "node scripts/check-ui-provenance.mjs",
     "check:ui-upstream": "node scripts/check-ui-upstream.mjs",
     "test:ui-maintenance": "node --test tests/ui-maintenance/*.test.mjs && npm run check:ui-provenance",
-    "test:docs-package": "node packages/docs/scripts/check-packed-next.mjs"
+    "test:docs-package": "node scripts/validate.mjs package:next",
+    "test:all": "node scripts/validate.mjs all",
+    "test:affected": "node scripts/validate.mjs affected",
+    "test:browser": "node scripts/validate.mjs browser",
+    "test:browser:all": "node scripts/validate.mjs browser:all",
+    "docs:validate": "node scripts/validate.mjs docs:validate",
+    "test:react": "vitest run --config vitest.config.mjs",
+    "test:react:watch": "vitest --config vitest.config.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.14.0",
@@ -37,8 +43,13 @@
     "@commitlint/cli": "^21.2.4",
     "@commitlint/config-conventional": "^21.2.4",
     "@playwright/test": "1.65.0",
+    "@testing-library/dom": "10.4.2",
+    "@testing-library/react": "16.3.3",
+    "@testing-library/user-event": "14.6.12",
+    "jsdom": "29.1.1",
     "typedoc": "0.28.20",
     "typedoc-plugin-markdown": "4.14.1",
-    "vite": "8.3.6"
+    "vite": "8.3.6",
+    "vitest": "5.1.0"
   }
 }

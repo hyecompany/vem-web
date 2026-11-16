@@ -34,7 +34,7 @@ test("each release targets only its configured package and matching tag", () => 
 		);
 	}
 	assert.throws(() =>
-		publicationFor(config, "packages/docs", "vem-docs-v1.2.3", {
+		publicationFor(config, "docs", "vem-docs-v1.2.3", {
 			name: "@hyecompany/vem-docs",
 			version: "1.2.3",
 		}),
@@ -90,11 +90,50 @@ test("browser prerequisites are installed before workspace and documentation tes
 			"run: npx playwright install --with-deps chromium",
 		);
 		const run = workflow.indexOf(
-			file === "docs.yml" ? "run: npm run test:docs" : "run: npm test",
+			file === "docs.yml" ? "run: npm run docs:validate" : "run: npm run test:",
 		);
 		assert.ok(
 			install >= 0 && run > install,
 			`${file} must install browsers before testing`,
 		);
 	}
+});
+
+test("package checks cover PRs and documentation deploys only verified releases", async () => {
+	const workflow = await readFile(
+		new URL("../../.github/workflows/docs.yml", import.meta.url),
+		"utf8",
+	);
+	const checks = await readFile(
+		new URL("../../.github/workflows/checks.yml", import.meta.url),
+		"utf8",
+	);
+	assert.match(checks, /push:\s+branches: \[main\]/);
+	assert.match(checks, /run: npm run test:affected/);
+	assert.match(checks, /run: npm run test:all/);
+	assert.doesNotMatch(workflow, /\n {2}(push|pull_request):/);
+	assert.ok(workflow.includes("inputs.deploy && 'pages-release'"));
+	assert.ok(
+		workflow.includes("github.event.pull_request.number || github.ref"),
+	);
+	assert.ok(
+		workflow.includes(
+			"inputs.deploy != true || needs.release.outputs.ready == 'true'",
+		),
+	);
+	assert.match(workflow, /cancel-in-progress: false/);
+	assert.match(
+		workflow,
+		/deploy:\s+name: Deploy to GitHub Pages\s+if: inputs\.deploy == true && github\.ref == 'refs\/heads\/main'/,
+	);
+	const publish = await readFile(
+		new URL("../../.github/workflows/publish.yml", import.meta.url),
+		"utf8",
+	);
+	assert.match(
+		publish,
+		/needs: publish\s+uses: \.\/\.github\/workflows\/docs\.yml/,
+	);
+	assert.match(publish, /run: npm run test:all/);
+	assert.match(publish, /ref: \$\{\{ inputs\.tag \}\}/);
 });

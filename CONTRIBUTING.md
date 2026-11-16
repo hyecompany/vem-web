@@ -19,12 +19,14 @@ Signed-off-by: Your Name <you@example.com>
 
 ## License headers
 
-Source files carry SPDX tags for copyright and `Apache-2.0`. `REUSE.toml` provides the default license, with explicit exceptions for MIT notices, OFL fonts, and reserved Hye branding:
+Source files carry SPDX copyright and license headers. Use `REUSE.toml` for files that cannot carry comments and for generated files; there is no repository-wide fallback attribution. Independently authored code uses `Apache-2.0`:
 
 ```text
 SPDX-FileCopyrightText: © 2026 Joseph Maldjian <joseph.maldjian@hyecompany.com>
 SPDX-License-Identifier: Apache-2.0
 ```
+
+Keep `LICENSES/` texts unmodified: obtain them with `reuse download`, leaving copyright placeholders intact. Keep actual copyright notices in source headers or `REUSE.toml`. Upstream license copies shipped with the site or npm packages retain their original notices in separate `LICENSE-*` files. `node scripts/check-license-texts.mjs` compares the standard templates with fresh REUSE downloads.
 
 Vem UI components adapted from shadcn retain its MIT copyright and license notices. Attribute every Vem modification with a closed SPDX snippet naming its actual author and license. Include import rewrites and removed behavior in the review; snippets are attribution boundaries, not an automatic merge recipe. Independently authored components keep their own file notices.
 
@@ -34,29 +36,33 @@ Each adapted file has a short `Source:` comment linking to the real upstream fil
 
 ## Checks
 
-From a clean install on Node.js 24 or newer:
+Use Node.js 24 LTS. After `npm ci`, choose the checks for the work:
 
-```sh
-npm ci
-npm run docs:prepare
-npm run check
-npm run typecheck
-npm test
-npm run test:package
-npm run test:docs-package
-npm run docs:build
-npm run test:docs
-```
+| Command | Coverage |
+| --- | --- |
+| `npm test` | Runtime, React contracts, server-rendering, package-boundary, workflow, and maintenance tests; no browsers or docs build |
+| `npm run test:react` | Focused React contracts without building packages |
+| `npm run test:react:watch` | Focused React contracts, rerun as their imports change |
+| `npm run test:affected` | Checks selected from changes against `origin/main`, including staged, unstaged, and untracked files |
+| `npm run typecheck` | Package examples, type contracts, and documentation |
+| `npm run test:browser` | UI interactions in Chromium, or the engine selected by `VEM_BROWSER` |
+| `npm run docs:validate` | Generate, type-check, build, and test documentation |
+| `npm run test:package` | Independent installed Data and UI consumers |
+| `npm run test:all` | Complete validation, including all three browser engines and the packed Next.js consumer |
 
-Browser checks default to Playwright Chromium. Install the engines with `npx playwright install chromium firefox webkit`. Set `VEM_BROWSER=firefox` or `VEM_BROWSER=webkit` to check another engine, or use installed Chrome with `VEM_BROWSER_CHANNEL=chrome`. CI checks all three engines.
+Install browser engines once with `npx playwright install chromium firefox webkit`. For the complete release check, run `npm run test:all`; builds, reference generation, and packing are shared within that invocation. Each packed consumer still installs into its own empty directory. Only npm's download cache is reused.
 
-`test:package` verifies all public imports and typed examples in an isolated packed consumer, then exercises its actual SharedWorker starter. It does not publish a package. `test:docs` checks static links, anchors, reference coverage, search, exports, and interactive reader journeys. The production domain uses an empty `BASE_PATH`. Set `BASE_PATH=/vem-web` for both build and checks only when validating deployment under a subpath.
+`test:affected` prints its selection and reasons. To compare with another Git base, use `npm run test:affected -- --base <ref>`. It selects whole suites, not individual tests: documentation-only work runs documentation checks; shared package, configuration, or unknown inputs run everything. A missing comparison base also runs everything. PRs use this selection; main and release validation always use `test:all`.
+
+Set `VEM_BROWSER=firefox` or `VEM_BROWSER=webkit` to run a focused browser check in another engine, or use installed Chrome with `VEM_BROWSER_CHANNEL=chrome`. UI browser suites reuse the browser process and server while isolating each test in a new browser context.
+
+`test:package` verifies public imports and typed examples in independent packed consumers, then exercises the actual SharedWorker starter and UI. It does not publish. `test:docs` runs checks against an already built site; prefer `docs:validate` when editing documentation. The production domain uses an empty `BASE_PATH`; use `BASE_PATH=/vem-web` for both build and checks when validating a subpath.
 
 ## Documentation and examples
 
-Edit `packages/docs/content/handbook`, add compiled snippets under `packages/data/examples`, and put API semantics in JSDoc on public declarations. `npm run docs:prepare` generates reference, navigation, content, and machine-readable exports. Never hand-edit `content/docs` or `.generated`.
+Edit package guides in `packages/data/docs` or `packages/ui/docs`, and framework pages in `docs/content/handbook`, add compiled snippets under `packages/data/examples`, and put API semantics in JSDoc on public declarations. `npm run docs:prepare` generates reference, navigation, content, and machine-readable exports. Never hand-edit `content/docs` or `.generated`.
 
-Follow the [documentation contributor guide](packages/docs/content/handbook/data/reference/contributing.mdx) for diagrams, focused experiments, accessibility, and failure-path checks. Keep runtime behavior changes separate from documentation-only work; record discovered discrepancies explicitly.
+Follow the [documentation contributor guide](packages/data/docs/reference/contributing.mdx) for diagrams, focused experiments, accessibility, and failure-path checks. Keep runtime behavior changes separate from documentation-only work; record discovered discrepancies explicitly.
 
 ## Where tests belong
 
@@ -70,4 +76,12 @@ The publish workflow verifies the selected package and tag, checks the packed ar
 
 Repository settings must allow GitHub Actions to create pull requests. PR checks created by the workflow token may require approval; review the generated changes before approving those runs. Automation never supplies a human DCO sign-off.
 
-The Documentation workflow deploys `main` through GitHub Pages. Pages uses GitHub Actions as its source and `hyevem.com` as its custom domain, with HTTPS enabled. DNS and npm account settings are managed outside this repository. The site opens directly at `/docs/` and supports a static redirect fallback.
+GitHub Pages serves the verified documentation release. Pages uses GitHub Actions as its source and `hyevem.com` as its custom domain, with HTTPS enabled. DNS and npm account settings are managed outside this repository. The site opens directly at `/docs/` and supports a static redirect fallback.
+
+## Public documentation
+
+Package guides live in `packages/data/docs` and `packages/ui/docs`. The private `docs/` workspace assembles them, their compiled examples, and API reference without changing public URLs.
+
+Main and pull requests build and test the current documentation but do not deploy it. Successful npm publication requests deployment from its release tag. The site updates only when every package version in that checkout is the current npm release and each package tree matches its own release tag. Otherwise, the existing site stays live until the remaining package changes are released. This keeps the task board and cross-package examples on a coherent, tested snapshot.
+
+For site-only corrections, run the Documentation workflow on `main` with `deploy` enabled; the same release checks apply. A registry failure fails verification instead of treating an unknown version as released.
