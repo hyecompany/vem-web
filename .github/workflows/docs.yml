@@ -2,10 +2,20 @@
 # SPDX-License-Identifier: Apache-2.0
 name: Documentation
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
+    inputs:
+      deploy:
+        description: Deploy only if this checkout matches published packages
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      deploy:
+        type: boolean
+        default: false
+      ref:
+        type: string
+        required: true
 
 permissions:
   contents: read
@@ -13,42 +23,60 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
+  group: ${{ inputs.deploy && 'pages-release' || format('docs-{0}', github.event.pull_request.number || github.ref) }}
   cancel-in-progress: false
 
 jobs:
-  build:
-    name: Build Documentation
+  release:
+    name: Verify published documentation snapshot
+    if: inputs.deploy == true && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.verify.outputs.ready }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.ref || github.sha }}
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "24"
-          package-manager-cache: false
+          cache: npm
+      - id: verify
+        run: node scripts/docs-release.mjs
+
+  build:
+    name: Build Documentation
+    needs: release
+    if: always() && !cancelled() && (inputs.deploy != true || needs.release.outputs.ready == 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Build docs & LLM specs
-        run: npm run docs:build
-        env:
-          BASE_PATH: ""
       - name: Install documentation browser
         run: npx playwright install --with-deps chromium
-      - name: Check reader journeys and static export
-        run: npm run test:docs
+      - name: Build and validate documentation
+        run: npm run docs:validate
         env:
           BASE_PATH: ""
       - name: Upload Pages Artifact
-        if: github.ref == 'refs/heads/main'
+        if: inputs.deploy == true && github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
         with:
-          path: packages/docs/out
+          path: docs/out
 
   deploy:
     name: Deploy to GitHub Pages
-    if: github.ref == 'refs/heads/main'
+    if: inputs.deploy == true && github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
     environment:

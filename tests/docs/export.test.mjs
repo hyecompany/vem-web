@@ -6,7 +6,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { test } from "node:test";
-import { normalizeSegments } from "../../packages/docs/scripts/finalize-export.mjs";
+import { normalizeSegments } from "../../docs/scripts/finalize-export.mjs";
 
 test("static segment exports match browser URLs without changing unrelated files", async () => {
 	const out = await mkdtemp(resolve(tmpdir(), "vem-docs-export-"));

@@ -9,6 +9,7 @@ Put a test beside the behavior it protects. These directories describe stable re
 | --- | --- |
 | `contracts/` | Public resource descriptions and the feature testing API |
 | `types/` | Compile-only API inference and rejected-input assertions |
+| `react/` | React provider and hook lifecycle contracts in jsdom |
 | `queries/` | Consumer results, projection, subscriptions, retry and revalidation |
 | `knowledge/` | Observations, membership, relationships, derivation and continuity |
 | `planning/` | Source selection, scheduling, filters, prerequisites and acquisition limits |
@@ -32,6 +33,8 @@ npm test
 npm run typecheck
 npx tsx --tsconfig tsconfig.test.json --test "tests/planning/**/*.test.ts"
 ```
+
+From the repository root, `npm run test:react -- packages/data` runs the React contracts; `npm run test:react:watch -- packages/data` watches them. These use `*.test.tsx` and import public package entries. Browser-specific behavior remains in the integration tests.
 
 Runtime suites use `*.test.ts`. The quoted recursive pattern lets Node discover new nested suites on Windows and Unix without editing a file list. Type-only fixtures use `*.types.ts` and are checked by `tsconfig.test.json`; they are never executed as tests. Keep `@ts-expect-error` assertions in those fixtures when the assertion is purely a compile-time contract.
 

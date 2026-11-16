@@ -28,3 +28,5 @@ jobs:
         run: pip install "reuse[charset-normalizer]==6.2.0"
       - name: Check licensing metadata
         run: reuse lint
+      - name: Check unmodified SPDX license texts
+        run: node scripts/check-license-texts.mjs

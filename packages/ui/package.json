@@ -20,7 +20,7 @@
 		"examples",
 		"LICENSE",
 		"README.md",
-		"THIRD-PARTY-NOTICES.txt"
+		"LICENSE-MIT"
 	],
 	"exports": {
 		".": {
@@ -46,9 +46,9 @@
 	},
 	"scripts": {
 		"build": "node scripts/build.mjs",
-		"typecheck": "npm run build && tsc -p tsconfig.test.json",
-		"test": "npm run build && node --test --test-concurrency=1 \"tests/**/*.test.mjs\"",
-		"test:browser": "node --test --test-concurrency=1 \"tests/browser/*.test.mjs\" tests/data/browser.test.mjs"
+		"typecheck": "node ../../scripts/validate.mjs types:ui",
+		"test": "node ../../scripts/validate.mjs ui",
+		"test:browser": "node ../../scripts/validate.mjs browser"
 	},
 	"peerDependencies": {
 		"@hyecompany/vem-data": "^2.0.0",

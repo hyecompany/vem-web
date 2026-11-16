@@ -6,10 +6,9 @@ import { createServer } from "node:http";
 import { extname, resolve, sep } from "node:path";
 export const root = resolve(import.meta.dirname, "../../..");
 const deployment = JSON.parse(
-	await readFile(
-		resolve(root, "packages/docs/out/deployment.json"),
-		"utf8",
-	).catch(() => '{"basePath":""}'),
+	await readFile(resolve(root, "docs/out/deployment.json"), "utf8").catch(
+		() => '{"basePath":""}',
+	),
 );
 export const base = (process.env.BASE_PATH ?? deployment.basePath).replace(
 	/\/$/,
@@ -17,7 +16,7 @@ export const base = (process.env.BASE_PATH ?? deployment.basePath).replace(
 );
 export async function serve({ directory, basePath = base } = {}) {
 	const base = basePath;
-	const out = directory ?? resolve(root, "packages/docs/out");
+	const out = directory ?? resolve(root, "docs/out");
 	const server = createServer(async (req, res) => {
 		try {
 			let path = decodeURIComponent(

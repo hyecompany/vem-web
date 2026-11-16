@@ -12,7 +12,7 @@ import { root, serve } from "./support/site.mjs";
 test("prose pages skip experiments and focused guides load only their experiment", async () => {
 	const manifest = JSON.parse(
 		await readFile(
-			resolve(root, "packages/docs/.next/react-loadable-manifest.json"),
+			resolve(root, "docs/.next/react-loadable-manifest.json"),
 			"utf8",
 		),
 	);

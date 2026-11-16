@@ -48,29 +48,15 @@ async function run(file, args, cwd = directory, environment = {}) {
 	});
 }
 try {
-	await run(
-		process.execPath,
-		[npm, "run", "build", "--workspace", "@hyecompany/vem-data"],
-		root,
-	);
-	await run(
-		process.execPath,
-		[join(root, "packages/ui/scripts/build.mjs")],
-		root,
-	);
-	await run(
-		process.execPath,
-		[
-			npm,
-			"pack",
-			"--silent",
-			"--workspace",
-			"@hyecompany/vem-ui",
-			"--pack-destination",
-			directory,
-		],
-		root,
-	);
+	if (!process.env.VEM_TEST_ARTIFACTS)
+		throw Error("Run npm run test:ui-package to prepare the artifacts.");
+	for (const [id, version] of [
+		["ui", manifest.version],
+		["data", dataManifest.version],
+	]) {
+		const file = `hyecompany-vem-${id}-${version}.tgz`;
+		await cp(join(process.env.VEM_TEST_ARTIFACTS, file), join(directory, file));
+	}
 	const dependencies = Object.fromEntries(
 		[
 			"react",
@@ -83,7 +69,7 @@ try {
 			const version = [
 				"node_modules",
 				"packages/ui/node_modules",
-				"packages/docs/node_modules",
+				"docs/node_modules",
 				"packages/data/node_modules",
 			]
 				.map((prefix) => lock.packages[`${prefix}/${name}`]?.version)
@@ -128,14 +114,25 @@ try {
 		/Apache License/,
 	);
 	assert.equal(
-		(
-			await readFile(join(installed, "THIRD-PARTY-NOTICES.txt"), "utf8")
-		).replaceAll("\r\n", "\n"),
-		(await readFile(join(root, "LICENSES/MIT.txt"), "utf8")).replaceAll(
+		(await readFile(join(installed, "LICENSE-MIT"), "utf8")).replaceAll(
+			"\r\n",
+			"\n",
+		),
+		(await readFile(join(root, "packages/ui/LICENSE-MIT"), "utf8")).replaceAll(
 			"\r\n",
 			"\n",
 		),
 		"The packed UI must include the complete original shadcn MIT notice",
+	);
+	const originalNotice = await readFile(join(installed, "LICENSE-MIT"), "utf8");
+	const template = await readFile(join(root, "LICENSES/MIT.txt"), "utf8");
+	assert.equal(
+		originalNotice.replace(/\s+/g, " ").trim(),
+		template
+			.replace("<year> <copyright holders>", "2023 shadcn")
+			.replace(/\s+/g, " ")
+			.trim(),
+		"The upstream notice must retain its copyright and complete MIT terms",
 	);
 	await cp(join(root, "tests/package/ui"), directory, {
 		recursive: true,
@@ -200,19 +197,6 @@ try {
 		["--test", join(root, "tests/package/ui/production.test.mjs")],
 		root,
 		{ VEM_UI_CONSUMER: directory, VEM_UI_PHASE: "core" },
-	);
-	await run(
-		process.execPath,
-		[
-			npm,
-			"pack",
-			"--silent",
-			"--workspace",
-			"@hyecompany/vem-data",
-			"--pack-destination",
-			directory,
-		],
-		root,
 	);
 	await run(process.execPath, [
 		npm,

@@ -7,7 +7,7 @@ import { components, renderComponentDocs } from "./component-docs.mjs";
 import { documentedPackages } from "./documented-packages.mjs";
 
 const root = resolve(import.meta.dirname, "..");
-const docs = resolve(root, "packages/docs");
+const docs = resolve(root, "docs");
 const input = resolve(docs, "content/handbook");
 const output = resolve(docs, "content/docs");
 const base = (process.env.BASE_PATH ?? "").replace(/\/$/, "");
@@ -50,97 +50,109 @@ async function save(path, text) {
 	await mkdir(dirname(path), { recursive: true });
 	await writeFile(path, text);
 }
-if (output !== resolve(root, "packages/docs/content/docs"))
+if (output !== resolve(root, "docs/content/docs"))
 	throw Error("Unexpected output path");
 await rm(output, { recursive: true, force: true });
 await mkdir(output, { recursive: true });
 const pages = [];
-for (const file of await files(input)) {
-	if (!file.endsWith(".mdx")) continue;
-	let text = (await readFile(file, "utf8")).replaceAll("\r\n", "\n");
-	const meta = metadata(text);
-	for (const match of [
-		...text.matchAll(
-			/<Example(?: package="([\w-]+)")? file="([\w./-]+)"(?: region="([\w-]+)")?\s*\/>/g,
-		),
-	]) {
-		const packageId = match[1] ?? "data";
-		if (!documentedPackages.some((item) => item.id === packageId))
-			throw Error(`Unknown example package: ${packageId}`);
-		const exampleRoot = resolve(root, "packages", packageId, "examples");
-		const source = resolve(exampleRoot, match[2]);
-		if (!source.startsWith(exampleRoot + sep))
-			throw Error("Example escaped source directory");
-		const complete = (await readFile(source, "utf8")).replaceAll("\r\n", "\n");
-		let code = complete;
-		if (match[3]) {
-			const region = complete
-				.split(`// #region ${match[3]}\n`)[1]
-				?.split(`// #endregion ${match[3]}\n`)[0];
-			if (!region)
-				throw Error(`Missing region ${packageId}/${match[2]}:${match[3]}`);
-			code = region;
+const guideSources = [
+	{ directory: input, prefix: "" },
+	...documentedPackages.map(({ id }) => ({
+		directory: resolve(root, "packages", id, "docs"),
+		prefix: `${id}/`,
+	})),
+];
+for (const { directory, prefix } of guideSources) {
+	for (const file of await files(directory)) {
+		if (!file.endsWith(".mdx")) continue;
+		let text = (await readFile(file, "utf8")).replaceAll("\r\n", "\n");
+		const meta = metadata(text);
+		for (const match of [
+			...text.matchAll(
+				/<Example(?: package="([\w-]+)")? file="([\w./-]+)"(?: region="([\w-]+)")?\s*\/>/g,
+			),
+		]) {
+			const packageId = match[1] ?? "data";
+			if (!documentedPackages.some((item) => item.id === packageId))
+				throw Error(`Unknown example package: ${packageId}`);
+			const exampleRoot = resolve(root, "packages", packageId, "examples");
+			const source = resolve(exampleRoot, match[2]);
+			if (!source.startsWith(exampleRoot + sep))
+				throw Error("Example escaped source directory");
+			const complete = (await readFile(source, "utf8")).replaceAll(
+				"\r\n",
+				"\n",
+			);
+			let code = complete;
+			if (match[3]) {
+				const region = complete
+					.split(`// #region ${match[3]}\n`)[1]
+					?.split(`// #endregion ${match[3]}\n`)[0];
+				if (!region)
+					throw Error(`Missing region ${packageId}/${match[2]}:${match[3]}`);
+				code = region;
+			}
+			const lines = code.replace(/^.*#(?:end)?region.*\n/gm, "").split("\n");
+			const indent = Math.min(
+				...lines
+					.filter((line) => line.trim())
+					.map((line) => line.match(/^\s*/)[0].length),
+			);
+			code = lines
+				.map((line) => line.slice(indent))
+				.join("\n")
+				.trim();
+			text = text.replace(
+				match[0],
+				`\n\`\`\`${match[2].endsWith("tsx") ? "tsx" : "ts"}\n${code}\n\`\`\`\n`,
+			);
 		}
-		const lines = code.replace(/^.*#(?:end)?region.*\n/gm, "").split("\n");
-		const indent = Math.min(
-			...lines
-				.filter((line) => line.trim())
-				.map((line) => line.match(/^\s*/)[0].length),
-		);
-		code = lines
-			.map((line) => line.slice(indent))
-			.join("\n")
-			.trim();
-		text = text.replace(
-			match[0],
-			`\n\`\`\`${match[2].endsWith("tsx") ? "tsx" : "ts"}\n${code}\n\`\`\`\n`,
-		);
-	}
-	text = await renderComponentDocs(text);
-	const path = relative(input, file).replaceAll("\\", "/");
-	const slug = path.replace(/(?:\/index)?\.mdx$/, "").replace(/^index$/, "");
-	await save(resolve(output, path), text);
-	const plain = body(text)
-		.replace(
-			/<TaskBoardDemo\s*\/>/g,
-			"### Explore the task board\n\nVem UI controls and Vem Data power three short interactions: filtering, completing a task, and editing notes. Filtering and an overview share known task data. A command previews completion until its response is known. An edit keeps its draft when a teammate changes the saved note. Each lesson runs the real Vem runtime with a simulated in-page service. Source reads are simulated calls, not HTTP. The application has no SharedWorker or browser persistence.",
-		)
-		.replace(/<UiPreview name="([\w-]+)"\s*\/>/g, (_, name) => {
-			const preview = previews[name];
-			if (!preview) throw Error(`Unknown UI preview ${name}`);
-			return `### Preview: ${preview.title}\n\n${preview.explanation}`;
-		})
-		.replace(/<ComponentPreview name="([\w-]+)"\s*\/>/g, (_, name) => {
-			const component =
-				name === "appearance"
-					? {
-							title: "Appearance",
-							description:
-								"A Button inherits primary color and radius from an ordinary CSS class.",
-						}
-					: components.find((item) => item.name === name);
-			if (!component) throw Error(`Unknown component preview ${name}`);
-			return `### Preview: ${component.title}\n\n${component.description} The example uses the public package component. Reset restores its initial state.`;
-		})
-		.replace(/<Flow name="([\w-]+)"\s*\/>/g, (_, name) => {
-			const diagram = diagrams[name];
-			if (!diagram) throw Error(`Unknown diagram ${name}`);
-			return `### ${diagram.title}\n\n${diagram.nodes.map((node, i) => `${i + 1}. ${node.summary}`).join("\n")}\n\n${diagram.explanation}`;
-		})
-		.replace(/<Lab name="([\w-]+)"\s*\/>/g, (_, name) => {
-			const lab = labs[name];
-			if (!lab) throw Error(`Unknown experiment ${name}`);
-			return `### Experiment: ${lab.title}\n\n${lab.prompt}\n\n${lab.explanation}\n\nRuns a deterministic simulated source with the real Vem runtime. Interactive controls are available in the HTML page; no JavaScript is needed to read this explanation.`;
+		text = await renderComponentDocs(text);
+		const path = prefix + relative(directory, file).replaceAll("\\", "/");
+		const slug = path.replace(/(?:\/index)?\.mdx$/, "").replace(/^index$/, "");
+		await save(resolve(output, path), text);
+		const plain = body(text)
+			.replace(
+				/<TaskBoardDemo\s*\/>/g,
+				"### Explore the task board\n\nVem UI controls and Vem Data power three short interactions: filtering, completing a task, and editing notes. Filtering and an overview share known task data. A command previews completion until its response is known. An edit keeps its draft when a teammate changes the saved note. Each lesson runs the real Vem runtime with a simulated in-page service. Source reads are simulated calls, not HTTP. The application has no SharedWorker or browser persistence.",
+			)
+			.replace(/<UiPreview name="([\w-]+)"\s*\/>/g, (_, name) => {
+				const preview = previews[name];
+				if (!preview) throw Error(`Unknown UI preview ${name}`);
+				return `### Preview: ${preview.title}\n\n${preview.explanation}`;
+			})
+			.replace(/<ComponentPreview name="([\w-]+)"\s*\/>/g, (_, name) => {
+				const component =
+					name === "appearance"
+						? {
+								title: "Appearance",
+								description:
+									"A Button inherits primary color and radius from an ordinary CSS class.",
+							}
+						: components.find((item) => item.name === name);
+				if (!component) throw Error(`Unknown component preview ${name}`);
+				return `### Preview: ${component.title}\n\n${component.description} The example uses the public package component. Reset restores its initial state.`;
+			})
+			.replace(/<Flow name="([\w-]+)"\s*\/>/g, (_, name) => {
+				const diagram = diagrams[name];
+				if (!diagram) throw Error(`Unknown diagram ${name}`);
+				return `### ${diagram.title}\n\n${diagram.nodes.map((node, i) => `${i + 1}. ${node.summary}`).join("\n")}\n\n${diagram.explanation}`;
+			})
+			.replace(/<Lab name="([\w-]+)"\s*\/>/g, (_, name) => {
+				const lab = labs[name];
+				if (!lab) throw Error(`Unknown experiment ${name}`);
+				return `### Experiment: ${lab.title}\n\n${lab.prompt}\n\n${lab.explanation}\n\nRuns a deterministic simulated source with the real Vem runtime. Interactive controls are available in the HTML page; no JavaScript is needed to read this explanation.`;
+			});
+		pages.push({
+			slug,
+			title: meta.title,
+			description: meta.description,
+			order: meta.order ?? 50,
+			navigation: meta.navigation !== false,
+			text: plain,
+			kind: "guide",
 		});
-	pages.push({
-		slug,
-		title: meta.title,
-		description: meta.description,
-		order: meta.order ?? 50,
-		navigation: meta.navigation !== false,
-		text: plain,
-		kind: "guide",
-	});
+	}
 }
 for (const { id, reference } of documentedPackages) {
 	const apiDir = resolve(docs, ".generated", reference);
@@ -225,7 +237,7 @@ for (const folder of folders) {
 	);
 }
 const exampleOutput = resolve(docs, "public/examples");
-if (exampleOutput !== resolve(root, "packages/docs/public/examples"))
+if (exampleOutput !== resolve(root, "docs/public/examples"))
 	throw Error("Unexpected example output path");
 await rm(exampleOutput, { recursive: true, force: true });
 for (const { id } of documentedPackages) {
