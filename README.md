@@ -3,13 +3,15 @@
 
 # Hye Vem
 
-Shared foundations for browser applications. Adopt each package independently; bring your own UI and backend.
+Shared foundations for browser applications. Adopt each package independently; bring your own application and backend.
 
-**[Vem Data](packages/data/README.md)** is the first package: shared information, coordinated actions, and protected edits for browser and React applications. It is under development in this repository.
+**[Vem Data](packages/data/README.md)** provides shared information, coordinated actions, and protected edits for browser and React applications.
 
-## Explore Vem Data
+**[Vem UI](packages/ui/README.md)** provides accessible React controls, navigation, and feedback, with optional Data bindings. [Try the components](https://hyevem.com/docs/ui/).
 
-[Use the task board](https://hyevem.com/docs/data/start/quickstart/) to filter, complete, and edit tasks. The guides connect those interactions to the code you write in your application.
+## Explore Vem
+
+[Use the task board](https://hyevem.com/docs/task-board/) to filter, complete, and edit tasks. The guides connect those interactions to the code you write in your application.
 
 | Your task | Start here |
 | --- | --- |
@@ -21,6 +23,6 @@ Shared foundations for browser applications. Adopt each package independently; b
 
 ## Work on this repository
 
-The package lives in `packages/data`; documentation source lives in `packages/docs/content/handbook`. Executable snippets are in `packages/data/examples`, and built-site checks are in `tests/docs`, and packed-consumer browser checks are in `tests/package`. See [the test layout](tests/README.md) when adding coverage.
+Packages live in `packages/data` and `packages/ui`; documentation source lives in `packages/docs/content/handbook`. Executable snippets are in each package's `examples` directory, and built-site checks are in `tests/docs`, and packed-consumer browser checks are in `tests/package`. See [the test layout](tests/README.md) when adding coverage.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for installation and required checks, or [the docs contributor guide](packages/docs/content/handbook/data/reference/contributing.mdx) to change a guide, example, or diagram. `npm run docs:dev` previews the site; `npm run docs:build` produces static output without publishing it.

@@ -1,0 +1,19 @@
+---
+title: "ActivityToasts"
+description: "Show action feedback assigned to this tab without duplicating page progress."
+order: 24
+---
+
+Mount one feedback host inside DataProvider and Toaster. It presents feedback assigned by the client's feedback capability and removes information that is no longer disclosed.
+
+<ComponentPreview name="activity-toasts" />
+
+<Example package="ui" file="activity-toasts.tsx" region="example" />
+
+The browser client supplies its feedback capability automatically. An alternate client may pass `feedback` explicitly to DataProvider. Without that capability, this host has no assigned activities to show.
+
+Visible pages use ActivityFeedback with a query or action IDs. Custom presentations can use `useInlineFeedback` directly. When they stop presenting an action, the owner's feedback policy can assign it to a toast. Closing a toast acknowledges the observed snapshot; it does not cancel work. Programmatic removal does not acknowledge an unseen outcome.
+
+This preview supplies a deterministic feedback fixture. It demonstrates presentation and acknowledgement, not cross-tab ownership. See [feedback ownership](/docs/data/connect/feedback) for host behavior.
+
+<UiReference name="ActivityToasts" />

@@ -1,0 +1,84 @@
+{
+	"name": "@hyecompany/vem-ui",
+	"version": "1.0.0",
+	"description": "Portable React interface components for Hye Vem",
+	"type": "module",
+	"license": "Apache-2.0 AND MIT",
+	"author": "Joseph Maldjian <joseph.maldjian@hyecompany.com>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/hyecompany/vem-web.git",
+		"directory": "packages/ui"
+	},
+	"sideEffects": [
+		"./dist/styles.css",
+		"./dist/devtools/styles.css"
+	],
+	"files": [
+		"dist",
+		"src",
+		"examples",
+		"LICENSE",
+		"README.md",
+		"THIRD-PARTY-NOTICES.txt"
+	],
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
+		"./styles.css": {
+			"types": "./dist/styles.d.ts",
+			"default": "./dist/styles.css"
+		},
+		"./data": {
+			"types": "./dist/data/index.d.ts",
+			"import": "./dist/data/index.js"
+		},
+		"./devtools": {
+			"types": "./dist/devtools/index.d.ts",
+			"import": "./dist/devtools/index.js"
+		},
+		"./devtools/styles.css": {
+			"types": "./dist/devtools/styles.d.ts",
+			"default": "./dist/devtools/styles.css"
+		}
+	},
+	"scripts": {
+		"build": "node scripts/build.mjs",
+		"typecheck": "npm run build && tsc -p tsconfig.test.json",
+		"test": "npm run build && node --test --test-concurrency=1 \"tests/**/*.test.mjs\"",
+		"test:browser": "node --test --test-concurrency=1 \"tests/browser/*.test.mjs\" tests/data/browser.test.mjs"
+	},
+	"peerDependencies": {
+		"@hyecompany/vem-data": "^2.0.0",
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0"
+	},
+	"devDependencies": {
+		"@tailwindcss/node": "4.3.5",
+		"@tailwindcss/oxide": "4.3.5",
+		"@types/react": "^19.0.0",
+		"@types/react-dom": "^19.0.0",
+		"postcss": "^8.5.32",
+		"postcss-selector-parser": "^7.1.0",
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0",
+		"tailwindcss": "4.3.5",
+		"tw-animate-css": "^1.4.0",
+		"typescript": "^5.9.0"
+	},
+	"dependencies": {
+		"@base-ui/react": "^1.8.0",
+		"@tabler/icons-react": "^3.48.0",
+		"@tanstack/react-virtual": "^3.14.26",
+		"class-variance-authority": "^0.7.1",
+		"clsx": "^2.1.1",
+		"tailwind-merge": "^3.7.0"
+	},
+	"peerDependenciesMeta": {
+		"@hyecompany/vem-data": {
+			"optional": true
+		}
+	}
+}

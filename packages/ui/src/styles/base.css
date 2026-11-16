@@ -1,0 +1,54 @@
+/* SPDX-FileCopyrightText: © 2026 Joseph Maldjian <joseph.maldjian@hyecompany.com> */
+/* SPDX-License-Identifier: Apache-2.0 */
+
+@layer vem {
+	:root {
+		--vem-combobox-duration: 160ms;
+		--vem-combobox-easing: cubic-bezier(0.2, 0, 0, 1);
+	}
+
+	:where([data-vem-ui][hidden]:not([hidden="until-found"])) {
+		/* biome-ignore lint/complexity/noImportantStyles: Native hidden must override display utilities. */
+		display: none !important;
+	}
+
+	:where([data-vem-ui]) {
+		box-sizing: border-box;
+		border: 0 solid var(--border);
+	}
+	:where(button, input, textarea, select)[data-vem-ui] {
+		font: inherit;
+		letter-spacing: inherit;
+		color: inherit;
+		margin: 0;
+		background: transparent;
+	}
+	:where(button)[data-vem-ui] {
+		appearance: button;
+	}
+	:where(a)[data-vem-ui] {
+		color: inherit;
+		text-decoration: inherit;
+	}
+	:where(ul, ol)[data-vem-ui] {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+	:where(h1, h2, h3, p)[data-vem-ui] {
+		margin: 0;
+	}
+	:where([data-vem-ui])::before,
+	:where([data-vem-ui])::after {
+		box-sizing: border-box;
+		border: 0 solid var(--border);
+	}
+	@media (prefers-reduced-motion: reduce) {
+		:where([data-vem-ui], [data-vem-ui]::before, [data-vem-ui]::after) {
+			/* biome-ignore lint/complexity/noImportantStyles: Reduced motion takes priority over component animation utilities. */
+			animation: none !important;
+			/* biome-ignore lint/complexity/noImportantStyles: Reduced motion takes priority over component transition utilities. */
+			transition-duration: 0s !important;
+		}
+	}
+}

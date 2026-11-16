@@ -172,7 +172,7 @@ test("editing preserves dirty input through conflict and selectively forgets pri
 		await expect(lab.getByRole("alert")).toContainText(
 			"Your draft is still here",
 		);
-		await lab.getByRole("button", { name: "Make read-only" }).click();
+		await lab.getByRole("button", { name: "Remove save access" }).click();
 		await expect(draft).toHaveValue("My meeting time");
 		await expect(
 			lab.getByRole("button", { name: "Save changes", exact: true }),
@@ -311,6 +311,10 @@ test("search accepts API names and ordinary questions with keyboard navigation",
 		const dialog = page.getByRole("dialog");
 		for (const [question, answer] of [
 			["useQuery", "useQuery"],
+			["useReadStatus", "useReadStatus"],
+			["Combobox", "Combobox"],
+			["bindText", "bindText"],
+			["Branding and appearance", "Branding and appearance"],
 			["nothing fetched", "Nothing fetched or no event socket"],
 			["partial rows", "Partial rows"],
 			["save conflict", "Save conflict"],

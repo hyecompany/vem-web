@@ -17,7 +17,8 @@
 			"tests/**",
 			"packages/docs/*.ts",
 			"packages/docs/*.mjs",
-			"packages/*/*.json"
+			"packages/*/*.json",
+			"packages/*/scripts/**"
 		]
 	},
 	"formatter": {

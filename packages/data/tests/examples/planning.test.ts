@@ -56,6 +56,19 @@ test("documented source capabilities choose shared work for the entire outstandi
 		],
 	});
 	t.after(() => runtime.close());
+	const identities = ["a", "b", "c", "d"].map((id) => ({ id }));
+	runtime.observe({
+		facts: identities.map((identity) => ({
+			resource: "tasks",
+			identity,
+			presence: "present",
+			values: {},
+			basis: ["public"],
+		})),
+		memberships: [
+			{ resource: "tasks", identities, complete: true, basis: ["public"] },
+		],
+	});
 	await Promise.all(
 		["a", "b", "c", "d"].map((id) =>
 			runtime.read(tasks.get({ id }, { select: ["notes"] })),

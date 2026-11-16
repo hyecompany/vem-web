@@ -1,8 +1,8 @@
 # Hye Vem
 
-Vem Data is an independently consumable browser/React knowledge runtime. These documents describe the current source, not a release promise.
+Hye Vem provides independently consumable packages: Vem Data for shared browser knowledge and Vem UI for React components.
 
-- [Hye Vem](https://hyevem.com/docs/): Shared foundations for browser applications, with packages you can adopt independently.
+- [Hye Vem](https://hyevem.com/docs/): Build browser applications with independently installable data and interface packages.
 - [Vem Data](https://hyevem.com/docs/data): Describe the information and operations a feature needs. Let shared infrastructure coordinate them.
 - [Start here](https://hyevem.com/docs/data/start): Understand the fit, then learn through a small application.
 - [What Vem Data does](https://hyevem.com/docs/data/start/overview): Keep related views up to date without coordinating them in every component.
@@ -23,7 +23,7 @@ Vem Data is an independently consumable browser/React knowledge runtime. These d
 - [Configure the browser host](https://hyevem.com/docs/data/connect/browser-host): Connect a React app and its tabs to one shared owner.
 - [Keep progress visible after navigation](https://hyevem.com/docs/data/connect/feedback): Wire inline progress and shared notices once in the application shell.
 - [How Vem chooses reads](https://hyevem.com/docs/data/connect/planning): Declare backend capabilities; Vem plans across the whole outstanding demand.
-- [Inspect consumers and try UI scenarios](https://hyevem.com/docs/data/connect/devtools): Connect development tools to the same public contract your features use.
+- [Inspect consumers and try UI scenarios](https://hyevem.com/docs/data/connect/devtools): Inspect a real screen or exercise its loading, access, and failure states.
 - [Observe a server operation](https://hyevem.com/docs/data/connect/operations): Follow accepted work and recover without accidentally submitting it twice.
 - [Understand Vem](https://hyevem.com/docs/data/understand): Follow the evidence behind acquisition, access, and recovery.
 - [When Vem reads from the service](https://hyevem.com/docs/data/understand/acquisition): Reuse known information and acquire only what a view still needs.
@@ -35,6 +35,36 @@ Vem Data is an independently consumable browser/React knowledge runtime. These d
 - [Maintainer map](https://hyevem.com/docs/data/reference/maintainer-map): Trace a documented behavior to implementation and focused tests.
 - [Integration limits](https://hyevem.com/docs/data/reference/limits): Know which guarantees your backend and browser host must provide.
 - [Contribute to these docs](https://hyevem.com/docs/data/reference/contributing): Keep guides, examples, reference, and exports in sync.
+- [Vem UI](https://hyevem.com/docs/ui): React components with a consistent design, shared updates, and application-owned branding.
+- [Components](https://hyevem.com/docs/ui/components): Choose a component by the job it does.
+- [Button](https://hyevem.com/docs/ui/components/button): Run an action.
+- [Input](https://hyevem.com/docs/ui/components/input): Collect a short text value.
+- [Textarea](https://hyevem.com/docs/ui/components/textarea): Edit a longer text value.
+- [Switch](https://hyevem.com/docs/ui/components/switch): Toggle a setting immediately.
+- [Tabs](https://hyevem.com/docs/ui/components/tabs): Switch between related views without navigation.
+- [Badge](https://hyevem.com/docs/ui/components/badge): Add a short status label.
+- [Card](https://hyevem.com/docs/ui/components/card): Group a small piece of related content.
+- [Separator](https://hyevem.com/docs/ui/components/separator): Visually separate adjacent groups.
+- [Tooltip](https://hyevem.com/docs/ui/components/tooltip): Repeat a visual label on hover or focus.
+- [Combobox](https://hyevem.com/docs/ui/components/combobox): Choose a value from a searchable list.
+- [Sidebar](https://hyevem.com/docs/ui/components/sidebar): Compose application navigation and a mobile drawer.
+- [Virtual list](https://hyevem.com/docs/ui/components/virtual-list): Keep long lists responsive while rows grow and shrink.
+- [Breadcrumb](https://hyevem.com/docs/ui/components/breadcrumb): Show a page’s place in a hierarchy.
+- [Toasts](https://hyevem.com/docs/ui/components/toast): Show brief feedback away from a control.
+- [Input group](https://hyevem.com/docs/ui/components/input-group): Combine an input with supporting text or actions.
+- [OverflowText](https://hyevem.com/docs/ui/components/overflow-text): Keep long names readable in compact buttons and list items.
+- [Sheet](https://hyevem.com/docs/ui/components/sheet): Open a focused task beside the current page.
+- [Skeleton](https://hyevem.com/docs/ui/components/skeleton): Reserve space while initial content is unavailable.
+- [Spinner](https://hyevem.com/docs/ui/components/spinner): Show progress without taking focus away from an action.
+- [CommandButton](https://hyevem.com/docs/ui/components/command-button): Run a command with its admission and action state.
+- [QueryStatus](https://hyevem.com/docs/ui/components/query-status): Explain acquisition without hiding information already available.
+- [ActivityFeedback](https://hyevem.com/docs/ui/components/activity-feedback): Present progress and outcomes supported by action evidence.
+- [ActivityToasts](https://hyevem.com/docs/ui/components/activity-toasts): Show action feedback assigned to this tab without duplicating page progress.
+- [Data bindings](https://hyevem.com/docs/ui/components/data-bindings): Connect search, commands, and protected editing to ordinary controls.
+- [Branding and appearance](https://hyevem.com/docs/ui/customize): Use the same CSS theme as the rest of your application.
+- [Use Vem UI with Data](https://hyevem.com/docs/ui/with-data): Bind application state to controls while keeping data behavior in Vem Data.
+- [Reference](https://hyevem.com/docs/ui/reference): Public component, binding, and prop signatures.
+- [Task board](https://hyevem.com/docs/task-board): Vem Data and Vem UI working together in a small application.
 - [Vem Data API](https://hyevem.com/docs/data/reference/api): Generated from the public package entry points. Types and signatures follow the installed source.
 - [client](https://hyevem.com/docs/data/reference/api/client): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Class: BrowserClient](https://hyevem.com/docs/data/reference/api/client.Class.BrowserClient): Generated from the public package entry points. Types and signatures follow the installed source.
@@ -68,18 +98,36 @@ Vem Data is an independently consumable browser/React knowledge runtime. These d
 - [Function: defineResource()](https://hyevem.com/docs/data/reference/api/index.Function.defineResource): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Function: edit()](https://hyevem.com/docs/data/reference/api/index.Function.edit): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Function: fieldInfo()](https://hyevem.com/docs/data/reference/api/index.Function.fieldInfo): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: filterFields()](https://hyevem.com/docs/data/reference/api/index.Function.filterFields): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Function: hasFields()](https://hyevem.com/docs/data/reference/api/index.Function.hasFields): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: isFilterExpression()](https://hyevem.com/docs/data/reference/api/index.Function.isFilterExpression): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: matchesFilter()](https://hyevem.com/docs/data/reference/api/index.Function.matchesFilter): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: matchesWhere()](https://hyevem.com/docs/data/reference/api/index.Function.matchesWhere): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Function: query()](https://hyevem.com/docs/data/reference/api/index.Function.query): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Function: stableKey()](https://hyevem.com/docs/data/reference/api/index.Function.stableKey): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Interface: CommandContract<Input, Outcome, Target>](https://hyevem.com/docs/data/reference/api/index.Interface.CommandContract): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: ContainsFilter<F>](https://hyevem.com/docs/data/reference/api/index.Interface.ContainsFilter): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Interface: EditContract<T, Outcome, Target>](https://hyevem.com/docs/data/reference/api/index.Interface.EditContract): Generated from the public package entry points. Types and signatures follow the installed source.
-- [Interface: QueryOptions<T, S, W, K>](https://hyevem.com/docs/data/reference/api/index.Interface.QueryOptions): Generated from the public package entry points. Types and signatures follow the installed source.
-- [Interface: ResourceContract<T, I, S, W, D, C, E, DefaultScope>](https://hyevem.com/docs/data/reference/api/index.Interface.ResourceContract): Generated from the public package entry points. Types and signatures follow the installed source.
-- [Type Alias: ListArguments<T, S, W, K, D>](https://hyevem.com/docs/data/reference/api/index.TypeAlias.ListArguments): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: EditSnapshot<T, O>](https://hyevem.com/docs/data/reference/api/index.Interface.EditSnapshot): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: EqualFilter<F, V>](https://hyevem.com/docs/data/reference/api/index.Interface.EqualFilter): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: FeedbackClient](https://hyevem.com/docs/data/reference/api/index.Interface.FeedbackClient): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: FeedbackObservation](https://hyevem.com/docs/data/reference/api/index.Interface.FeedbackObservation): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: FilterCapabilities](https://hyevem.com/docs/data/reference/api/index.Interface.FilterCapabilities): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: LogicalFilter<C, K>](https://hyevem.com/docs/data/reference/api/index.Interface.LogicalFilter): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: QueryOptions<T, S, K>](https://hyevem.com/docs/data/reference/api/index.Interface.QueryOptions): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: ResourceContract<T, I, S, D, C, E, DefaultScope>](https://hyevem.com/docs/data/reference/api/index.Interface.ResourceContract): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: TextComparison](https://hyevem.com/docs/data/reference/api/index.Interface.TextComparison): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: TextCondition](https://hyevem.com/docs/data/reference/api/index.Interface.TextCondition): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Type Alias: CombinedFilter<C>](https://hyevem.com/docs/data/reference/api/index.TypeAlias.CombinedFilter): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Type Alias: EditField<V>](https://hyevem.com/docs/data/reference/api/index.TypeAlias.EditField): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Type Alias: FieldCondition<V>](https://hyevem.com/docs/data/reference/api/index.TypeAlias.FieldCondition): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Type Alias: FilterExpression](https://hyevem.com/docs/data/reference/api/index.TypeAlias.FilterExpression): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Type Alias: ListArguments<T, S, K, D>](https://hyevem.com/docs/data/reference/api/index.TypeAlias.ListArguments): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Type Alias: ResourceFilter<R>](https://hyevem.com/docs/data/reference/api/index.TypeAlias.ResourceFilter): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Type Alias: ResourceIdentity<R>](https://hyevem.com/docs/data/reference/api/index.TypeAlias.ResourceIdentity): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Type Alias: ResourceScope<R>](https://hyevem.com/docs/data/reference/api/index.TypeAlias.ResourceScope): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Type Alias: ResourceValues<R>](https://hyevem.com/docs/data/reference/api/index.TypeAlias.ResourceValues): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Type Alias: Where<T>](https://hyevem.com/docs/data/reference/api/index.TypeAlias.Where): Generated from the public package entry points. Types and signatures follow the installed source.
 - [react](https://hyevem.com/docs/data/reference/api/react): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Function: DataProvider()](https://hyevem.com/docs/data/reference/api/react.Function.DataProvider): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Function: queryView()](https://hyevem.com/docs/data/reference/api/react.Function.queryView): Generated from the public package entry points. Types and signatures follow the installed source.
@@ -88,9 +136,14 @@ Vem Data is an independently consumable browser/React knowledge runtime. These d
 - [Function: useCommand()](https://hyevem.com/docs/data/reference/api/react.Function.useCommand): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Function: useDataClient()](https://hyevem.com/docs/data/reference/api/react.Function.useDataClient): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Function: useEdit()](https://hyevem.com/docs/data/reference/api/react.Function.useEdit): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: useFeedback()](https://hyevem.com/docs/data/reference/api/react.Function.useFeedback): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: useInlineFeedback()](https://hyevem.com/docs/data/reference/api/react.Function.useInlineFeedback): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Function: useQuery()](https://hyevem.com/docs/data/reference/api/react.Function.useQuery): Generated from the public package entry points. Types and signatures follow the installed source.
-- [Interface: EditSnapshot<T, O>](https://hyevem.com/docs/data/reference/api/react.Interface.EditSnapshot): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: useReadStatus()](https://hyevem.com/docs/data/reference/api/react.Function.useReadStatus): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: UseQueryOptions](https://hyevem.com/docs/data/reference/api/react.Interface.UseQueryOptions): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: UseReadStatusOptions](https://hyevem.com/docs/data/reference/api/react.Interface.UseReadStatusOptions): Generated from the public package entry points. Types and signatures follow the installed source.
 - [runtime](https://hyevem.com/docs/data/reference/api/runtime): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Class: AcquisitionError](https://hyevem.com/docs/data/reference/api/runtime.Class.AcquisitionError): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Class: DexiePersistence](https://hyevem.com/docs/data/reference/api/runtime.Class.DexiePersistence): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Class: Runtime](https://hyevem.com/docs/data/reference/api/runtime.Class.Runtime): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Function: createRuntime()](https://hyevem.com/docs/data/reference/api/runtime.Function.createRuntime): Generated from the public package entry points. Types and signatures follow the installed source.
@@ -98,12 +151,14 @@ Vem Data is an independently consumable browser/React knowledge runtime. These d
 - [Interface: AccessDecision](https://hyevem.com/docs/data/reference/api/runtime.Interface.AccessDecision): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Interface: AccessSnapshot](https://hyevem.com/docs/data/reference/api/runtime.Interface.AccessSnapshot): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Interface: AccessUpdate](https://hyevem.com/docs/data/reference/api/runtime.Interface.AccessUpdate): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: AcquisitionCost](https://hyevem.com/docs/data/reference/api/runtime.Interface.AcquisitionCost): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Interface: AcquisitionPage](https://hyevem.com/docs/data/reference/api/runtime.Interface.AcquisitionPage): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Interface: AcquisitionRequest](https://hyevem.com/docs/data/reference/api/runtime.Interface.AcquisitionRequest): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Interface: AcquisitionSource](https://hyevem.com/docs/data/reference/api/runtime.Interface.AcquisitionSource): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Interface: ActionContext](https://hyevem.com/docs/data/reference/api/runtime.Interface.ActionContext): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Interface: ActionHandle<Outcome>](https://hyevem.com/docs/data/reference/api/runtime.Interface.ActionHandle): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Interface: ActionJournal](https://hyevem.com/docs/data/reference/api/runtime.Interface.ActionJournal): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: ActionObservation](https://hyevem.com/docs/data/reference/api/runtime.Interface.ActionObservation): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Interface: ActionProjection](https://hyevem.com/docs/data/reference/api/runtime.Interface.ActionProjection): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Interface: ActionSnapshot<Outcome>](https://hyevem.com/docs/data/reference/api/runtime.Interface.ActionSnapshot): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Interface: Availability](https://hyevem.com/docs/data/reference/api/runtime.Interface.Availability): Generated from the public package entry points. Types and signatures follow the installed source.
@@ -118,6 +173,8 @@ Vem Data is an independently consumable browser/React knowledge runtime. These d
 - [Interface: FactRef](https://hyevem.com/docs/data/reference/api/runtime.Interface.FactRef): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Interface: FieldInfo](https://hyevem.com/docs/data/reference/api/runtime.Interface.FieldInfo): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Interface: GrantRef](https://hyevem.com/docs/data/reference/api/runtime.Interface.GrantRef): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: IdentityTransition<I>](https://hyevem.com/docs/data/reference/api/runtime.Interface.IdentityTransition): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: IdentityTransitionObservation](https://hyevem.com/docs/data/reference/api/runtime.Interface.IdentityTransitionObservation): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Interface: KnownCollection](https://hyevem.com/docs/data/reference/api/runtime.Interface.KnownCollection): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Interface: KnownMembership](https://hyevem.com/docs/data/reference/api/runtime.Interface.KnownMembership): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Interface: KnownRecord](https://hyevem.com/docs/data/reference/api/runtime.Interface.KnownRecord): Generated from the public package entry points. Types and signatures follow the installed source.
@@ -135,6 +192,9 @@ Vem Data is an independently consumable browser/React knowledge runtime. These d
 - [Interface: QueryHandle<T, I>](https://hyevem.com/docs/data/reference/api/runtime.Interface.QueryHandle): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Interface: QueryIssue](https://hyevem.com/docs/data/reference/api/runtime.Interface.QueryIssue): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Interface: QueryResult<T, I>](https://hyevem.com/docs/data/reference/api/runtime.Interface.QueryResult): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: QueryWatchOptions](https://hyevem.com/docs/data/reference/api/runtime.Interface.QueryWatchOptions): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: ReadStatus](https://hyevem.com/docs/data/reference/api/runtime.Interface.ReadStatus): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: ReadStatusHandle](https://hyevem.com/docs/data/reference/api/runtime.Interface.ReadStatusHandle): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Interface: RelationshipObservation](https://hyevem.com/docs/data/reference/api/runtime.Interface.RelationshipObservation): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Interface: RelationshipRef](https://hyevem.com/docs/data/reference/api/runtime.Interface.RelationshipRef): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Interface: ResourceContext](https://hyevem.com/docs/data/reference/api/runtime.Interface.ResourceContext): Generated from the public package entry points. Types and signatures follow the installed source.
@@ -173,6 +233,7 @@ Vem Data is an independently consumable browser/React knowledge runtime. These d
 - [testing](https://hyevem.com/docs/data/reference/api/testing): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Class: MemoryPersistence](https://hyevem.com/docs/data/reference/api/testing.Class.MemoryPersistence): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Function: createTestClient()](https://hyevem.com/docs/data/reference/api/testing.Function.createTestClient): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: createTestFeedback()](https://hyevem.com/docs/data/reference/api/testing.Function.createTestFeedback): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Function: deferred()](https://hyevem.com/docs/data/reference/api/testing.Function.deferred): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Interface: CommandFixture<O>](https://hyevem.com/docs/data/reference/api/testing.Interface.CommandFixture): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Interface: EditAccess<T>](https://hyevem.com/docs/data/reference/api/testing.Interface.EditAccess): Generated from the public package entry points. Types and signatures follow the installed source.
@@ -188,5 +249,136 @@ Vem Data is an independently consumable browser/React knowledge runtime. These d
 - [Interface: BackgroundTransferWorkerOptions](https://hyevem.com/docs/data/reference/api/worker.Interface.BackgroundTransferWorkerOptions): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Interface: OwnerClient](https://hyevem.com/docs/data/reference/api/worker.Interface.OwnerClient): Generated from the public package entry points. Types and signatures follow the installed source.
 - [Interface: SharedHostOptions](https://hyevem.com/docs/data/reference/api/worker.Interface.SharedHostOptions): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Vem UI API](https://hyevem.com/docs/ui/reference/api): Generated from the public package entry points. Types and signatures follow the installed source.
+- [data](https://hyevem.com/docs/ui/reference/api/data): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: ActivityFeedback()](https://hyevem.com/docs/ui/reference/api/data.Function.ActivityFeedback): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: ActivityToasts()](https://hyevem.com/docs/ui/reference/api/data.Function.ActivityToasts): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: bindCommand()](https://hyevem.com/docs/ui/reference/api/data.Function.bindCommand): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: bindText()](https://hyevem.com/docs/ui/reference/api/data.Function.bindText): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: CommandButton()](https://hyevem.com/docs/ui/reference/api/data.Function.CommandButton): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: QueryStatus()](https://hyevem.com/docs/ui/reference/api/data.Function.QueryStatus): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: useSearch()](https://hyevem.com/docs/ui/reference/api/data.Function.useSearch): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: ActivityToastsProps](https://hyevem.com/docs/ui/reference/api/data.Interface.ActivityToastsProps): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: CommandBinding<O>](https://hyevem.com/docs/ui/reference/api/data.Interface.CommandBinding): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: CommandButtonProps<I, O>](https://hyevem.com/docs/ui/reference/api/data.Interface.CommandButtonProps): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: QueryStatusProps<T, I>](https://hyevem.com/docs/ui/reference/api/data.Interface.QueryStatusProps): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Type Alias: ActivityFeedbackProps<T, I>](https://hyevem.com/docs/ui/reference/api/data.TypeAlias.ActivityFeedbackProps): Generated from the public package entry points. Types and signatures follow the installed source.
+- [devtools](https://hyevem.com/docs/ui/reference/api/devtools): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: DataInspector()](https://hyevem.com/docs/ui/reference/api/devtools.Function.DataInspector): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: DataInspectorProps](https://hyevem.com/docs/ui/reference/api/devtools.Interface.DataInspectorProps): Generated from the public package entry points. Types and signatures follow the installed source.
+- [index](https://hyevem.com/docs/ui/reference/api/index-1): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: Badge()](https://hyevem.com/docs/ui/reference/api/index.Function.Badge): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: Breadcrumb()](https://hyevem.com/docs/ui/reference/api/index.Function.Breadcrumb): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: BreadcrumbEllipsis()](https://hyevem.com/docs/ui/reference/api/index.Function.BreadcrumbEllipsis): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: BreadcrumbItem()](https://hyevem.com/docs/ui/reference/api/index.Function.BreadcrumbItem): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: BreadcrumbLink()](https://hyevem.com/docs/ui/reference/api/index.Function.BreadcrumbLink): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: BreadcrumbList()](https://hyevem.com/docs/ui/reference/api/index.Function.BreadcrumbList): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: BreadcrumbPage()](https://hyevem.com/docs/ui/reference/api/index.Function.BreadcrumbPage): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: BreadcrumbSeparator()](https://hyevem.com/docs/ui/reference/api/index.Function.BreadcrumbSeparator): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: Button()](https://hyevem.com/docs/ui/reference/api/index.Function.Button): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: Card()](https://hyevem.com/docs/ui/reference/api/index.Function.Card): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: CardAction()](https://hyevem.com/docs/ui/reference/api/index.Function.CardAction): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: CardContent()](https://hyevem.com/docs/ui/reference/api/index.Function.CardContent): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: CardDescription()](https://hyevem.com/docs/ui/reference/api/index.Function.CardDescription): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: CardFooter()](https://hyevem.com/docs/ui/reference/api/index.Function.CardFooter): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: CardHeader()](https://hyevem.com/docs/ui/reference/api/index.Function.CardHeader): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: CardTitle()](https://hyevem.com/docs/ui/reference/api/index.Function.CardTitle): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: Combobox()](https://hyevem.com/docs/ui/reference/api/index.Function.Combobox): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: ComboboxChip()](https://hyevem.com/docs/ui/reference/api/index.Function.ComboboxChip): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: ComboboxChips()](https://hyevem.com/docs/ui/reference/api/index.Function.ComboboxChips): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: ComboboxChipsInput()](https://hyevem.com/docs/ui/reference/api/index.Function.ComboboxChipsInput): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: ComboboxCollection()](https://hyevem.com/docs/ui/reference/api/index.Function.ComboboxCollection): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: ComboboxContent()](https://hyevem.com/docs/ui/reference/api/index.Function.ComboboxContent): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: ComboboxEmpty()](https://hyevem.com/docs/ui/reference/api/index.Function.ComboboxEmpty): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: ComboboxGroup()](https://hyevem.com/docs/ui/reference/api/index.Function.ComboboxGroup): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: ComboboxInput()](https://hyevem.com/docs/ui/reference/api/index.Function.ComboboxInput): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: ComboboxItem()](https://hyevem.com/docs/ui/reference/api/index.Function.ComboboxItem): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: ComboboxLabel()](https://hyevem.com/docs/ui/reference/api/index.Function.ComboboxLabel): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: ComboboxList()](https://hyevem.com/docs/ui/reference/api/index.Function.ComboboxList): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: ComboboxSeparator()](https://hyevem.com/docs/ui/reference/api/index.Function.ComboboxSeparator): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: ComboboxTrigger()](https://hyevem.com/docs/ui/reference/api/index.Function.ComboboxTrigger): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: ComboboxValue()](https://hyevem.com/docs/ui/reference/api/index.Function.ComboboxValue): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: ComboboxVirtualList()](https://hyevem.com/docs/ui/reference/api/index.Function.ComboboxVirtualList): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: Input()](https://hyevem.com/docs/ui/reference/api/index.Function.Input): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: InputGroup()](https://hyevem.com/docs/ui/reference/api/index.Function.InputGroup): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: InputGroupAddon()](https://hyevem.com/docs/ui/reference/api/index.Function.InputGroupAddon): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: InputGroupButton()](https://hyevem.com/docs/ui/reference/api/index.Function.InputGroupButton): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: InputGroupInput()](https://hyevem.com/docs/ui/reference/api/index.Function.InputGroupInput): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: InputGroupText()](https://hyevem.com/docs/ui/reference/api/index.Function.InputGroupText): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: InputGroupTextarea()](https://hyevem.com/docs/ui/reference/api/index.Function.InputGroupTextarea): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: OverflowText()](https://hyevem.com/docs/ui/reference/api/index.Function.OverflowText): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: Separator()](https://hyevem.com/docs/ui/reference/api/index.Function.Separator): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: Sheet()](https://hyevem.com/docs/ui/reference/api/index.Function.Sheet): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: SheetClose()](https://hyevem.com/docs/ui/reference/api/index.Function.SheetClose): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: SheetContent()](https://hyevem.com/docs/ui/reference/api/index.Function.SheetContent): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: SheetDescription()](https://hyevem.com/docs/ui/reference/api/index.Function.SheetDescription): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: SheetFooter()](https://hyevem.com/docs/ui/reference/api/index.Function.SheetFooter): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: SheetHeader()](https://hyevem.com/docs/ui/reference/api/index.Function.SheetHeader): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: SheetTitle()](https://hyevem.com/docs/ui/reference/api/index.Function.SheetTitle): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: SheetTrigger()](https://hyevem.com/docs/ui/reference/api/index.Function.SheetTrigger): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: Sidebar()](https://hyevem.com/docs/ui/reference/api/index.Function.Sidebar): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: SidebarContent()](https://hyevem.com/docs/ui/reference/api/index.Function.SidebarContent): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: SidebarFooter()](https://hyevem.com/docs/ui/reference/api/index.Function.SidebarFooter): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: SidebarGroup()](https://hyevem.com/docs/ui/reference/api/index.Function.SidebarGroup): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: SidebarGroupAction()](https://hyevem.com/docs/ui/reference/api/index.Function.SidebarGroupAction): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: SidebarGroupContent()](https://hyevem.com/docs/ui/reference/api/index.Function.SidebarGroupContent): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: SidebarGroupLabel()](https://hyevem.com/docs/ui/reference/api/index.Function.SidebarGroupLabel): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: SidebarHeader()](https://hyevem.com/docs/ui/reference/api/index.Function.SidebarHeader): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: SidebarInput()](https://hyevem.com/docs/ui/reference/api/index.Function.SidebarInput): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: SidebarInset()](https://hyevem.com/docs/ui/reference/api/index.Function.SidebarInset): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: SidebarMenu()](https://hyevem.com/docs/ui/reference/api/index.Function.SidebarMenu): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: SidebarMenuAction()](https://hyevem.com/docs/ui/reference/api/index.Function.SidebarMenuAction): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: SidebarMenuBadge()](https://hyevem.com/docs/ui/reference/api/index.Function.SidebarMenuBadge): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: SidebarMenuBranch()](https://hyevem.com/docs/ui/reference/api/index.Function.SidebarMenuBranch): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: SidebarMenuButton()](https://hyevem.com/docs/ui/reference/api/index.Function.SidebarMenuButton): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: SidebarMenuItem()](https://hyevem.com/docs/ui/reference/api/index.Function.SidebarMenuItem): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: SidebarMenuSkeleton()](https://hyevem.com/docs/ui/reference/api/index.Function.SidebarMenuSkeleton): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: SidebarMenuSub()](https://hyevem.com/docs/ui/reference/api/index.Function.SidebarMenuSub): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: SidebarMenuSubButton()](https://hyevem.com/docs/ui/reference/api/index.Function.SidebarMenuSubButton): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: SidebarMenuSubItem()](https://hyevem.com/docs/ui/reference/api/index.Function.SidebarMenuSubItem): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: SidebarNavigation()](https://hyevem.com/docs/ui/reference/api/index.Function.SidebarNavigation): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: SidebarProvider()](https://hyevem.com/docs/ui/reference/api/index.Function.SidebarProvider): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: SidebarRail()](https://hyevem.com/docs/ui/reference/api/index.Function.SidebarRail): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: SidebarSeparator()](https://hyevem.com/docs/ui/reference/api/index.Function.SidebarSeparator): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: SidebarTrigger()](https://hyevem.com/docs/ui/reference/api/index.Function.SidebarTrigger): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: Skeleton()](https://hyevem.com/docs/ui/reference/api/index.Function.Skeleton): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: Spinner()](https://hyevem.com/docs/ui/reference/api/index.Function.Spinner): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: Switch()](https://hyevem.com/docs/ui/reference/api/index.Function.Switch): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: Tabs()](https://hyevem.com/docs/ui/reference/api/index.Function.Tabs): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: TabsContent()](https://hyevem.com/docs/ui/reference/api/index.Function.TabsContent): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: TabsList()](https://hyevem.com/docs/ui/reference/api/index.Function.TabsList): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: TabsTrigger()](https://hyevem.com/docs/ui/reference/api/index.Function.TabsTrigger): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: Textarea()](https://hyevem.com/docs/ui/reference/api/index.Function.Textarea): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: Toast()](https://hyevem.com/docs/ui/reference/api/index.Function.Toast): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: ToastAction()](https://hyevem.com/docs/ui/reference/api/index.Function.ToastAction): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: ToastClose()](https://hyevem.com/docs/ui/reference/api/index.Function.ToastClose): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: ToastContent()](https://hyevem.com/docs/ui/reference/api/index.Function.ToastContent): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: ToastDescription()](https://hyevem.com/docs/ui/reference/api/index.Function.ToastDescription): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: Toaster()](https://hyevem.com/docs/ui/reference/api/index.Function.Toaster): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: ToastPortal()](https://hyevem.com/docs/ui/reference/api/index.Function.ToastPortal): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: ToastProvider()](https://hyevem.com/docs/ui/reference/api/index.Function.ToastProvider): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: ToastTitle()](https://hyevem.com/docs/ui/reference/api/index.Function.ToastTitle): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: ToastViewport()](https://hyevem.com/docs/ui/reference/api/index.Function.ToastViewport): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: Tooltip()](https://hyevem.com/docs/ui/reference/api/index.Function.Tooltip): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: TooltipContent()](https://hyevem.com/docs/ui/reference/api/index.Function.TooltipContent): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: TooltipProvider()](https://hyevem.com/docs/ui/reference/api/index.Function.TooltipProvider): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: TooltipTrigger()](https://hyevem.com/docs/ui/reference/api/index.Function.TooltipTrigger): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: useComboboxAnchor()](https://hyevem.com/docs/ui/reference/api/index.Function.useComboboxAnchor): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: useSidebar()](https://hyevem.com/docs/ui/reference/api/index.Function.useSidebar): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Function: VirtualList()](https://hyevem.com/docs/ui/reference/api/index.Function.VirtualList): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: SidebarMenuBranchProps](https://hyevem.com/docs/ui/reference/api/index.Interface.SidebarMenuBranchProps): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: SidebarNavigationItem](https://hyevem.com/docs/ui/reference/api/index.Interface.SidebarNavigationItem): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: SidebarNavigationLink](https://hyevem.com/docs/ui/reference/api/index.Interface.SidebarNavigationLink): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: SidebarNavigationProps](https://hyevem.com/docs/ui/reference/api/index.Interface.SidebarNavigationProps): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: VirtualListHandle](https://hyevem.com/docs/ui/reference/api/index.Interface.VirtualListHandle): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: VirtualListItemState](https://hyevem.com/docs/ui/reference/api/index.Interface.VirtualListItemState): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Interface: VirtualListProps<Item>](https://hyevem.com/docs/ui/reference/api/index.Interface.VirtualListProps): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Type Alias: ComboboxVirtualListProps<Item>](https://hyevem.com/docs/ui/reference/api/index.TypeAlias.ComboboxVirtualListProps): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Type Alias: OverflowTextProps](https://hyevem.com/docs/ui/reference/api/index.TypeAlias.OverflowTextProps): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Type Alias: SidebarContextProps](https://hyevem.com/docs/ui/reference/api/index.TypeAlias.SidebarContextProps): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Type Alias: SpinnerProps](https://hyevem.com/docs/ui/reference/api/index.TypeAlias.SpinnerProps): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Variable: createToastManager](https://hyevem.com/docs/ui/reference/api/index.Variable.createToastManager): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Variable: toast](https://hyevem.com/docs/ui/reference/api/index.Variable.toast): Generated from the public package entry points. Types and signatures follow the installed source.
+- [Variable: useToastManager](https://hyevem.com/docs/ui/reference/api/index.Variable.useToastManager): Generated from the public package entry points. Types and signatures follow the installed source.
 
 Full text: https://hyevem.com/llms-full.txt

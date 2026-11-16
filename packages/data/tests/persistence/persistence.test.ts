@@ -6,98 +6,157 @@ import { test } from "node:test";
 import { Dexie } from "dexie";
 import { IDBKeyRange, indexedDB } from "fake-indexeddb";
 import { grantKey } from "../../src/access.js";
+import { query } from "../../src/descriptors.js";
 import {
 	DexiePersistence,
 	persistenceSchemaVersion,
 } from "../../src/persistence.js";
-import type { ActionJournal, PersistedFact } from "../../src/types.js";
+import type {
+	ActionJournal,
+	PersistedFact,
+	PersistedMembership,
+} from "../../src/types.js";
 
-test("current storage keeps relationships and recovery journals separate and rejects newer formats", async () => {
-	const name = `current-${crypto.randomUUID()}`;
-	const stores = {
-		facts: "key,resource,revision",
-		relationships: "key,resource,revision",
-		memberships: "key,resource,revision",
-		actions: "id,terminal,snapshot.revision",
-		tombstones: "scope",
-		accessBindings: "key",
-	};
-	const journal: ActionJournal = {
-		id: "unfinished",
-		command: {
-			kind: "command",
-			resource: "things",
-			name: "go",
-			input: undefined,
-		},
-		bases: [{ scope: "public", generation: 0 }],
-		possibleSubmission: true,
-		metadata: { operation: "server-operation" },
-		snapshot: {
-			id: "unfinished",
-			resource: "things",
-			name: "go",
-			contextId: "anonymous",
-			phase: "running",
-			recovery: "saved",
-			revision: 7,
-			controls: { canCancel: false, canRetry: false },
-		},
-	};
-	const basis = { scope: "read", contextId: "alice", generation: 1 };
-	const relation: PersistedFact = {
-		key: "used-by",
-		kind: "relationship",
-		resource: "things",
-		identity: "a",
-		field: "used_by",
-		value: { targets: [{ resource: "things", identity: "b" }], complete: true },
-		bases: [basis],
-		dependencies: [],
-		supports: [{ bases: [basis], dependencies: [], liveness: "snapshot" }],
-		liveness: "snapshot",
-		source: "observed",
-		revision: 2,
-	};
+for (const previousVersion of [1, 2])
+	test(
+		"storage version " +
+			previousVersion +
+			" upgrades preserve evidence and journals and reject newer formats",
+		async () => {
+			const name = `current-${crypto.randomUUID()}`;
+			const stores = {
+				facts: "key,resource,revision",
+				relationships: "key,resource,revision",
+				memberships: "key,resource,revision",
+				actions: "id,terminal,snapshot.revision",
+				tombstones: "scope",
+				accessBindings: "key",
+				access: "contextId,savedAt",
+			};
+			const journal: ActionJournal = {
+				id: "unfinished",
+				command: {
+					kind: "command",
+					resource: "things",
+					name: "go",
+					input: undefined,
+				},
+				bases: [{ scope: "public", generation: 0 }],
+				possibleSubmission: true,
+				metadata: { operation: "server-operation" },
+				snapshot: {
+					id: "unfinished",
+					resource: "things",
+					name: "go",
+					contextId: "anonymous",
+					phase: "running",
+					recovery: "saved",
+					revision: 7,
+					controls: { canCancel: false, canRetry: false },
+				},
+			};
+			const basis = { scope: "read", contextId: "alice", generation: 1 };
+			const relation: PersistedFact = {
+				key: "used-by",
+				kind: "relationship",
+				resource: "things",
+				identity: "a",
+				field: "used_by",
+				value: {
+					targets: [{ resource: "things", identity: "b" }],
+					complete: true,
+				},
+				bases: [basis],
+				dependencies: [],
+				supports: [{ bases: [basis], dependencies: [], liveness: "snapshot" }],
+				liveness: "snapshot",
+				source: "observed",
+				revision: 2,
+			};
 
-	const current = new DexiePersistence(name, { indexedDB, IDBKeyRange });
-	assert.equal(persistenceSchemaVersion, 1);
-	await current.writeAction(journal);
-	await current.writeFacts([relation], []);
-	const restored = await current.load();
-	assert.deepEqual(restored.actions[0]?.snapshot, journal.snapshot);
-	assert.deepEqual(restored.actions[0]?.metadata, journal.metadata);
-	assert.deepEqual(restored.facts, [relation]);
-	const inspected = new Dexie(name, { indexedDB, IDBKeyRange });
-	await inspected.open();
-	assert.deepEqual(
-		inspected.tables.map((table) => table.name).sort(),
-		Object.keys(stores).sort(),
+			const legacy = new Dexie(name, { indexedDB, IDBKeyRange });
+			legacy
+				.version(previousVersion)
+				.stores(
+					Object.fromEntries(
+						Object.entries(stores).filter(
+							([key]) => previousVersion !== 1 || key !== "access",
+						),
+					),
+				);
+			await legacy.table("relationships").put(relation);
+			await legacy.table("actions").put(journal);
+			const retired = { scope: "retired", contextId: "alice", generation: 1 };
+			await legacy
+				.table("tombstones")
+				.put({ scope: grantKey(retired), generation: 1 });
+			legacy.close();
+			const current = new DexiePersistence(name, { indexedDB, IDBKeyRange });
+			assert.equal(persistenceSchemaVersion, 3);
+			const restored = await current.load();
+			assert.deepEqual(restored.access, []);
+			assert.equal(restored.revoked[grantKey(retired)], 1);
+			assert.deepEqual(restored.actions[0]?.snapshot, journal.snapshot);
+			assert.deepEqual(restored.actions[0]?.metadata, journal.metadata);
+			assert.deepEqual(restored.facts, [relation]);
+			const membership: PersistedMembership = {
+				key: "filtered",
+				resource: "things",
+				revision: 3,
+				where: query({
+					resource: "things",
+					mode: "list",
+					select: ["name"],
+					where: {
+						$or: [
+							{ name: { contains: "a" } },
+							{ description: { contains: "b" } },
+						],
+					},
+				}).where,
+				identities: ["a"],
+				complete: true,
+				observedComplete: true,
+				bases: [{ scope: "public", generation: 0 }],
+				supports: [],
+				liveness: "immutable",
+			};
+			await current.writeFacts([], [membership]);
+			assert.deepEqual(
+				(await current.load()).memberships[0]?.where,
+				membership.where,
+			);
+			const inspected = new Dexie(name, { indexedDB, IDBKeyRange });
+			await inspected.open();
+			assert.deepEqual(
+				inspected.tables.map((table) => table.name).sort(),
+				Object.keys(stores).sort(),
+			);
+			assert.deepEqual(await inspected.table("facts").toArray(), []);
+			assert.deepEqual(await inspected.table("relationships").toArray(), [
+				relation,
+			]);
+			await current.revoke([basis]);
+			assert.deepEqual((await current.load()).facts, []);
+			assert.equal(
+				(await inspected.table("tombstones").get(grantKey(basis)))?.generation,
+				1,
+			);
+			assert.deepEqual(
+				(await current.load()).actions[0]?.metadata,
+				journal.metadata,
+			);
+			inspected.close();
+			current.close();
+			const future = new Dexie(name, { indexedDB, IDBKeyRange });
+			future.version(persistenceSchemaVersion + 1).stores(stores);
+			await future.open();
+			future.close();
+			const outdated = new DexiePersistence(name, { indexedDB, IDBKeyRange });
+			await assert.rejects(outdated.load(), /newer Vem Data runtime/);
+			outdated.close();
+		},
 	);
-	assert.deepEqual(await inspected.table("facts").toArray(), []);
-	assert.deepEqual(await inspected.table("relationships").toArray(), [
-		relation,
-	]);
-	await current.revoke([basis]);
-	assert.deepEqual((await current.load()).facts, []);
-	assert.equal(
-		(await inspected.table("tombstones").get(grantKey(basis)))?.generation,
-		1,
-	);
-	assert.deepEqual(
-		(await current.load()).actions[0]?.metadata,
-		journal.metadata,
-	);
-	inspected.close();
-	current.close();
-	const future = new Dexie(name, { indexedDB, IDBKeyRange });
-	future.version(persistenceSchemaVersion + 1).stores(stores);
-	await future.open();
-	future.close();
-	const outdated = new DexiePersistence(name, { indexedDB, IDBKeyRange });
-	await assert.rejects(outdated.load(), /newer Vem Data runtime/);
-	outdated.close();
-});
 
 test("durable retirement rejects queued old-authority writes but preserves independent bases", async () => {
 	const db = new DexiePersistence(`test-${crypto.randomUUID()}`, {

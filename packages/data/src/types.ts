@@ -1,6 +1,14 @@
 // SPDX-FileCopyrightText: © 2026 Joseph Maldjian <joseph.maldjian@hyecompany.com>
 // SPDX-License-Identifier: Apache-2.0
 
+import type { FilterCapabilities } from "./filters.js";
+
+export type {
+	FilterCapabilities,
+	FilterExpression,
+	TextComparison,
+} from "./filters.js";
+
 import type {
 	TransferDefinition,
 	TransferExecution,
@@ -29,7 +37,7 @@ export type ObservationLiveness =
 	| "snapshot"
 	| LivenessRequirement;
 export type FieldLiveness = "immutable" | "live" | "snapshot";
-/** Unknown is unestablished permission, not revocation. Denied is known loss; allowed supports disclosure only within its grant generation. */
+/** Unknown is unestablished permission, not revocation. Known decisions survive same-caller restoration; disclosure remains fenced by grant generation. */
 export type AccessState = "allowed" | "denied" | "unknown";
 /** Permission requirements compose independently granted scopes without confusing unknown authority with denial. */
 export type AccessRequirement =
@@ -138,7 +146,7 @@ export interface EditDescriptor<
 
 /** Distinguishes an established resource reference from a pending creation proposal with only a requested identity. */
 export type RowIdentity<I> =
-	| { kind: "resource"; resource: I }
+	| { kind: "resource"; resource: I; incarnation?: string }
 	| { kind: "proposal"; actionId: string; requested: Partial<I> };
 /** Provenance and continuing currency of a selected field; snapshots do not imply a refresh policy. */
 export interface FieldInfo {
@@ -192,6 +200,10 @@ export interface QueryResult<T extends object = Values, I = Identity> {
 	empty: boolean;
 	/** Established detail presence or absence; undefined means unestablished. */
 	exists: boolean | undefined;
+	/** Session-local identity incarnation for a detail result; a reused name has a different token. */
+	incarnation?: string;
+	/** Explicit renames from this identity, including absent identities; follow only a previously selected incarnation. */
+	identityTransitions?: readonly IdentityTransition<I>[];
 	issues: readonly QueryIssue[];
 	revision: number;
 }
@@ -208,6 +220,20 @@ export interface QueryHandle<T extends object = Values, I = Identity>
 	dispose(): void;
 }
 
+/** A proven rename between session-local identity incarnations, without transferred values or permissions. */
+export interface IdentityTransition<I = Identity> {
+	resource: string;
+	from: { identity: I; incarnation: string };
+	to: { identity: I; incarnation: string };
+}
+/** Explicit backend identity association; atomically establishes old absence and new presence. */
+export interface IdentityTransitionObservation {
+	resource: string;
+	from: Identity;
+	to: Identity;
+	basis?: readonly DisclosureBasis[];
+	liveness?: ObservationLiveness;
+}
 export interface ResourceReference {
 	resource: string;
 	identity: Identity;
@@ -285,6 +311,7 @@ export interface MembershipObservation {
 }
 /** Facts and their consequences applied through one publication boundary. Direct evidence is preferable to invalidating information that can already be updated. */
 export interface ObservationBatch {
+	identityTransitions?: readonly IdentityTransitionObservation[];
 	facts?: readonly FactObservation[];
 	relationships?: readonly RelationshipObservation[];
 	memberships?: readonly MembershipObservation[];
@@ -295,6 +322,7 @@ export interface ObservationBatch {
 // biome-ignore lint/suspicious/noConfusingVoidType: Adapters can publish through context.observe instead of returning a batch.
 export type ObservationResult = ObservationBatch | void;
 export interface KnownRecord {
+	incarnation?: string;
 	key: string;
 	resource: string;
 	identity: Identity;
@@ -305,6 +333,8 @@ export interface KnownRecord {
 /** An acquisition-fenced view of current knowledge and authority. Publish through this context so obsolete responses cannot revive withdrawn or superseded information. */
 export interface ResourceContext {
 	readonly signal: AbortSignal;
+	/** Derived browser fetch hint for this acquisition; shared transports forward it without changing query identity. */
+	readonly fetchPriority?: "high" | "auto" | "low";
 	readonly accessContext: string;
 	readonly acquisitionFence: string;
 	/** Captured authority generations, independent of ordinary knowledge changes. */
@@ -348,6 +378,13 @@ export interface AcquisitionPage {
 	batch: ObservationBatch;
 	next?: unknown;
 }
+/** Optional comparative work estimate in one integration-defined unit, supplied for every alternative source of the resource. */
+export interface AcquisitionCost {
+	/** Positive work for each request, including continuation requests. */
+	request: number;
+	/** Nonnegative work per returned item, including payload and backend processing on the same relative scale. */
+	perItem: number;
+}
 /** Describes a backend read's capabilities, not a request plan. Only actual observations establish information or collection completeness. */
 export interface AcquisitionSource {
 	/** Stable source identifier, unique within its resource definition; consumers do not supply query cache keys. */
@@ -359,12 +396,18 @@ export interface AcquisitionSource {
 	relationships?: readonly string[];
 	/** True when this list source can enumerate its collection. Partial responses must still report complete: false. */
 	membership?: boolean;
-	/** Relative positive acquisition cost, including expected continuation work. Vem balances cost against shared missing information. Defaults to 1. */
-	cost?: number | ((request: AcquisitionRequest) => number);
+	/** Optional justified work estimate; all alternatives must use comparable units. Omit costs to use structural planning from observed population and demand. */
+	cost?:
+		| number
+		| AcquisitionCost
+		| ((
+				request: AcquisitionRequest,
+				context: ResourceContext,
+		  ) => number | AcquisitionCost);
 	/** Maps an identity or consumer scope to the collection scope read by this source. Defaults to the query scope. */
 	scope?(query: QueryDescriptor): unknown;
-	/** Equality filters accepted by the backend; unsupported terms remain local predicates. */
-	filters?: readonly string[];
+	/** Equality field shorthand or exact supported predicate capabilities; unsupported conditions remain local. */
+	filters?: readonly string[] | FilterCapabilities;
 	/** Request admission is separate from the disclosure bases carried by returned observations. Unknown permission permits an attempt by default. */
 	access?:
 		| AccessRequirement
@@ -498,6 +541,13 @@ export interface ActionSnapshot<Outcome extends ActionOutcome = ActionOutcome> {
 	revision: number;
 	controls: { canCancel: boolean; canRetry: boolean };
 }
+/** Observe a retained activity by ID without retaining its original result promise. Controls recheck current access and admission. */
+export interface ActionObservation extends Watch<ActionSnapshot | undefined> {
+	/** Request supported cancellation; stopping observation or dismissing feedback never cancels work. */
+	cancel(): Promise<void>;
+	/** Explicitly create a new attempt only when the owner establishes that retry is safe. */
+	retry(options?: { id?: string; origin?: string }): ActionHandle;
+}
 /** Immediate handle returned by run. Its result promise settles with the outcome; cancel, retry, and stopping observation have separate meanings. */
 export interface ActionHandle<Outcome extends ActionOutcome = ActionOutcome>
 	extends Watch<ActionSnapshot<Outcome>> {
@@ -620,6 +670,7 @@ export interface EditBaseline {
 	baseline: unknown;
 	/** Common disclosure evidence for writable values; fieldDisclosure overrides individual fields. */
 	disclosure: DisclosureBasis;
+	/** Keys also declare editable optional fields that are absent from values. */
 	fieldDisclosure?: Readonly<Record<string, DisclosureBasis>>;
 	writeAccess: AccessRequirement;
 }
@@ -700,6 +751,8 @@ export interface ActionJournal {
 }
 /** Eligible saved evidence plus revocation records and unfinished action journals. Loading does not by itself authorize protected disclosure. */
 export interface PersistenceSnapshot {
+	/** Previously established permissions, resumed only in their matching authority context. */
+	access?: readonly AccessSnapshot[];
 	accessBindings?: readonly AccessBinding[];
 	facts: readonly PersistedFact[];
 	memberships: readonly PersistedMembership[];
@@ -708,6 +761,8 @@ export interface PersistenceSnapshot {
 }
 /** Storage boundary for facts, membership, journals, and durable revocation records. Live withdrawal must not wait for payload cleanup. */
 export interface PersistenceAdapter {
+	/** Save permission knowledge before payload writes; restoration never selects the caller from storage. */
+	writeAccess(snapshot: AccessSnapshot): Promise<void>;
 	/** Persist authority bindings before later payload writes; load them before admitting protected restoration. */
 	writeAccessBindings(bindings: readonly AccessBinding[]): Promise<void>;
 	load(): Promise<PersistenceSnapshot>;
@@ -739,7 +794,7 @@ export interface RuntimeOptions {
 	/** Fetch implementation for owner-bound transfers; defaults to global fetch. */
 	transferFetch?: typeof fetch;
 	persistence?: PersistenceAdapter;
-	/** Maximum concurrent acquisitions; defaults to 4. */
+	/** Optional host cap on concurrent acquisitions; omitted by default so browser transport controls concurrency. */
 	maxConcurrent?: number;
 	/** Bounds source dispatches for one finite read attempt. A partial result explains exhaustion; retry starts another attempt. Defaults to 4096. */
 	maxAcquisitionsPerRead?: number;
@@ -760,9 +815,36 @@ export interface RuntimeOptions {
 	/** Receives owner errors such as persistence failures; report them without claiming durable success. */
 	onError?(error: unknown): void;
 }
+/** Control whether a query subscription contributes acquisition demand. */
+export interface QueryWatchOptions {
+	/** Defaults to true. False observes permitted knowledge without automatic acquisition or sampling; explicit retry still acquires. */
+	acquire?: boolean;
+}
+/** Current shared read work matching a query, independently of how much information remains unknown. */
+export interface ReadStatus {
+	/** Relevant active demand is waiting for planning, queued, or running. Unknown offscreen information alone is not pending work. */
+	pending: boolean;
+	/** Relevant pending work is checking existing permitted stale evidence. */
+	revalidating: boolean;
+	/** Current failed or incomplete acquisition affecting matching active demands; withdrawn disclosure is excluded. */
+	issues: readonly QueryIssue[];
+	/** A matching unsuccessful active query can be retried. Retry restarts those queries, never the observer's broader selection. */
+	canRetry: boolean;
+}
+/** Observing status creates no query demand; retry addresses matching unsuccessful active consumers only. */
+export interface ReadStatusHandle extends Watch<ReadStatus> {
+	retry(): Promise<void>;
+	dispose(): void;
+}
 /** The shared consumer contract for React and imperative use. Reads settle with available evidence; run immediately returns an action handle. */
 export interface DataClient {
-	watch<T extends object, I>(query: QueryDescriptor<T, I>): QueryHandle<T, I>;
+	watch<T extends object, I>(
+		query: QueryDescriptor<T, I>,
+		options?: QueryWatchOptions,
+	): QueryHandle<T, I>;
+	watchReadStatus<T extends object, I>(
+		query: QueryDescriptor<T, I>,
+	): ReadStatusHandle;
 	read<T extends object, I>(
 		query: QueryDescriptor<T, I>,
 		options?: { signal?: AbortSignal },
@@ -771,7 +853,7 @@ export interface DataClient {
 		command: CommandDescriptor<unknown, O>,
 		options?: { id?: string; origin?: string },
 	): ActionHandle<O>;
-	action(id: string): Watch<ActionSnapshot | undefined>;
+	action(id: string): ActionObservation;
 	listActivities(): readonly ActionSnapshot[];
 	subscribeActivities(listener: () => void): () => void;
 	availability(command: CommandDescriptor): Availability;

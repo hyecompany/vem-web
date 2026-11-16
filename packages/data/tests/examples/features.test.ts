@@ -51,20 +51,22 @@ test("documented detail distinguishes absent resources from missing display fiel
 	t.after(() => fixture.close());
 	const render = () =>
 		renderToStaticMarkup(
-			DataProvider({
-				client: fixture.client,
-				children: createElement(TaskDetail, { target }),
-			}),
+			createElement(
+				DataProvider,
+				{ client: fixture.client },
+				createElement(TaskDetail, { target }),
+			),
 		);
 	assert.match(render(), /Notes unavailable/);
 	assert.doesNotMatch(render(), /no longer exists/);
 	const absent = createTestClient({ queries: [{ query, exists: false }] });
 	t.after(() => absent.close());
 	const missing = renderToStaticMarkup(
-		DataProvider({
-			client: absent.client,
-			children: createElement(TaskDetail, { target }),
-		}),
+		createElement(
+			DataProvider,
+			{ client: absent.client },
+			createElement(TaskDetail, { target }),
+		),
 	);
 	assert.match(missing, /This task no longer exists/);
 });

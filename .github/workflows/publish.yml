@@ -6,11 +6,21 @@ name: Publish packages
 on:
   workflow_call:
     inputs:
+      package:
+        required: true
+        type: string
       tag:
         required: true
         type: string
   workflow_dispatch:
     inputs:
+      package:
+        description: Package belonging to this release tag
+        required: true
+        type: choice
+        options:
+          - packages/data
+          - packages/ui
       tag:
         description: Existing release tag to publish
         required: true
@@ -22,7 +32,7 @@ permissions:
 
 jobs:
   publish:
-    name: Publish new package versions
+    name: Publish the selected package
     runs-on: ubuntu-latest
     steps:
       - name: Check out release
@@ -40,8 +50,11 @@ jobs:
         run: npm ci
       - run: npm run check
       - run: npm run typecheck
-      - run: npm test
       - run: npx playwright install --with-deps chromium firefox
+      - run: npm test
       - run: npm run test:package
-      - name: Publish package workspaces
+      - name: Publish the release package
+        env:
+          VEM_PUBLISH_PACKAGE: ${{ inputs.package }}
+          VEM_RELEASE_TAG: ${{ inputs.tag }}
         run: node scripts/publish-packages.mjs

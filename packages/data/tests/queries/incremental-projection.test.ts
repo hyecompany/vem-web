@@ -6,6 +6,7 @@ import { test } from "node:test";
 import { query } from "../../src/descriptors.js";
 import { ReadModelProjection } from "../../src/read-model/projection.js";
 import { createRuntime } from "../../src/runtime.js";
+import { deferred } from "../../src/testing.js";
 import type {
 	QueryDescriptor,
 	QueryResult,
@@ -286,3 +287,110 @@ test("sampling requirements remain distinct from ordinary selected fields across
 	await tick();
 	assert.equal(reads, 2);
 });
+
+for (const maxConcurrent of [undefined, 1]) {
+	test(`explicit sampling remains demanded while filtered membership is pending (${maxConcurrent ?? "browser scheduling"})`, async (t) => {
+		t.mock.timers.enable({ apis: ["setInterval"] });
+		const membership = deferred<void>();
+		const calls: string[] = [];
+		const comparison = { case: "insensitive", accents: "sensitive" } as const;
+		const runtime = createRuntime({
+			...options(
+				resource({
+					sources: [
+						{
+							key: "filtered",
+							mode: "list",
+							fields: ["name"],
+							membership: true,
+							filters: {
+								fields: ["name", "status"],
+								operators: ["contains"],
+								combinations: ["any"],
+								text: [comparison],
+							},
+							async run(request) {
+								calls.push("filtered");
+								await membership.promise;
+								return {
+									facts: [fact("a", { name: "Alpha" })],
+									memberships: [
+										{
+											resource: "things",
+											where: request.where,
+											identities: ["a"],
+											complete: true,
+											basis: ["read"],
+										},
+									],
+								};
+							},
+						},
+						{
+							key: "measurement",
+							mode: "one",
+							fields: ["notes"],
+							async run() {
+								calls.push("measurement");
+								return {
+									facts: [
+										{
+											resource: "things",
+											identity: "a",
+											values: { notes: "New sample" },
+											basis: ["read"],
+										},
+									],
+								};
+							},
+						},
+					],
+				}),
+			),
+			maxConcurrent,
+		});
+		t.after(() => runtime.close());
+		runtime.observe({
+			facts: [fact("a", { name: "Alpha", notes: "Previous sample" })],
+			memberships: [
+				{
+					resource: "things",
+					identities: ["a"],
+					complete: true,
+					basis: ["read"],
+				},
+			],
+		});
+		const view = runtime.watch(
+			query({
+				resource: "things",
+				mode: "list",
+				select: ["name", "notes"],
+				where: {
+					$or: [
+						{ name: { contains: "needle", ...comparison } },
+						{ status: { contains: "needle", ...comparison } },
+					],
+				},
+				sample: { fields: ["notes"], intervalMs: 100 },
+			}),
+		);
+		t.after(view.subscribe(() => {}));
+		await tick();
+		assert.deepEqual(calls, ["filtered"]);
+		assert.equal(
+			view.getSnapshot().unresolved[0]?.data.notes,
+			"Previous sample",
+		);
+		t.mock.timers.tick(100);
+		await tick();
+		await tick();
+		membership.resolve();
+		await tick();
+		await tick();
+		assert.equal(view.getSnapshot().confirmed.complete, true);
+		assert.equal(view.getSnapshot().rows[0]?.data.notes, "New sample");
+		assert.equal(view.getSnapshot().settled, true);
+		assert.deepEqual(calls, ["filtered", "measurement"]);
+	});
+}

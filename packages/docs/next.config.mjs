@@ -16,7 +16,7 @@ const config = {
 	images: {
 		unoptimized: true,
 	},
-	transpilePackages: ["@hyecompany/vem-data"],
+	transpilePackages: ["@hyecompany/vem-data", "@hyecompany/vem-ui"],
 	experimental: {
 		extensionAlias: {
 			".js": [".ts", ".tsx", ".js", ".jsx"],

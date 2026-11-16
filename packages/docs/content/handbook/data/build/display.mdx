@@ -16,7 +16,70 @@ In an application that already uses Vem, import its resource contract (`tasks` h
 
 `openOnly` is ordinary UI state. Changing it changes the query description. Vem reuses known task statuses to answer immediately; a missing field can require a read. Inline descriptions do not need `useMemo`, a cache key, or an effect.
 
-`ReadStatus` is a small shared component, shown on the [partial-results page](/docs/data/build/partial-results#render-a-useful-status). It explains loading, errors, or incomplete results while leaving known rows visible. `row.key` is the stable React key; `row.data` contains plain selected values.
+The local `ReadStatus` helper component used in these examples is shown on the [partial-results page](/docs/data/build/partial-results#render-a-useful-status). It explains loading, errors, or incomplete results while leaving known rows visible. `row.key` is the stable React key; `row.data` contains plain selected values.
+
+## Filter text
+
+Describe matching conditions directly in `where`. To search titles **or** notes:
+
+<Example file="feature-guide/filters.ts" region="text" />
+
+Pass `matchingTasks(text)` to `useQuery`, or to `client.read` outside React. The query still selects only title and status for display. Vem uses known information first and chooses acquisition when needed; components do not choose a search endpoint or fetch every task's notes.
+
+`contains` matches a literal substring: punctuation such as `.` or `[` is not a pattern. Both case and accents are sensitive by default. This example ignores case but distinguishes `cafe` from `café`; set `accents: "insensitive"` to match both. Case folding is independent of the browser's locale.
+
+Fields in the same object must **all** match. This query selects open tasks whose notes contain “picnic”:
+
+<Example file="feature-guide/filters.ts" region="combined" />
+
+`$or` requires at least one matching branch; `$and` requires every branch. Both accept arrays of `where` objects and can be nested. Ordinary values express equality, such as `where: { status: "open" }`. The resource contract checks field names and value types, including that `contains` targets a string field.
+
+<details>
+<summary>Reusable conditions and exact values</summary>
+
+Use `ResourceFilter<typeof tasks>` for a reusable condition, or `Where<Task>` when you have the resource value type. Filtering by a field does not select it: a query selecting only title cannot access notes through `row.data`. For local presentation choices, `matchesWhere(values, condition)` uses the same comparison rules and returns `true`, `false`, or `"unknown"` when values are missing.
+
+Use `{ eq: value }` for exact object or array equality. This distinguishes a literal object from an operator such as `{ contains: "picnic" }`. An explicit `{ eq: undefined }` matches an established unset value when the field type allows it; it does not match information Vem has not obtained. Similarly, `null` is a value, not a request for missing data.
+
+Query construction rejects malformed operators and undeclared fields before acquisition. Empty `where` objects match every resource; `$and: []` matches every resource and `$or: []` matches none.
+
+</details>
+
+An unknown filter value does not automatically exclude a task. Another `$or` branch or an exact filtered backend response can establish the match. Without enough evidence, the candidate stays in `unresolved`. Backend filtering requires a matching [source capability](/docs/data/connect/planning#support-backend-filters); otherwise Vem may acquire broader information and filter locally.
+
+## Read only while a panel is open
+
+A popup can keep its component mounted without keeping its query active:
+
+<Example file="feature-guide/list.tsx" region="conditional" />
+
+`enabled` defaults to `true`. When false, the hook releases this consumer's demand and returns an unestablished result with no rows, activities, or acquisition. Its `retry()` is a no-op while disabled. Other consumers and shared knowledge remain intact.
+
+Enabling the query reads current shared knowledge immediately. Sufficient cached information renders without a loading interval; missing or stale requirements can start acquisition. A disabled query does not retain a private copy of protected rows.
+
+## Show known data without requesting it
+
+A selection label may use shared knowledge without requiring a read just because it is visible:
+
+<Example file="feature-guide/observation.tsx" region="cached" />
+
+`acquire: false` keeps the subscription: permitted values, incoming changes, identity transitions, and access withdrawal still reach the component. It adds no automatic acquisition or sampling. Unknown fields stay unknown, and stale values remain marked as stale. Calling this result's `retry()` explicitly requests information.
+
+Use `enabled: false` when the component should receive nothing; use `acquire: false` when it should follow what is already known. Normal queries acquire automatically.
+
+## Show progress for related reads
+
+Suppose visible task rows each query their own notes. A toolbar can observe that work without requesting notes for every task or registering the rows in a group:
+
+<Example file="feature-guide/observation.tsx" region="progress" />
+
+Each row still uses an ordinary `useQuery(tasks.get(target, { select: ["notes"] }))`. Vem combines those needs automatically. `useReadStatus` uses its description only to match work by resource, scope, identity, filter, and fields, including work from other tabs sharing the owner.
+
+- `pending` means related work is queued or running. It does not mean every task has notes available.
+- `revalidating` means that work is checking stale information; keep existing readable content visible.
+- `issues` and `canRetry` describe unsuccessful related acquisition for current consumers. `retry()` retries those queries, including any other information they still need; it does not turn this progress observer into a data request.
+
+Issues leave this status when the relevant demand ends, succeeds, or is withdrawn. This is progress for current reads, not a history of resource failures. `{ enabled: false }` stops the status subscription without affecting those reads.
 
 ## Add a column
 

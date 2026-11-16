@@ -5,6 +5,7 @@ import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import {
 	cp,
+	glob,
 	mkdtemp,
 	readFile,
 	realpath,
@@ -147,7 +148,14 @@ try {
 		[
 			"--test",
 			"--test-concurrency=1",
-			join(root, "tests/package/**/*.test.mjs").split(sep).join("/"),
+			...(
+				await Array.fromAsync(
+					glob("tests/package/**/*.test.mjs", {
+						cwd: root,
+						exclude: ["tests/package/ui/**"],
+					}),
+				)
+			).map((file) => join(root, file)),
 		],
 		{ VEM_STARTER_DIRECTORY: join(directory, "examples/task-board") },
 	);

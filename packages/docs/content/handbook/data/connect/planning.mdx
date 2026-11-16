@@ -12,6 +12,8 @@ A source is one supported way to read your backend: a URL list, a summary collec
 
 The shared owner combines the currently outstanding query requirements it knows about, from every connected tab and imperative reader. It subtracts permitted information already known, expands prerequisites for derived fields, and compares combinations of available sources. Work already in flight can satisfy overlapping demand without another request. Later arrivals can reuse that work and its results; Vem does not predict requests from a tab that has not asked yet.
 
+The browser client groups subscriptions and reads made in the same synchronous turn before handing them to the owner. A set of newly mounted rows can therefore participate in one planning decision. Render permitted stale rows while they revalidate: their mounted consumers add their field requirements immediately. This also works after restart once the host identifies the same caller and saved permissions resume; no consumer history or fetch hints are needed.
+
 For example, four task details might be cheaper as one collection read. If three details are already known, one detail read might be cheaper. If another tab also needs collection membership, that changes the comparison again. No component chooses an endpoint.
 
 <Lab name="planning" />
@@ -28,9 +30,59 @@ These two backend functions return observation batches, as shown in [Connect a r
 
 `key` names a backend source and must be unique within its resource. It is not a query cache key: Vem derives concrete request and query identities automatically. Screens do not define keys.
 
-Register them as `sources: taskSources(api)` on the resource definition. The costs estimate the work of each acquisition, including expected pagination where applicable; they are relative values, not durations or guarantees. Both sources return fixed representations: one full task or all full tasks. Vem can use every returned field, even if the first consumer did not select it.
+Register them as `sources: taskSources(api)` on the resource definition. Neither source needs a cost declaration. Both return fixed representations: one full task or all full tasks. Vem can use every returned field, even if the first consumer did not select it.
 
-Vem compares acquisition sets using those estimates. It performs a bounded search, starting with a coverage-and-cost solution; when the search budget is reached it keeps the best solution found. This avoids an unbounded optimizer and does **not** promise a globally optimal plan for arbitrary backends. Describe meaningful cost differences rather than precise-looking guesses.
+## Choose using available evidence
+
+Vem compares combinations of reads for the outstanding requirements. Its default policy prefers bounded acquisition, then the smallest total response across the chosen reads. When totals match, it favors fewer requests, then less information outside the current requirements. Response size counts returned identities and advertised values, including duplicates across requests; it does not estimate bytes, latency, or server processing.
+
+| Outstanding need | Default choice | Reason |
+| --- | --- | --- |
+| Descriptions for all 5 known tasks | Collection | The same five representations in one request |
+| Descriptions for 3 of 40 known tasks | Details | Avoid returning 37 unrelated representations |
+| Names with no known inventory | Name list | Establish the choices using the narrower representation |
+| Several known task details, unknown collection size | Details | Their response size is bounded; the full collection's is not |
+
+The planner considers all consumers together. A list needing 500 names does not also need 500 descriptions: visible rows add those requirements separately. In a filtered list, display fields are needed only for established matches; an unresolved candidate first needs evidence that decides whether it belongs. Already-known descriptions need no read, and shared responses can avoid duplicating fields across requests. Another view asking for membership or fields can therefore change the choice; there is no fixed “fetch the collection after three rows” threshold.
+
+Population information comes from permitted knowledge for the source's actual scope and supported filter:
+
+- **Known:** the observed inventory establishes the number of matches.
+- **Bounded:** a complete inventory is available, but some candidates cannot yet be matched against the filter.
+- **Unknown:** incomplete information supplies no upper bound.
+
+A retained complete inventory remains useful after an event gap or restart. Its count is historical planning evidence, not a guarantee about the current collection. Vem does not substitute an invented population when information is missing. A partial inventory cannot establish an upper bound, and withdrawn knowledge cannot support the estimate. None of these estimates creates presentation rows or proves current completeness.
+
+Planning uses a bounded search and keeps the best combination it finds. This policy reduces avoidable reads without claiming a universally optimal plan for unknown backends.
+
+<details>
+<summary>When the backend supplies a meaningful cost model</summary>
+
+A service may publish read charges or expose a validated work model. In that case, every alternative source for the resource must declare comparable `cost` values. Do not mix estimated alternatives with unpriced ones.
+
+This example accepts documented request and returned-item charges from the integration:
+
+<Example file="integration/planning.ts" region="source-cost" />
+
+An object cost is **request charge × request count + item charge × returned-item count**. Vem supplies the population estimate and accounts for continuation requests. Unknown collection size stays unknown; `maxPages` is an execution limit, not evidence of collection size.
+
+A numeric cost describes the whole acquisition, including continuation. A pure `cost(request, context)` callback can return a number or cost object when the model depends on backend capabilities or the requested projection. Callbacks must not fetch, publish observations, change permission, or keep hidden state.
+
+Costs are supplied by the integration; Vem does not learn them from request timings. Elapsed time alone does not measure server work. Ordinary source definitions should use the default policy rather than inventing weights.
+
+</details>
+
+## Cooperate with browser scheduling
+
+Vem starts independent selected reads without a default concurrency ceiling. It still combines overlapping demand before dispatch and respects dependencies. The browser manages connections and HTTP multiplexing; Vem does not assume six available connections.
+
+A source receives a derived `context.fetchPriority`: missing information uses `high`, while revalidation supported by readable stale evidence uses `low`. Shared work takes the strongest demand, and prerequisites inherit the need they unlock. Sources without classified demand use `auto`. Pass the hint through your shared transport to `fetch(url, { signal: context.signal, priority: context.fetchPriority })`; screens do not declare priorities. Preparing an editor uses `high`.
+
+These are browser hints, not ordering guarantees. New consumers can change the hint for subsequent page requests, but Vem does not cancel and repeat a request to change a priority already submitted. An optional host `maxConcurrent` can constrain specific backends; its waiting work retains arrival order. Command admission has separate limits.
+
+Once replacement reads are running, Vem aborts a redundant read only when the selected replacements cover every remaining requirement it serves across consumers. Scope, filters, freshness, and representation-specific fields still matter: a collection response cannot replace a detail-only ETag. Canceled reads cannot publish late results, and a failed or partial replacement can fall back to the canceled source. This stops browser observation and transfer; it cannot guarantee that the server stopped processing the request.
+
+Transport deadlines include time waiting for the browser to obtain a connection and receive the response. Fetch does not expose a socket-assignment event that can safely start a server-only timer. Choose an end-to-end deadline for the application, preserve readable content if it expires, and let the query report failure and offer retry. A timeout alone establishes neither server processing time nor loss of permission.
 
 ## Which characteristics belong in the definition?
 
@@ -39,9 +91,9 @@ Vem compares acquisition sets using those estimates. It performs a bounded searc
 | `fields`, `relationships` | Identify which missing facts or links a read can supply |
 | `membership` | Distinguish enumeration from details about already known records |
 | `scope` | Keep tenant, project, or other collection boundaries separate |
-| `filters` | Push supported equality terms to the backend; evaluate the remaining terms locally |
+| `filters` | Push compatible predicates to the backend; evaluate remaining requirements locally |
 | `select: true` | Request only missing fields when the backend supports field selection |
-| `cost` | Compare shared reads, smaller representations, and targeted requests |
+| `cost` | Optionally supply a justified, comparable backend work model |
 | `pagination` | Follow bounded continuation without claiming an early page is complete |
 | `access`, `accessUnknown` | Admit reads according to current authority before dispatch |
 | `available` | Exclude a representation the backend does not support |
@@ -63,6 +115,33 @@ This example's `complete: true` relies on the endpoint returning the whole visib
 
 </details>
 
+## Support backend filters
+
+A feature's [text query](/docs/data/build/display#filter-text) describes its intended matches. To let Vem use a backend search endpoint, assign its supported semantics to the source's `filters`:
+
+<Example file="integration/filters.ts" region="capabilities" />
+
+Use `filters: taskSearchFilters` on that source. Vem normalizes a feature's `where` object into a predicate before planning. `run` receives the supported predicate in `request.where`; your transport encodes it in the backend's syntax. `isFilterExpression` distinguishes that normalized expression from an equality map. Expressions expose `$filter`, with `field` and `value` on leaves, `comparison` on text leaves, and `conditions` on `all`/`any` groups. Feature code uses `where` objects; only source adapters need this representation.
+
+Declare only behavior the backend actually supports. The `text` combinations must match exactly; a case-insensitive query cannot use a case-sensitive backend search. Omit `text` when the source cannot search substrings. An optional pure `supports(expression, context)` can further restrict supported grouping or server capabilities. The existing `filters: ["status"]` shorthand declares equality support only.
+
+An OR (`any`) needs support for **all its branches** before Vem can send it to that source. Searching titles alone would lose tasks matching only notes. Unsupported predicates therefore use broader reads and local evaluation; an AND (`all`) may still use supported conditions to narrow those reads safely. If no source can supply enough evidence, the result settles with unresolved candidates instead of inventing matches.
+
+A source can return only matching URLs or identities. Report those identities as membership for the **actual predicate sent**, with the actual scope and completeness. This proves that each returned task matched the whole expression; it does not reveal which OR branch matched or invent the text of its notes.
+
+<details>
+<summary>Record matching identities without inventing fields</summary>
+
+After the transport validates the response and extracts task references from its URLs, this helper records a public search result. Pass `request.where`, the returned identities, and the response's established completeness; include `scope` too for a scoped resource.
+
+<Example file="integration/filters.ts" region="membership" />
+
+Return this batch from the source's `run`. A public basis is appropriate only for a public endpoint; use the response's actual [disclosure permissions](/docs/data/connect/access) for protected search results. Publish any independently established fields as facts alongside membership.
+
+</details>
+
+Equality can prove more: membership for `status: "open"` establishes that value even when it is omitted from each record. A complete filtered result still does not establish the whole unfiltered collection. Filtering may reduce returned data without reducing a server's scan or computation. Only an explicit backend work model can account for that difference.
+
 ## Filtering and pages
 
 This source accepts a status filter and cursor pagination. The transport performs **one page**; Vem owns continuation:
@@ -72,8 +151,6 @@ This source accepts a status filter and cursor pagination. The transport perform
 `load` is your HTTP transport. `TaskPage.complete` reports whether the service established the final collection, including any partial-service failures. Vem accumulates page identities and keeps membership incomplete while continuation remains. A missing cursor is not, by itself, proof of completeness. Repeated cursors and page limits stop acquisition with an explanation; partial rows stay useful.
 
 Pages may have different disclosure permissions. The accumulated collection is complete only while every contributing page’s evidence remains permitted; withdrawing a page’s permission preserves independently readable facts but removes that complete-set claim. Continuity combines across pages too: a complete set relies on every contributing page’s change coverage, while individual identities retain their own page’s support.
-
-Only advertise filters with matching semantics. For declared equality filters, actual matching membership also establishes those field values: a task returned for `status: "open"` has that status even if the response omits the field. A broader response must supply or acquire the fields needed to evaluate the narrower filter locally. Filtering on the server may reduce payload without reducing server computation; model its cost accordingly. A complete result for `status: "open"` can support a stricter local filter, but cannot establish the entire unfiltered collection.
 
 ## Prerequisites and partial answers
 
@@ -90,3 +167,9 @@ A parent response can also establish another resource's existence or collection.
 A source's declaration is a capability, not evidence. If a response omits fields or contains only part of a collection, publish exactly that. Vem can try another eligible source, then settles with the remaining gaps. It does not repeatedly request an unavailable field until it appears. Retry begins a new attempt; ordinary data has no time-based expiry.
 
 Next: [connect permissions](/docs/data/connect/access), or [apply events without unnecessary reads](/docs/data/connect/events).
+
+## Classify a rejected read
+
+A source normally throws an ordinary error when acquisition fails. If the backend establishes a more specific result, throw `AcquisitionError` from `@hyecompany/vem-data/runtime` with a `QueryIssue`, such as `{ kind: "access", message: "Listing is not permitted." }`. Consumers receive that classification alongside any still-readable content and can explicitly retry.
+
+This describes the failed attempt. It does not revoke authentication, remove independently permitted facts, or permanently deny future attempts. Use the [access model](/docs/data/connect/access) separately when the backend provides evidence that disclosure permission has been withdrawn. Late classified failures use the same access-generation fence as other acquisition failures.

@@ -53,4 +53,4 @@ The browser uses the request's credential policy; the journal does not pin a coo
 
 The SharedWorker owns acquisition, actions, and persistence. Tabs own views. A version-independent Web Lock protects ownership, including during updates. A delayed heartbeat does not authorize a second owner.
 
-Use the [browser-host guide](/docs/data/connect/browser-host) to configure that boundary. Runtime defaults bound concurrent reads and commands to four each; adjust concurrency and retention through [RuntimeOptions](/docs/data/reference/api/runtime.Interface.RuntimeOptions) when your backend or application needs different limits.
+Use the [browser-host guide](/docs/data/connect/browser-host) to configure that boundary. Reads use browser transport concurrency by default; commands remain bounded to four executions. Configure an optional read cap, command limits, and retention through [RuntimeOptions](/docs/data/reference/api/runtime.Interface.RuntimeOptions) when your backend or application needs different limits.

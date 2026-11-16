@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { commandKey, stableKey } from "../descriptors.js";
+import { filterFields, isFilterExpression } from "../filters.js";
 import { createRuntime } from "../runtime.js";
 import type {
 	AccessState,
@@ -23,6 +24,7 @@ import {
 	editWriteScope,
 	queryScope,
 } from "./definitions.js";
+import { createTestFeedback } from "./feedback.js";
 import { deferred } from "./memory.js";
 import { fixtureRows, reconcileQueryFixtures } from "./query-fixtures.js";
 import type {
@@ -112,13 +114,25 @@ export function createTestClient(options: TestClientOptions = {}): TestClient {
 			fields: [
 				...new Set([
 					...descriptor.select,
-					...Object.keys(descriptor.where ?? {}),
+					...filterFields(descriptor.where),
 					...(fixture.rows ?? []).flatMap((row) => Object.keys(row.data)),
 					...(fixture.unresolved ?? []).flatMap((row) => Object.keys(row.data)),
 				]),
 			],
 			membership: descriptor.mode === "list",
-			filters: Object.keys(descriptor.where ?? {}),
+			filters: isFilterExpression(descriptor.where)
+				? {
+						fields: filterFields(descriptor.where),
+						operators: ["equal", "contains"],
+						combinations: ["all", "any"],
+						text: [
+							{ case: "sensitive", accents: "sensitive" },
+							{ case: "sensitive", accents: "insensitive" },
+							{ case: "insensitive", accents: "sensitive" },
+							{ case: "insensitive", accents: "insensitive" },
+						],
+					}
+				: filterFields(descriptor.where),
 			available: (request) =>
 				equal(request.scope, descriptor.scope) &&
 				(request.mode !== "one" ||
@@ -234,7 +248,12 @@ export function createTestClient(options: TestClientOptions = {}): TestClient {
 	const applyEditAccess = (fixture: EditFixtureInput) =>
 		runtime.setAccess({
 			decisions: [
-				...Object.keys(fixture.values).map((field) => ({
+				...[
+					...new Set([
+						...Object.keys(fixture.values),
+						...Object.keys(fixture.fields ?? {}),
+					]),
+				].map((field) => ({
 					scope: editScope(fixture.edit, field),
 					state: fixture.fields?.[field] ?? ("allowed" as AccessState),
 				})),
@@ -267,8 +286,17 @@ export function createTestClient(options: TestClientOptions = {}): TestClient {
 	for (const fixture of options.queries ?? []) setQuery(fixture);
 	for (const fixture of options.commands ?? []) setOutcome(fixture);
 	for (const fixture of options.edits ?? []) setEdit(fixture);
+	const feedback = createTestFeedback(runtime);
+	const client = Object.assign(runtime, {
+		feedback: feedback.feedback,
+		subscribeFeedback: feedback.subscribeFeedback,
+		claimFeedback: feedback.claimFeedback,
+		claimQueryFeedback: feedback.claimQueryFeedback,
+		acknowledgeFeedback: feedback.acknowledgeFeedback,
+	});
 	return {
-		client: runtime,
+		client,
+		feedback,
 		calls,
 		saves,
 		setQuery,
@@ -287,6 +315,7 @@ export function createTestClient(options: TestClientOptions = {}): TestClient {
 		},
 		setEditAccess,
 		close: () => {
+			feedback.close();
 			runtime.close();
 			for (const wait of pending.values()) wait.resolve();
 			pending.clear();

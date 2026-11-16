@@ -13,7 +13,7 @@ Run `npm run docs:prepare` after content changes, then `npm run docs:dev` to pre
 
 ## Show executable code
 
-Put runnable TypeScript in `packages/data/examples`, imported only through public package entries. Mark a focused region with `// #region name` and `// #endregion name`. Use an `Example` include with its file and optional region in a guide. The generator inserts that exact code. Include the code needed for the task on the page; a source link should never be required to understand an omitted step.
+Put runnable TypeScript in `packages/<package>/examples`, imported only through public package entries. Keep generic examples framework-neutral; Next.js client boundaries belong in the documentation preview wrapper or a specifically labeled Next.js example. Mark a focused region with `// #region name` and `// #endregion name`. Use an `Example` include with its file and optional region in a guide. The default package is Data; add `package="ui"` for UI snippets. The generator inserts that exact code. Include the code needed for the task on the page; a source link should never be required to understand an omitted step.
 
 Compile examples with `npm run typecheck`. Add negative type assertions for important boundaries such as unselected fields, invalid command inputs, and proposal targets. Do not maintain a second hand-copied tutorial implementation.
 
@@ -23,7 +23,7 @@ Diagram content lives in `content/diagrams.json`. Each node keeps its title, ico
 
 Experiment prompts and explanations live in `content/experiments.json`; focused implementations live in `components/labs`. Start with one useful move the reader can make, then make its result easy to see. Keep technical scope and longer explanations in the expandable section.
 
-The task board at `components/TaskBoardDemo.tsx` is a short, ordered walkthrough of the same lessons used in the guides. `components/lesson` owns the shared application view and teaching presentation, using shadcn components. `components/labs/sources` owns each controlled source. Both use public Vem APIs.
+The task board at `components/TaskBoardDemo.tsx` is a short, ordered walkthrough of the same lessons used in the guides. `components/lesson` owns the shared application view and teaching presentation, using public Vem UI components. `components/labs/sources` owns each controlled source. Both use public Vem APIs.
 
 Give each lesson one familiar task first. Explain the observed result in one sentence, after the interaction. Keep unusual responses and permission changes in optional controls. Teach with the app, not a panel of internal state. Match the guide’s technical explanation to that experience, and verify the initial state as well as the failure paths.
 
@@ -31,9 +31,15 @@ Tutorial snippets are extracted from compiled files in `packages/data/examples`.
 
 Each experiment needs an initial state, a few labeled controls, reset, observable results, and honest execution scope. Keep interaction user-controlled and keyboard accessible. Add browser checks for reset and meaningful failure paths. Avoid one combined control panel that requires learning every concept at once.
 
+## Document a UI component
+
+Add its guide and compiled example, then register the public exports in `content/ui-components.json`. The catalog, search, and text exports come from that metadata and guide. `ComponentPreview` renders the same example used by the guide; give it a clear initial state and reset. Keep Data bindings alongside the other components, with their provider prerequisites on the guide.
+
+Use `UiReference` with the public symbol name to generate a link to its exact TypeDoc page and props. Do not copy prop tables or import internal package files. Retired URLs belong in the static redirect map in `packages/docs/scripts/finalize-export.mjs`.
+
 ## Change the API reference
 
-Update JSDoc on the public source declaration. `scripts/generate-reference.mjs` reads the package's seven export entry points through pinned TypeDoc and its Markdown plugin. Signatures and member lists are generated; semantic responsibilities belong in source comments and the relevant guide.
+Update JSDoc on the public source declaration. `scripts/generate-reference.mjs` reads each documented package's public JavaScript export entry points through pinned TypeDoc and its Markdown plugin. The package map in `scripts/documented-packages.mjs` assigns reference output locations without changing published Data URLs. Stylesheet exports stay in the usage guides. Signatures and member lists are generated; semantic responsibilities belong in source comments and the relevant guide.
 
 ## Review the teaching value
 

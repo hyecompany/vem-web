@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { command, edit, query } from "../../src/descriptors.js";
-import { createRuntime } from "../../src/runtime.js";
+import { AcquisitionError, createRuntime } from "../../src/runtime.js";
 import { deferred } from "../../src/testing.js";
 import type { ObservationBatch } from "../../src/types.js";
 import { fact, list, options, resource, tick } from "../support/scenario.js";
@@ -51,7 +51,12 @@ test("late acquisition errors cannot cross caller retirement or selective revoca
 						decisions: [{ scope: "read", state: "allowed" }],
 					});
 			}
-			response.reject(new Error("Previous caller's protected detail"));
+			response.reject(
+				new AcquisitionError({
+					kind: "access",
+					message: "Previous caller's protected detail",
+				}),
+			);
 			await tick();
 			await tick();
 			assert.equal(
@@ -218,5 +223,56 @@ test("edit preparation failures settle without obsolete details but preserve cur
 		} finally {
 			runtime.close();
 		}
+	}
+});
+
+test("classified acquisition denial is retryable and does not revoke independently readable data", async () => {
+	let denied = true;
+	const runtime = createRuntime(
+		options(
+			resource({
+				sources: [
+					{
+						key: "collection",
+						mode: "list",
+						fields: ["name", "status"],
+						membership: true,
+						run: async () => {
+							if (denied)
+								throw new AcquisitionError({
+									kind: "access",
+									message: "Listing is denied",
+									scope: "list",
+								});
+							return {
+								memberships: [
+									{
+										resource: "things",
+										identities: [],
+										complete: true,
+										basis: ["read"],
+									},
+								],
+							};
+						},
+					},
+				],
+			}),
+		),
+	);
+	const handle = runtime.watch(list);
+	try {
+		runtime.observe({ facts: [fact("a", { name: "A", status: "ready" })] });
+		const result = await handle.retry();
+		assert.deepEqual(result.issues, [
+			{ kind: "access", message: "Listing is denied", scope: "list" },
+		]);
+		assert.equal(runtime.accessSnapshot().scopes.read?.state, "allowed");
+		assert.equal(result.rows.length, 1);
+		denied = false;
+		assert.deepEqual((await handle.retry()).issues, []);
+	} finally {
+		handle.dispose();
+		runtime.close();
 	}
 });

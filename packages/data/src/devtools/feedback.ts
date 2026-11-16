@@ -2,7 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { stableKey } from "../descriptors.js";
+import { feedbackCandidates } from "../feedback-policy.js";
+import type { FeedbackObservation } from "../feedback-types.js";
 import { feedbackStage } from "../protocol.js";
+import type { QueryDescriptor } from "../types.js";
 import type { ClientInspector, ScenarioFeedback } from "./types.js";
 
 export function scenarioFeedback(
@@ -20,13 +23,7 @@ export function scenarioFeedback(
 			if ([...queryClaims.values()].includes(query.id))
 				for (const action of query.result?.activities ?? [])
 					inline.add(action.id);
-		const next = current.actions
-			.filter(
-				(action) =>
-					!inline.has(action.id) &&
-					acknowledgements.get(action.id) !== feedbackStage(action),
-			)
-			.map((action) => action.id);
+		const next = feedbackCandidates(current.actions, inline, acknowledgements);
 		if (
 			next.length === snapshot.length &&
 			next.every((id, index) => id === snapshot[index])
@@ -39,13 +36,13 @@ export function scenarioFeedback(
 		for (const listener of listeners) listener();
 	};
 	const stop = inspector.subscribe(publish);
-	return {
-		subscribe(listener) {
+	const feedback = {
+		subscribe(listener: () => void) {
 			listeners.add(listener);
 			return () => listeners.delete(listener);
 		},
 		getSnapshot: () => snapshot,
-		claim(ids) {
+		claim(ids: readonly string[]) {
 			const key = Symbol();
 			claims.set(key, ids);
 			publish();
@@ -54,7 +51,7 @@ export function scenarioFeedback(
 				publish();
 			};
 		},
-		claimQuery(query) {
+		claimQuery<T extends object, I>(query: QueryDescriptor<T, I>) {
 			const key = Symbol();
 			queryClaims.set(key, stableKey(query));
 			publish();
@@ -63,7 +60,7 @@ export function scenarioFeedback(
 				publish();
 			};
 		},
-		acknowledge(id, observed) {
+		acknowledge(id: string, observed?: FeedbackObservation) {
 			const current = inspector
 				.getSnapshot()
 				.actions.find((action) => action.id === id);
@@ -82,5 +79,13 @@ export function scenarioFeedback(
 			listeners.clear();
 			snapshot = [];
 		},
+	};
+	return {
+		...feedback,
+		subscribeFeedback: feedback.subscribe,
+		feedback: feedback.getSnapshot,
+		claimFeedback: feedback.claim,
+		claimQueryFeedback: feedback.claimQuery,
+		acknowledgeFeedback: feedback.acknowledge,
 	};
 }

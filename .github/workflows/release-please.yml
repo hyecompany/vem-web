@@ -18,8 +18,10 @@ jobs:
     name: Version and release changed packages
     runs-on: ubuntu-latest
     outputs:
-      created: ${{ steps.release.outputs['packages/data--release_created'] }}
-      tag: ${{ steps.release.outputs['packages/data--tag_name'] }}
+      data-created: ${{ steps.release.outputs['packages/data--release_created'] }}
+      data-tag: ${{ steps.release.outputs['packages/data--tag_name'] }}
+      ui-created: ${{ steps.release.outputs['packages/ui--release_created'] }}
+      ui-tag: ${{ steps.release.outputs['packages/ui--tag_name'] }}
     steps:
       - name: Create release pull requests and GitHub releases
         id: release
@@ -29,9 +31,18 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-  publish:
+  publish-data:
     needs: release
-    if: needs.release.outputs.created == 'true'
+    if: needs.release.outputs.data-created == 'true'
     uses: ./.github/workflows/publish.yml
     with:
-      tag: ${{ needs.release.outputs.tag }}
+      package: packages/data
+      tag: ${{ needs.release.outputs.data-tag }}
+
+  publish-ui:
+    needs: release
+    if: needs.release.outputs.ui-created == 'true'
+    uses: ./.github/workflows/publish.yml
+    with:
+      package: packages/ui
+      tag: ${{ needs.release.outputs.ui-tag }}

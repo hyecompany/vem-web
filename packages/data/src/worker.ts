@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: © 2026 Joseph Maldjian <joseph.maldjian@hyecompany.com>
 // SPDX-License-Identifier: Apache-2.0
 
+import { feedbackCandidates } from "./feedback-policy.js";
 import {
 	type AccessSnapshot,
 	type Compatibility,
@@ -22,11 +23,15 @@ import type {
 	QueryDescriptor,
 	QueryHandle,
 	QueryResult,
+	ReadStatus,
+	ReadStatusHandle,
 	Values,
 } from "./types.js";
 import { equal } from "./values.js";
 
 export interface OwnerClient extends DataClient {
+	/** Restoration completes before the initial snapshot admits queued consumer demand. */
+	readonly ready?: Promise<void>;
 	accessSnapshot(): AccessSnapshot;
 	readModelSnapshot(): ReadModelSnapshot;
 	peekQuery(query: QueryDescriptor): QueryResult | undefined;
@@ -46,6 +51,8 @@ type Connection = {
 	hello: boolean;
 	revision: number;
 	queries: Map<string, QueryHandle>;
+	readStatuses: Map<string, ReadStatusHandle>;
+	previousReadStatuses: Map<string, ReadStatus>;
 	readModel: ReadModelSnapshot;
 	accessKey: string;
 	previous: Map<string, QueryAcquisitionState>;
@@ -66,6 +73,7 @@ type Message = {
 	compatibility: Compatibility;
 	liveness: boolean;
 	query: QueryDescriptor;
+	acquire?: boolean;
 	queryId?: string;
 	command: CommandDescriptor;
 	retry?: boolean;
@@ -96,6 +104,16 @@ export function createSharedHost(
 			.request(options.lockName, async () => {
 				const owner = await options.create();
 				const client = owner.client;
+				try {
+					await client.ready;
+				} catch (error) {
+					try {
+						await owner.dispose();
+					} finally {
+						client.close();
+					}
+					throw error;
+				}
 				const epoch = crypto.randomUUID();
 				const connections = new Set<Connection>();
 				const handles = new Map<string, ActionHandle>();
@@ -158,11 +176,22 @@ export function createSharedHost(
 							revalidating: value.revalidating,
 							fetching: value.fetching,
 							settled: value.settled,
-							issues: value.issues.filter((issue) => issue.kind !== "access"),
+							issues: value.issues,
 						};
 						if (!reset && equal(connection.previous.get(id), status)) continue;
 						queries.push({ id, status });
 						connection.previous.set(id, status);
+					}
+					const readStatuses: Publication["readStatuses"][number][] = [];
+					for (const [id, handle] of connection.readStatuses) {
+						const status = handle.getSnapshot();
+						if (
+							!reset &&
+							equal(connection.previousReadStatuses.get(id), status)
+						)
+							continue;
+						readStatuses.push({ id, status });
+						connection.previousReadStatuses.set(id, status);
 					}
 					const activities = client.listActivities();
 					const peers = [...connections].filter((peer) => peer.hello);
@@ -172,20 +201,19 @@ export function createSharedHost(
 						for (const action of connection.queries.get(queryId)?.getSnapshot()
 							.activities ?? [])
 							inline.add(action.id);
-					const feedback = activities
-						.filter((action) => {
+					const feedback = feedbackCandidates(
+						activities,
+						inline,
+						acknowledgements,
+						(action) => {
 							const destination = peers.some(
 								(peer) => peer.id === action.origin,
 							)
 								? action.origin
 								: fallback;
-							return (
-								destination === connection.id &&
-								!inline.has(action.id) &&
-								acknowledgements.get(action.id) !== feedbackStage(action)
-							);
-						})
-						.map((action) => action.id);
+							return destination === connection.id;
+						},
+					);
 					const publication: Publication = {
 						type: "publish",
 						epoch,
@@ -193,6 +221,7 @@ export function createSharedHost(
 						revision: ++connection.revision,
 						reset,
 						queries,
+						readStatuses,
 						forgottenQueries: [...connection.forgottenQueries],
 						readModel: readModelDelta(connection.readModel, readModel, reset),
 						availability: [...connection.commands].map(([id, command]) => ({
@@ -239,6 +268,8 @@ export function createSharedHost(
 					connection.reads.clear();
 					for (const stop of connection.stop.values()) stop();
 					for (const handle of connection.queries.values()) handle.dispose();
+					for (const handle of connection.readStatuses.values())
+						handle.dispose();
 					connection.port.close();
 					publishAll();
 				};
@@ -249,6 +280,8 @@ export function createSharedHost(
 						hello: false,
 						revision: 0,
 						queries: new Map(),
+						readStatuses: new Map(),
+						previousReadStatuses: new Map(),
 						readModel: emptyReadModel(),
 						accessKey: "",
 						previous: new Map(),
@@ -263,8 +296,7 @@ export function createSharedHost(
 					};
 					connections.add(connection);
 					port.start();
-					port.addEventListener("message", (event) => {
-						const message = event.data as Message;
+					const receive = (message: Message) => {
 						if (!message || typeof message.type !== "string") return;
 						const reply = (value?: unknown, error?: unknown, ack?: string) => {
 							if (message.requestId)
@@ -301,13 +333,13 @@ export function createSharedHost(
 								}
 								connection.id = message.id;
 								connection.hello = true;
+								publish(connection, true);
 								port.postMessage({
 									type: "ready",
 									epoch,
 									compatibility: options.compatibility,
 									lockName: options.lockName,
 								});
-								publish(connection, true);
 								if (message.liveness)
 									void options.locks
 										.request(
@@ -330,7 +362,9 @@ export function createSharedHost(
 									if (connection.queries.size >= 1024)
 										throw new Error("Too many simultaneous queries in one tab");
 									connection.passiveQueries.delete(message.id);
-									const handle = client.watch(message.query);
+									const handle = client.watch(message.query, {
+										acquire: message.acquire,
+									});
 									connection.queries.set(message.id, handle);
 									connection.stop.set(message.id, handle.subscribe(publishAll));
 									publish(connection);
@@ -343,7 +377,7 @@ export function createSharedHost(
 									connection.queries.delete(message.id);
 									connection.stop.delete(message.id);
 									connection.passiveQueries.delete(message.id);
-									if (message.type === "unwatch")
+									if (message.type === "unwatch" && message.acquire !== false)
 										connection.passiveQueries.set(message.id, message.query);
 									else connection.previous.delete(message.id);
 									for (const id of [...connection.passiveQueries.keys()].slice(
@@ -358,6 +392,39 @@ export function createSharedHost(
 										connection.forgottenQueries.add(id);
 									}
 									publishAll();
+									break;
+								}
+								case "watch-read-status": {
+									if (connection.readStatuses.has(message.id)) return;
+									if (connection.readStatuses.size >= 1024)
+										throw new Error(
+											"Too many simultaneous read-status observers in one tab",
+										);
+									const handle = client.watchReadStatus(message.query);
+									connection.readStatuses.set(message.id, handle);
+									connection.stop.set(
+										`read-status:${message.id}`,
+										handle.subscribe(publishAll),
+									);
+									publish(connection);
+									break;
+								}
+								case "unwatch-read-status": {
+									const id = `read-status:${message.id}`;
+									connection.stop.get(id)?.();
+									connection.stop.delete(id);
+									connection.readStatuses.get(message.id)?.dispose();
+									connection.readStatuses.delete(message.id);
+									connection.previousReadStatuses.delete(message.id);
+									break;
+								}
+								case "retry-read-status": {
+									const handle = client.watchReadStatus(message.query);
+									try {
+										reply(await handle.retry());
+									} finally {
+										handle.dispose();
+									}
 									break;
 								}
 								case "cancel-read":
@@ -417,21 +484,15 @@ export function createSharedHost(
 									publishAll();
 									break;
 								case "cancel": {
-									const handle = handles.get(message.id);
-									if (!handle)
-										throw new Error(
-											"This action cannot be canceled from its current state",
-										);
-									await handle.cancel();
+									await client.action(message.id).cancel();
 									reply();
 									break;
 								}
 								case "retry-action": {
-									const handle = handles.get(message.id);
-									if (!handle)
-										throw new Error("No authorized retry is available");
 									remember(
-										handle.retry({ id: message.nextId, origin: connection.id }),
+										client
+											.action(message.id)
+											.retry({ id: message.nextId, origin: connection.id }),
 									);
 									publishAll();
 									break;
@@ -518,6 +579,13 @@ export function createSharedHost(
 									error: error instanceof Error ? error.message : String(error),
 								});
 						});
+					};
+					port.addEventListener("message", (event) => {
+						const messages =
+							event.data?.type === "batch" && Array.isArray(event.data.messages)
+								? event.data.messages
+								: [event.data];
+						for (const message of messages) receive(message);
 					});
 				};
 				resolve(attach);

@@ -1,0 +1,43 @@
+---
+title: "Branding and appearance"
+description: "Use the same CSS theme as the rest of your application."
+order: 3
+---
+
+Vem UI uses ordinary shadcn theme variables. Its stylesheet includes defaults; existing application variables override them through the normal CSS cascade. No React theme provider is required.
+
+<ComponentPreview name="appearance" />
+
+<Example package="ui" file="appearance.tsx" region="example" />
+
+```css
+.weekend-action {
+  --primary: #315acb;
+  --primary-foreground: #ffffff;
+  --radius: 0.625rem;
+}
+```
+
+## Match the whole application
+
+Set semantic variables on `:root`, or on a containing element for a local variation. `--background` and `--foreground` describe the page; `--primary` and `--primary-foreground` style the main action. Related pairs cover `--secondary`, `--muted`, `--accent`, `--card`, and `--popover`. `--border`, `--input`, `--ring`, and `--destructive` cover outlines, focus, and errors. Sidebar colors use the usual `--sidebar-*` variables.
+
+Use complete CSS color values, such as `oklch(...)`, `hsl(...)`, or hex colors. The package does not read `components.json` at runtime. Its components retain the shadcn API and semantic tokens, while their implementation and compiled CSS arrive through npm updates.
+
+## Light, dark, and system themes
+
+The default stylesheet follows the system color scheme. A document `.dark` or `.light` class can select a theme explicitly. Your application’s existing theme controller may set that class and its token values; Vem does not introduce another controller. CSS paints the theme before React hydrates.
+
+Portals normally render beneath the document body and inherit the document theme. For a deliberately scoped theme, pass the themed element as a supported portal `container`, such as ComboboxContent’s `container`. CSS inheritance follows the actual DOM location.
+
+## Local layout and composition
+
+Use `className`, `style`, and the component’s ordinary props. Styled components accept a string `className`. Button’s `variant` and `size` choose its existing presentations. Use `render` where a component supports composing an existing link or trigger. Keep accessible labels, visible focus, and sufficient contrast when applying overrides.
+
+Components ship compiled styles. Applications do not need Tailwind or source scanning. If you already use Tailwind, declare the layer order before importing styles so your utilities can override package defaults:
+
+```css
+@layer theme, base, vem, components, utilities;
+@import "tailwindcss";
+@import "@hyecompany/vem-ui/styles.css";
+```

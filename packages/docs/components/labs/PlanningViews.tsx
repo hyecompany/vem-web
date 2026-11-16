@@ -3,10 +3,9 @@
 
 "use client";
 import { useQuery } from "@hyecompany/vem-data/react";
+import { Badge, Button } from "@hyecompany/vem-ui";
 import { Check, Circle, FileText, PanelRight } from "lucide-react";
 import { useId, useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { TaskApp, TaskList } from "../lesson/TaskApp";
 import { tasks } from "./model";
 
@@ -50,7 +49,7 @@ export function PlanningBoard({ sharing = false }: { sharing?: boolean }) {
 			toolbar={
 				<Button
 					size="sm"
-					variant="secondary"
+					variant="outline"
 					disabled={!all.length || all.every((id) => opened.includes(id))}
 					onClick={() => setOpened(all)}
 				>
@@ -133,7 +132,7 @@ export function PagedPlanningBoard() {
 						<Button
 							key={String(value)}
 							size="sm"
-							variant={openOnly === value ? "secondary" : "ghost"}
+							variant={openOnly === value ? "outline" : "ghost"}
 							aria-pressed={openOnly === value}
 							onClick={() => setOpenOnly(value)}
 						>
@@ -141,7 +140,7 @@ export function PagedPlanningBoard() {
 						</Button>
 					))}
 				</fieldset>
-				<Badge variant={result.confirmed.complete ? "success" : "warning"}>
+				<Badge variant={result.confirmed.complete ? "default" : "outline"}>
 					{result.confirmed.complete
 						? `${result.confirmed.total} tasks · complete`
 						: `${result.confirmed.knownCount} task so far`}

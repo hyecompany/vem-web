@@ -6,6 +6,7 @@ import type { ActionRegistry } from "../actions.js";
 import type {
 	AccessUpdate,
 	ActionJournal,
+	DisclosureProof,
 	PersistedFact,
 	PersistedMembership,
 	RuntimeOptions,
@@ -68,6 +69,17 @@ export class Restoration {
 			},
 		);
 	}
+	private admittedBases(bases: readonly DisclosureProof[], contextId?: string) {
+		const surviving = this.host.grants
+			.surviving(bases)
+			.filter(
+				(basis) =>
+					this.host.grants.independentProof(basis) ||
+					contextId === this.host.grants.contextId,
+			)
+			.map((basis) => this.host.grants.adopt(basis));
+		return this.host.grants.allowsAny(surviving) ? surviving : [];
+	}
 	private permitted(fact: PersistedFact): boolean {
 		const definition = this.host.options.resources.find(
 			(value) => value.name === fact.resource,
@@ -89,7 +101,10 @@ export class Restoration {
 				if (this.host.closed) return;
 				this.host.batch(() => {
 					this.host.grants.restoreBindings(stored.accessBindings ?? []);
-					this.host.setAccess({ decisions: [] });
+					this.host.grants.restoreTombstones(stored.revoked);
+					const retiredAccess = this.host.grants.restoreAccess(
+						stored.access ?? [],
+					);
 					const retired = this.host.grants.register([
 						...stored.facts.flatMap((fact) => [
 							...fact.bases,
@@ -98,9 +113,10 @@ export class Restoration {
 						...stored.memberships.flatMap((membership) => membership.bases),
 						...stored.actions.flatMap((action) => action.bases),
 					]);
+					retired.push(...retiredAccess);
 					if (retired.length)
 						void this.host.persist(persistence.revoke(retired));
-					this.host.grants.restoreTombstones(stored.revoked);
+					this.host.setAccess({ decisions: [] });
 					const quarantinedFacts: PersistedFact[] = [];
 					const quarantinedMemberships: PersistedMembership[] = [];
 					const rejected: PersistedFact[] = [];
@@ -145,14 +161,7 @@ export class Restoration {
 								...fact,
 								revision: ++this.host.knowledge.revision,
 							});
-						const bases = this.host.grants
-							.surviving(fact.bases)
-							.filter(
-								(basis) =>
-									this.host.grants.independentProof(basis) ||
-									fact.contextId === this.host.grants.contextId,
-							)
-							.map((basis) => this.host.grants.adopt(basis));
+						const bases = this.admittedBases(fact.bases, fact.contextId);
 						if (bases.length)
 							this.host.knowledge.putCell(
 								restoreFact(fact, bases, this.host.knowledge, this.host.grants),
@@ -173,14 +182,10 @@ export class Restoration {
 							this.host.knowledge.memberships.has(membership.key)
 						)
 							continue;
-						const bases = this.host.grants
-							.surviving(membership.bases)
-							.filter(
-								(basis) =>
-									this.host.grants.independentProof(basis) ||
-									membership.contextId === this.host.grants.contextId,
-							)
-							.map((basis) => this.host.grants.adopt(basis));
+						const bases = this.admittedBases(
+							membership.bases,
+							membership.contextId,
+						);
 						if (bases.length)
 							this.host.knowledge.memberships.set(
 								membership.key,
@@ -236,7 +241,8 @@ export class Restoration {
 			.map((fact) => this.host.knowledge.protectRestored(fact))
 			.filter((fact) => {
 				if (!this.permitted(fact) || fact.bases.length === 0) return false;
-				if (fact.contextId !== this.host.grants.contextId) return true;
+				const bases = this.admittedBases(fact.bases, fact.contextId);
+				if (!bases.length) return true;
 				if (
 					!this.host.knowledge.retiredRecords.has(
 						this.host.knowledge.recordKey(fact.resource, fact.identity),
@@ -244,19 +250,19 @@ export class Restoration {
 					!this.host.knowledge.touched.has(fact.key) &&
 					!this.host.knowledge.cells.has(fact.key)
 				) {
-					const bases = this.host.grants
-						.surviving(fact.bases)
-						.map((basis) => this.host.grants.adopt(basis));
-					if (bases.length)
-						this.host.knowledge.putCell(
-							restoreFact(fact, bases, this.host.knowledge, this.host.grants),
-						);
+					this.host.knowledge.putCell(
+						restoreFact(fact, bases, this.host.knowledge, this.host.grants),
+					);
 				}
 				return false;
 			});
 		this.quarantinedMemberships = this.quarantinedMemberships.filter(
 			(membership) => {
-				if (membership.contextId !== this.host.grants.contextId) return true;
+				const bases = this.admittedBases(
+					membership.bases,
+					membership.contextId,
+				);
+				if (!bases.length) return true;
 				if (
 					!this.host.knowledge.touched.has(membership.key) &&
 					!this.host.knowledge.memberships.has(membership.key)
@@ -265,9 +271,7 @@ export class Restoration {
 						membership.key,
 						restoreMembership(
 							membership,
-							this.host.grants
-								.surviving(membership.bases)
-								.map((basis) => this.host.grants.adopt(basis)),
+							bases,
 							this.host.knowledge,
 							this.host.grants,
 						),

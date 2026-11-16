@@ -66,7 +66,13 @@ test("paginated membership combines page proofs without losing independent row d
 	});
 	assert.equal(handle.getSnapshot().confirmed.complete, false);
 	assert.deepEqual(
-		handle.getSnapshot().rows.map((row) => row.identity),
+		handle
+			.getSnapshot()
+			.rows.map((row) =>
+				row.identity.kind === "resource"
+					? { kind: row.identity.kind, resource: row.identity.resource }
+					: row.identity,
+			),
 		[{ kind: "resource", resource: "b" }],
 	);
 	await runtime.flush();
@@ -81,7 +87,13 @@ test("paginated membership combines page proofs without losing independent row d
 	);
 	runtime.setAccess({ decisions: [{ scope: "page-a", state: "allowed" }] });
 	assert.deepEqual(
-		handle.getSnapshot().rows.map((row) => row.identity),
+		handle
+			.getSnapshot()
+			.rows.map((row) =>
+				row.identity.kind === "resource"
+					? { kind: row.identity.kind, resource: row.identity.resource }
+					: row.identity,
+			),
 		[{ kind: "resource", resource: "b" }],
 	);
 	assert.equal(reads, 2);

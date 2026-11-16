@@ -60,6 +60,28 @@ Keep permitted values on screen during repair. `result.revalidating` signals an 
 
 The runtime exposes `row.fields.status?.liveness` as `"live"`, `"snapshot"`, or `"immutable"`; `stale` separately reports known missing currency evidence. `live` applies to that field's declared support. It is not a claim that every field or project is monitored.
 
+## Follow a proven rename
+
+A name can be reused. When the backend explicitly connects an old identity to a new one, publish that connection as identity-transition evidence alongside any values the event establishes.
+
+This example uses `ObservationBatch` from `@hyecompany/vem-data/runtime`. The host must have established the `projects:events` disclosure permission and continuous `project-events` delivery.
+
+<Example file="integration/identity-transitions.ts" region="identity-event" />
+
+The transition atomically establishes the old identity's absence and the new identity's presence. It does not copy field values, grants, actions, or edit sessions. Reading the destination still uses its own access requirements.
+
+A detail result exposes `incarnation`, an opaque token for the identity currently known under that name, and `identityTransitions`, explicit connections from former incarnations. The transition remains available when the old identity has no result row.
+
+Capture the token when the user selects a resource. A shared navigation boundary can follow only a transition matching that captured token:
+
+<Example file="integration/identity-transitions.ts" region="follow-identity" />
+
+Here `QueryResult` comes from `@hyecompany/vem-data`, and `ProjectRef` is `{ name: string }`. The boundary owns selection; the picker just displays it. Rename chains resolve to the last supported destination.
+
+**Do not match by name alone.** A newly created project with an old name has a different token. Missing events or withdrawn evidence can also end identity continuity. Keep the selected scope and report uncertainty when no matching proof survives; never infer a rename from list differences.
+
+Transition history is bounded and session-local, not a permanent alias or a persisted redirect. A fresh selection observes the current identity rather than replaying former renames. An action already created for an old reference remains targeted there.
+
 ## Derive a value from known facts
 
 Suppose every screen uses a human-readable status label. Define it once instead of storing an unrelated copy:

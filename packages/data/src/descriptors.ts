@@ -10,6 +10,7 @@ import type {
 	QueryRow,
 	Values,
 } from "./types.js";
+import { normalizeWhere } from "./where.js";
 
 export function query<T extends object = Values, I = unknown>(
 	value: Omit<QueryDescriptor<T, I>, "kind">,
@@ -17,6 +18,9 @@ export function query<T extends object = Values, I = unknown>(
 	return freezeValue({
 		...structuredClone(value),
 		kind: "query",
+		...(value.where === undefined
+			? {}
+			: { where: normalizeWhere(value.where) }),
 		select: [...new Set(value.select)].sort(),
 	});
 }
@@ -75,6 +79,27 @@ export function fieldInfo<T extends object, I>(
 	return row.fields[field];
 }
 export function stableKey(value: unknown): string {
+	return serializeKey(value, stableKey);
+}
+
+/** Internal memoization only visits immutable, owned observation proof subtrees. */
+export function memoizedStableKey(
+	owned: WeakSet<object>,
+): (value: unknown) => string {
+	const keys = new WeakMap<object, string>();
+	const key = (value: unknown): string => {
+		if (!value || typeof value !== "object" || !owned.has(value))
+			return serializeKey(value, key);
+		const previous = keys.get(value);
+		if (previous !== undefined) return previous;
+		const result = serializeKey(value, key);
+		keys.set(value, result);
+		return result;
+	};
+	return key;
+}
+
+function serializeKey(value: unknown, key: (value: unknown) => string): string {
 	if (value === undefined) return "u";
 	if (value === null) return "null";
 	if (typeof value === "string") return JSON.stringify(value);
@@ -84,16 +109,14 @@ export function stableKey(value: unknown): string {
 		return String(value);
 	}
 	if (typeof value === "boolean") return String(value);
-	if (Array.isArray(value)) return `[${value.map(stableKey).join(",")}]`;
+	if (Array.isArray(value)) return `[${value.map(key).join(",")}]`;
 	if (
 		typeof value === "object" &&
 		Object.getPrototypeOf(value) === Object.prototype
 	) {
 		return `{${Object.keys(value)
 			.sort()
-			.map(
-				(key) => `${JSON.stringify(key)}:${stableKey((value as Values)[key])}`,
-			)
+			.map((name) => `${JSON.stringify(name)}:${key((value as Values)[name])}`)
 			.join(",")}}`;
 	}
 	throw new TypeError(

@@ -16,9 +16,9 @@ Set transport deadlines in your domain integration. An imperative caller can als
 
 ## Automatic planning is bounded
 
-Vem chooses acquisition sets from declared capabilities and current knowledge. It cannot infer undocumented backend semantics or know future demand. When record identities or related links are unknown, it may first acquire membership, then plan again with that evidence. Its cost estimates come from the integration; the bounded search keeps the best plan it finds, not a universal optimum.
+Vem chooses acquisition sets from declared capabilities and current knowledge. It cannot infer undocumented backend semantics or know future demand. When record identities or related links are unknown, it may first acquire membership, then plan again with that evidence. Its default policy uses observed population and response shape; unknown size stays unknown. Optional backend cost estimates must be justified by the integration. The bounded search keeps the best plan it finds, not a universal optimum.
 
-`maxConcurrent` defaults to 4 source reads. `maxAcquisitionsPerRead` defaults to 4,096 dispatched sources per attempt; exhausting it leaves a partial result with an explanation. Paged sources default to at most 100 pages unless configured. Sources must provide transport deadlines and truthful completeness. These bounds prevent an unbounded acquisition loop; increase them deliberately for larger supported workloads.
+Reads have no default concurrency cap: Vem combines demand and forwards fetch-priority hints to the browser. A host may set `maxConcurrent` for a backend with a specific concurrency constraint. `maxAcquisitionsPerRead` defaults to 4,096 dispatched sources per attempt; exhausting it leaves a partial result with an explanation. Paged sources default to at most 100 pages unless configured. Sources must provide transport deadlines and truthful completeness. These bounds prevent an unbounded acquisition loop; increase them deliberately for larger supported workloads.
 
 ## Match promises to your integration
 

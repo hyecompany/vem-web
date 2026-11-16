@@ -3,9 +3,9 @@
 
 "use client";
 import { useQuery } from "@hyecompany/vem-data/react";
+import { Button } from "@hyecompany/vem-ui";
 import { ArrowLeft, PanelRight } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
-import { Button } from "@/components/ui/button";
 import { Session } from "../lesson/Session";
 import { TaskApp, TaskList } from "../lesson/TaskApp";
 import { Teaching } from "../lesson/Teaching";
@@ -104,7 +104,7 @@ function Board({ session }: { session: ReturnType<typeof createKnowledge> }) {
 										<Button
 											key={String(value)}
 											size="sm"
-											variant={openOnly === value ? "secondary" : "ghost"}
+											variant={openOnly === value ? "outline" : "ghost"}
 											aria-pressed={openOnly === value}
 											onClick={() => {
 												setOpenOnly(value);

@@ -1,0 +1,23 @@
+---
+title: "Button"
+description: "Run an action."
+order: 1
+---
+
+Import from `@hyecompany/vem-ui` after [adding the package](/docs/ui#add-the-package).
+
+<ComponentPreview name="button" />
+
+## Use it
+
+<Example package="ui" file="button.tsx" region="example" />
+
+## Behavior and choices
+
+Use `variant="default"` for the primary action, `outline` or `secondary` for alternatives, and `ghost` for a quiet control. `destructive` and `link` are also available. Sizes are `default`, `xs`, `sm`, `lg`, and the matching `icon` sizes.
+
+Use `disabled` when an action cannot be attempted. For progress, include [Spinner](/docs/ui/components/spinner) and a readable label; `aria-busy` communicates that the control is working. Give icon-only buttons an accessible name.
+
+Button renders a button by default. Its `render` prop composes another element while keeping button interaction semantics; it is not a navigation-link abstraction. Use a real link for navigation, such as a router link composed through SidebarMenuButton or BreadcrumbLink. Set `type="submit"` when submitting a form.
+
+<UiReference name="Button" />

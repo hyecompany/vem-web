@@ -15,8 +15,9 @@ export const base = (process.env.BASE_PATH ?? deployment.basePath).replace(
 	/\/$/,
 	"",
 );
-export async function serve() {
-	const out = resolve(root, "packages/docs/out");
+export async function serve({ directory, basePath = base } = {}) {
+	const base = basePath;
+	const out = directory ?? resolve(root, "packages/docs/out");
 	const server = createServer(async (req, res) => {
 		try {
 			let path = decodeURIComponent(

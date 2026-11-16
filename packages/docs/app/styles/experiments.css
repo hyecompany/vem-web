@@ -56,6 +56,8 @@
 	padding-top: 0.1rem;
 }
 .task-window {
+	padding: 0;
+	gap: 0;
 	overflow: hidden;
 	box-shadow: 0 3px 14px #00000006;
 }
@@ -379,6 +381,9 @@
 	padding: 0.3rem;
 }
 .lesson-tour [role="tab"] {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 	gap: 0.5rem;
 	padding: 0.65rem 0.5rem;
 	font-size: 0.8rem;
@@ -457,6 +462,14 @@
 }
 
 @media (pointer: coarse) {
+	.lesson button,
+	.lesson input,
+	.lesson-tour [role="tab"] {
+		min-block-size: 2.75rem;
+	}
+	.lesson button {
+		min-inline-size: 2.75rem;
+	}
 	.lesson summary {
 		min-block-size: 2.75rem;
 		padding-block: 0.75rem;

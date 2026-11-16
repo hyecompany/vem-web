@@ -1,0 +1,50 @@
+---
+title: "Combobox"
+description: "Choose a value from a searchable list."
+order: 10
+---
+
+Import from `@hyecompany/vem-ui` after [adding the package](/docs/ui#add-the-package).
+
+<ComponentPreview name="combobox" />
+
+## Use it
+
+<Example package="ui" file="combobox.tsx" region="example" />
+
+## Behavior and choices
+
+`items` describes the available choices. ComboboxInput supplies the editable search field; ComboboxList renders the matching options. Selecting an option changes `value`; typing changes the search text, not the selected value. On opening, the selected option is highlighted. `autoHighlight` controls highlighting matches while filtering; it does not disable that selected-option behavior.
+
+The built-in filter matches text locally. Pass `filter` when the domain needs a different matching rule, or `filter={null}` when your source has already filtered the results. The component does not fetch data. Keep source demand in your data integration and loading, error, and retry content outside the options list.
+
+Object values can supply `itemToStringLabel` and `itemToStringValue`. Use `multiple` with ComboboxChips, ComboboxChip, and ComboboxChipsInput for several selections. Grouped choices use ComboboxGroup, ComboboxLabel, and ComboboxCollection.
+
+Both list variants retain a thin native scrollbar when content overflows, following the browser and operating system’s visibility preferences.
+
+ComboboxContent opens in a portal. It inherits document-level CSS variables; use its `container` prop for an intentionally scoped theme. Give the input a visible label and preserve keyboard selection and Escape dismissal.
+
+<UiReference name="Combobox" />
+
+Use `indicatorSide="end"` on ComboboxItem to place its selection checkmark after the label. The default is `"start"`.
+
+ComboboxList gently introduces new options and moves remaining options as matches change. Removed options leave the DOM immediately; selection and keyboard navigation always use the current list. The popup smoothly resizes as options or status content change, including when options disappear. `--vem-combobox-duration` (160ms) and `--vem-combobox-easing` coordinate opening and size changes; use the same variables for an application trigger that expands. Motion is disabled for reduced-motion preferences; lists with more than 100 rendered options skip individual row motion. Keep item keys stable so the same option retains its identity while filtering or receiving new data.
+
+
+## With Vem Data
+
+Use [useSearch](/docs/ui/components/data-bindings#search-shared-information) to connect typed text to a query predicate. Bind its `value` to `inputValue` and call `setValue` from `onInputValueChange` for text edits. Pass the query's rows as the choices and `filter={null}` so Combobox does not apply a second matching rule. Keep the selected identity separate from the search text.
+
+Pass `{ enabled: open }` to release this query's demand while the popup is closed. Clear transient text with `setValue("")` on close. Render [QueryStatus](/docs/ui/components/query-status) outside ComboboxList so loading, incomplete results, and retry remain separate from selectable options.
+
+## Large choice lists
+
+Set `virtualized` on Combobox and replace ComboboxList with ComboboxVirtualList. Keep the full choice collection at the root: keyboard navigation and search must know about choices that have not mounted. The virtual list owns scrolling, measurement, and accessible option positions.
+
+<Example package="ui" file="combobox-virtual-list.tsx" region="example" />
+
+The callback also receives `{ visible, index }`. Enable optional detail queries only when `visible` is true; overscan and the highlighted offscreen option do not create demand. A changing description can change row height without overlapping its neighbors. The component does not fetch data itself.
+
+Use stable keys and flat choices. Keep `virtualized` enabled for the mounted combobox; the same component handles both short and long lists. Search resets the scroll position, keyboard navigation reaches unmounted choices, and pointer hover does not move the viewport. Keep status and retry controls outside this listbox. For non-selectable content, use [VirtualList](/docs/ui/components/virtual-list).
+
+<UiReference name="ComboboxVirtualList" />

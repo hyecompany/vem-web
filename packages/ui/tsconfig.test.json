@@ -1,0 +1,9 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"rootDir": ".",
+		"noEmit": true,
+		"noUncheckedSideEffectImports": true
+	},
+	"include": ["src", "examples", "tests/**/*.tsx"]
+}

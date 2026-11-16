@@ -24,11 +24,13 @@ import type { ContinuitySnapshot } from "./runtime/continuity.js";
 import { EditAdmission } from "./runtime/edit-admission.js";
 import { createResourceContext } from "./runtime/evidence-context.js";
 import { mergeSupports } from "./runtime/evidence-supports.js";
+import { ingestIdentityTransition } from "./runtime/identity-transitions.js";
 import { KnowledgeStore } from "./runtime/knowledge.js";
 import { membershipKey, withdrawMembership } from "./runtime/memberships.js";
 import { PresentationIndex } from "./runtime/presentation.js";
 import { QueryRegistry } from "./runtime/queries.js";
 import { ReadModelExport } from "./runtime/read-model-export.js";
+import { watchReadStatus } from "./runtime/read-status.js";
 import { cellRef, ingestRelationship } from "./runtime/relationships.js";
 import { Restoration } from "./runtime/restoration.js";
 import { trimKnowledge } from "./runtime/retention.js";
@@ -38,6 +40,7 @@ import type {
 	AccessState,
 	AccessUpdate,
 	ActionHandle,
+	ActionObservation,
 	ActionOutcome,
 	ActionSnapshot,
 	Availability,
@@ -55,6 +58,8 @@ import type {
 	QueryDescriptor,
 	QueryHandle,
 	QueryResult,
+	QueryWatchOptions,
+	ReadStatusHandle,
 	ResourceContext,
 	ResourceDefinition,
 	RuntimeOptions,
@@ -63,6 +68,7 @@ import type {
 } from "./types.js";
 import { equal, frozen } from "./values.js";
 
+export { AcquisitionError } from "./acquisition-error.js";
 export { DexiePersistence, persistenceSchemaVersion } from "./persistence.js";
 export type * from "./types.js";
 
@@ -107,8 +113,9 @@ export class Runtime implements DataClient {
 		)
 			throw new Error("maxInactiveRecords must be non-negative");
 		if (
-			!Number.isInteger(options.maxConcurrent ?? 4) ||
-			(options.maxConcurrent ?? 4) < 1
+			options.maxConcurrent !== undefined &&
+			(!Number.isSafeInteger(options.maxConcurrent) ||
+				options.maxConcurrent < 1)
 		)
 			throw new Error("maxConcurrent must be a positive integer");
 		if (
@@ -130,7 +137,11 @@ export class Runtime implements DataClient {
 		if (options.persistence) {
 			options = {
 				...options,
-				persistence: authorityPersistence(options.persistence, this.grants),
+				persistence: authorityPersistence(
+					options.persistence,
+					this.grants,
+					() => this.ready,
+				),
 			};
 			this.options = options;
 		}
@@ -176,6 +187,7 @@ export class Runtime implements DataClient {
 			activities: this.activities,
 			grants: this.grants,
 			records: this.knowledge.records,
+
 			definitions: this.definitions,
 			dirtyEffective: this.knowledge.dirtyEffective,
 			recordKey: (resource, identity) =>
@@ -196,6 +208,7 @@ export class Runtime implements DataClient {
 			access: (scope) => this.access(scope),
 			revision: () => this.knowledge.revision,
 			records: this.knowledge.records,
+			identityTransitions: () => this.knowledge.identities.snapshot(),
 			effective: (key) => this.presentation.get(key),
 			effectiveRecords: (resource) => this.presentation.records(resource),
 			resourceRecords: this.knowledge.resourceRecords,
@@ -219,6 +232,7 @@ export class Runtime implements DataClient {
 				},
 				publish: () => this.publish(),
 				schedule: () => this.acquisitions.schedule(),
+				notify: (listener) => this.notify(listener),
 				released: () =>
 					this.batch(() => {
 						this.knowledge.retentionDirty = true;
@@ -252,6 +266,27 @@ export class Runtime implements DataClient {
 								generation = Math.max(generation, revision);
 					return generation;
 				},
+				population: (request) =>
+					this.queryProjection.population({
+						kind: "query",
+						resource: request.resource,
+						mode: "list",
+						scope: request.scope,
+						where: request.where,
+						select: [],
+					}),
+				matches: (request, identity) =>
+					this.queryProjection.matches(
+						{
+							kind: "query",
+							resource: request.resource,
+							mode: "list",
+							scope: request.scope,
+							where: request.where,
+							select: [],
+						},
+						identity,
+					),
 				needs: (state) => this.queryProjection.needs(state),
 				accessIssue: (query) => this.queryProjection.accessIssues(query)[0],
 				requirements: (query, forcedFields) =>
@@ -312,7 +347,7 @@ export class Runtime implements DataClient {
 					this.changed = true;
 				},
 			},
-			options.maxConcurrent ?? 4,
+			options.maxConcurrent,
 			options.maxAcquisitionsPerRead ?? 4096,
 		);
 		this.edits = new EditAdmission({
@@ -358,6 +393,10 @@ export class Runtime implements DataClient {
 			if (bindings.length && options.persistence?.writeAccessBindings)
 				await this.persist(
 					options.persistence.writeAccessBindings(bindings),
+				).catch(() => undefined);
+			if (this.options.persistence)
+				await this.persist(
+					this.options.persistence.writeAccess(this.grants.snapshot()),
 				).catch(() => undefined);
 		});
 	}
@@ -498,10 +537,29 @@ export class Runtime implements DataClient {
 	): void {
 		if (this.closed) return;
 		this.batch(() => {
+			this.grants.withObservation(batch, (snapshot) =>
+				this.ingestObservation(snapshot, continuity),
+			);
+		});
+	}
+	private ingestObservation(
+		batch: ObservationBatch,
+		continuity: ContinuitySnapshot,
+	): void {
+		this.batch(() => {
 			if (batch.grants?.length) this.setAccess({ decisions: batch.grants });
 			const changed: EvidenceRef[] = [];
 			const persisted: PersistedFact[] = [];
 			const persistedMemberships: PersistedMembership[] = [];
+			for (const transition of batch.identityTransitions ?? [])
+				ingestIdentityTransition(
+					this.knowledge,
+					this.grants,
+					transition,
+					changed,
+					persisted,
+					continuity,
+				);
 			for (const fact of batch.facts ?? [])
 				this.knowledge.ingest(fact, changed, persisted, undefined, continuity);
 			for (const relationship of batch.relationships ?? [])
@@ -545,7 +603,10 @@ export class Runtime implements DataClient {
 								this.grants.allowsAny(entry.bases),
 							)
 						: [];
-				const supports = mergeSupports([...retained, support]);
+				const supports = mergeSupports(
+					[...retained, support],
+					this.grants.proofKey,
+				);
 				const stale = this.knowledge.supportCurrency(supports).stale;
 				const revision = ++this.knowledge.revision;
 				const value: PersistedMembership = {
@@ -609,7 +670,8 @@ export class Runtime implements DataClient {
 					);
 			}
 			if (
-				(batch.facts?.length ?? 0) +
+				(batch.identityTransitions?.length ?? 0) +
+					(batch.facts?.length ?? 0) +
 					(batch.memberships?.length ?? 0) +
 					(batch.relationships?.length ?? 0) +
 					(batch.invalidate?.length ?? 0) +
@@ -724,6 +786,12 @@ export class Runtime implements DataClient {
 				this.changed = true;
 				return;
 			}
+			if (this.options.persistence)
+				void this.persist(
+					this.ready.then(() =>
+						this.options.persistence?.writeAccess(this.grants.snapshot()),
+					),
+				);
 			const bindings = this.grants.bindingsSnapshot();
 			if (
 				!equal(previousBindings, bindings) &&
@@ -869,6 +937,10 @@ export class Runtime implements DataClient {
 				},
 				cells: this.knowledge.cells,
 				records: this.knowledge.records,
+				identityRevision: (resource, identity) =>
+					this.knowledge.identities.revision(
+						this.knowledge.recordKey(resource, identity),
+					),
 				memberships: this.knowledge.memberships,
 				relationship: (resource, identity, name) =>
 					this.relationship(resource, identity, name),
@@ -899,8 +971,25 @@ export class Runtime implements DataClient {
 	}
 	watch<T extends object, I>(
 		descriptor: QueryDescriptor<T, I>,
+		options?: QueryWatchOptions,
 	): QueryHandle<T, I> {
-		return this.queries.watch(descriptor);
+		return this.queries.watch(descriptor, options);
+	}
+	watchReadStatus<T extends object, I>(
+		descriptor: QueryDescriptor<T, I>,
+	): ReadStatusHandle {
+		if (this.closed) throw new Error("Runtime is closed");
+		if (!this.definitions.has(descriptor.resource))
+			throw new Error(`Unknown resource ${descriptor.resource}`);
+		return watchReadStatus(
+			{
+				projection: this.queryProjection,
+				queries: this.queries,
+				acquisitions: this.acquisitions,
+				subscribe: (listener) => this.subscribe(listener),
+			},
+			descriptor as QueryDescriptor,
+		);
 	}
 	read<T extends object, I>(
 		descriptor: QueryDescriptor<T, I>,
@@ -979,7 +1068,7 @@ export class Runtime implements DataClient {
 			this.activities.run(command as CommandDescriptor, options),
 		) as ActionHandle<O>;
 	}
-	action(id: string): Watch<ActionSnapshot | undefined> {
+	action(id: string): ActionObservation {
 		return this.activities.watch(id);
 	}
 	listActivities(): readonly ActionSnapshot[] {

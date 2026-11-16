@@ -6,7 +6,7 @@ SPDX-FileCopyrightText = "© 2026 Joseph Maldjian <joseph.maldjian@hyecompany.co
 SPDX-License-Identifier = "Apache-2.0"
 
 [[annotations]]
-path = ["packages/docs/components/ui/**", "packages/docs/public/shadcn-LICENSE.txt"]
+path = ["packages/docs/public/shadcn-LICENSE.txt"]
 precedence = "override"
 SPDX-FileCopyrightText = ["2023 shadcn", "2026 Joseph Maldjian <joseph.maldjian@hyecompany.com>"]
 SPDX-License-Identifier = "MIT"
@@ -22,3 +22,9 @@ path = ["packages/docs/public/branding/**"]
 precedence = "override"
 SPDX-FileCopyrightText = "Hye Hosting LLC"
 SPDX-License-Identifier = "LicenseRef-Hye-Branding"
+
+[[annotations]]
+path = ["packages/ui/THIRD-PARTY-NOTICES.txt"]
+precedence = "override"
+SPDX-FileCopyrightText = "2023 shadcn"
+SPDX-License-Identifier = "MIT"

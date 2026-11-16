@@ -2,12 +2,17 @@
 // SPDX-License-Identifier: Apache-2.0
 
 "use client";
+import {
+	Badge,
+	Button,
+	Card,
+	Tabs,
+	TabsContent,
+	TabsList,
+	TabsTrigger,
+} from "@hyecompany/vem-ui";
 import { Check, Database, LoaderCircle, TriangleAlert } from "lucide-react";
 import { useCallback, useState, useSyncExternalStore } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Session } from "../lesson/Session";
 import { Teaching } from "../lesson/Teaching";
 import { PagedPlanningBoard, PlanningBoard } from "./PlanningViews";
@@ -40,7 +45,7 @@ function explanation(lesson: PlanningLesson, session: PlanningSession) {
 				? "Only unfinished tasks were requested. One is visible already; Vem has asked for the next page automatically."
 				: "The final page establishes the full To do list. Try All tasks to change what the board needs.";
 	return latest?.source === "all"
-		? "One extra read filled all three note views. Vem compared their needs together and chose the collection read with lower estimated work."
+		? "All three note views needed the same three tasks. One collection reply supplied them together."
 		: latest?.source === "one"
 			? "One note view only needed one task. Reopen its notes and the known information is reused."
 			: "Open all notes to see Vem combine three views. Start over and open a single task to compare.";
@@ -103,33 +108,35 @@ function Receipt({
 			<details>
 				<summary>Why these choices?</summary>
 				<p>
-					The source definitions describe what each read returns and its
-					estimated work. Vem compares the alternatives.
+					{lesson === "pages"
+						? "This simulated service charges one unit per returned task. The filtered pages return two tasks; the full board returns three."
+						: "The task list establishes three identities. One open note needs one task; all three open notes can share one collection reply."}
 				</p>
 				<dl>
 					<div>
 						<dt>One task with notes</dt>
-						<dd>1 unit</dd>
+						<dd>1 task</dd>
 					</div>
 					<div>
-						<dt>All three tasks with notes</dt>
-						<dd>2 units</dd>
+						<dt>Complete collection</dt>
+						<dd>All 3 tasks</dd>
 					</div>
 					{lesson === "pages" ? (
 						<div>
-							<dt>Filtered pages, together</dt>
-							<dd>1.5 units</dd>
+							<dt>Filtered pages</dt>
+							<dd>1 matching task per page</dd>
 						</div>
 					) : (
 						<div>
-							<dt>Titles and status only</dt>
-							<dd>0.25 units</dd>
+							<dt>Task list</dt>
+							<dd>Titles and status; no notes</dd>
 						</div>
 					)}
 				</dl>
 				<p>
-					These are estimates for this simulated service, not measured timings.
-					The receipt lists actual source calls.
+					{lesson === "pages"
+						? "The fixture knows its exact records and declares those charges. This is an explicit service model, not an estimate Vem invents."
+						: "These sources use Vem's default policy with no assigned costs. The receipt lists actual calls to the simulated service."}
 				</p>
 			</details>
 		</Card>
@@ -181,7 +188,7 @@ export function Planning() {
 			value={lesson}
 			onValueChange={(value) => setLesson(value as PlanningLesson)}
 		>
-			<TabsList aria-label="Automatic planning lessons">
+			<TabsList activateOnFocus aria-label="Automatic planning lessons">
 				{lessons.map(([name, title]) => (
 					<TabsTrigger key={name} value={name}>
 						{title}

@@ -1,0 +1,43 @@
+---
+title: "Sidebar"
+description: "Compose application navigation and a mobile drawer."
+order: 11
+---
+
+Import from `@hyecompany/vem-ui` after [adding the package](/docs/ui#add-the-package).
+
+<ComponentPreview name="sidebar" />
+
+## Use it
+
+The preview uses SidebarNavigation inside the Sidebar frame. Place your navigation and page content in an application shell:
+
+<Example package="ui" file="sidebar-shell.tsx" region="example" />
+
+## Add destinations
+
+SidebarNavigation composes links and nested destinations with the same sidebar interaction. Give each item a stable key, label, and native or router link through `render`. Optional `icon` content appears before the label. Set `isActive` from your router; Vem applies current-page semantics and styling. The application retains destination and route matching decisions.
+
+<Example package="ui" file="sidebar-navigation.tsx" region="example" />
+
+Place it inside SidebarProvider and a Sidebar section. It closes the mobile drawer when a destination is activated. A parent with `children` keeps navigation separate from disclosure: its label follows its link and its disclosure control expands the children. In compact desktop mode, hover previews a flyout; mouse click and Enter navigate, while touch, Space, and arrows open the flyout. Supply `container` only when flyouts need a scoped portal theme.
+
+## Behavior and choices
+
+For an application shell, place Sidebar and SidebarInset inside SidebarProvider, with SidebarTrigger in a reachable header. The sidebar supplies responsive presentation; your router supplies links and the active route. Use SidebarMenuButton’s `render` prop to compose your router link and `isActive` for its selected styling. Set `aria-current="page"` on the current route link.
+
+This embedded preview uses `collapsible="none"` so it stays inside the page. Application sidebars can use `collapsible="offcanvas"` (the default) or `"icon"`. Keep labels or tooltips available when collapsed.
+
+SidebarGroup, SidebarMenu, and SidebarMenuSub compose sections and nested links without a fixed application navigation schema. Header, footer, input, badge, skeleton, separator, and action parts share the same styles.
+
+`useSidebar()` exposes the current state and toggle function to custom controls inside SidebarProvider. Use controlled `open` and `onOpenChange` when the application owns expanded state. The mobile drawer manages focus and dismissal separately; keep a visible trigger available.
+
+## Compose a custom branch
+
+Place PlanLinks inside SidebarMenu. The trigger uses `role="link"` to retain navigation semantics when it is composed into the compact-mode menu trigger. SidebarMenuBranch keeps navigation separate from disclosure: the parent label follows its link, while a separate control expands its children. In a collapsed desktop sidebar, it presents the same links in a flyout. `open`, `defaultOpen`, and `onOpenChange` control expansion; `container` supports an intentionally scoped portal theme.
+
+<Example package="ui" file="sidebar-branch.tsx" region="example" />
+
+The children remain ordinary SidebarMenuSub, SidebarMenuSubItem, and SidebarMenuSubButton elements. Your router and link components remain responsible for destinations and current-route state.
+
+<UiReference name="SidebarNavigation" /> · <UiReference name="SidebarProvider" /> · <UiReference name="SidebarMenuBranch" />

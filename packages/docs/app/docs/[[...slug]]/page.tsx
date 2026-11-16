@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: © 2026 Joseph Maldjian <joseph.maldjian@hyecompany.com>
 // SPDX-License-Identifier: Apache-2.0
 
+import { CodeBlock, Pre } from "fumadocs-ui/components/codeblock";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import {
 	DocsBody,
@@ -11,6 +12,8 @@ import {
 import { notFound } from "next/navigation";
 import { Flow } from "@/components/Flow";
 import { Lab, TaskBoardDemo } from "@/components/InteractiveExamples";
+import { ComponentPreview } from "@/components/previews/ComponentPreview";
+import { UiPreview } from "@/components/previews/UiPreview";
 import { source } from "@/lib/source";
 export default async function Page({
 	params,
@@ -29,9 +32,16 @@ export default async function Page({
 				<MDX
 					components={{
 						...defaultMdxComponents,
+						pre: (props) => (
+							<CodeBlock {...props} keepBackground>
+								<Pre>{props.children}</Pre>
+							</CodeBlock>
+						),
 						Flow,
 						Lab,
 						TaskBoardDemo,
+						UiPreview,
+						ComponentPreview,
 					}}
 				/>
 			</DocsBody>

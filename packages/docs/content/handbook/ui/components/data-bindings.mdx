@@ -1,0 +1,33 @@
+---
+title: "Data bindings"
+description: "Connect search, commands, and protected editing to ordinary controls."
+order: 25
+---
+
+Use `bindText` with a managed edit field and `bindCommand` with `useCommand`. Both return ordinary control props, so the application keeps its form layout.
+
+<ComponentPreview name="data-bindings" />
+
+<Example package="ui" file="data-bindings.tsx" region="example" />
+
+`bindText` derives its value directly from the edit session. If the field is unreadable, it becomes blank and disabled. A field can remain readable after write access is lost; its draft remains editable locally, while saving is disabled. `canEdit` describes local drafting; `canSave` describes admission of the server write. Show the field's reason when it is unavailable. Do not copy its value or default value into a separate state store.
+
+`bindCommand` maps current admission to a native button. It does not observe action progress or prevent a second admitted operation. Use CommandButton when you want that coordination as part of the control. Availability's `reason` is also available to render beside a custom control; a `title` alone is insufficient for essential explanations.
+
+For a complete editor with save outcomes and conflicts, continue to [protected editing](/docs/data/build/editors).
+
+<UiReference name="bindText" />
+
+<UiReference name="bindCommand" />
+
+## Search shared information
+
+`useSearch` keeps the typed text and passes it to a pure query factory. Its `result` is the ordinary query result, including partial rows, acquisition state, and retry. Vem evaluates the [predicate](/docs/data/build/display#filter-text) against shared knowledge and acquires missing information through the domain's sources.
+
+<Example package="ui" file="search.tsx" region="example" />
+
+Use `{ enabled: open }` for a search panel that only needs data while open. Disabling releases its demand and returns no rows; the text remains until you call `setValue("")`. `{ acquire: false }` observes permitted cached information without creating acquisition demand. Neither option changes other consumers' requirements.
+
+The input remains under your control: the hook adds no debounce, chooses no fields, and does not manage a selected option. Equivalent inline descriptions reuse Vem's existing query subscription.
+
+<UiReference name="useSearch" />

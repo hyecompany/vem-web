@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: © 2026 Joseph Maldjian <joseph.maldjian@hyecompany.com>
 // SPDX-License-Identifier: Apache-2.0
 
+import { filterFields, isFilterExpression, matchesFilter } from "../filters.js";
 import type {
 	AccessState,
 	FieldInfo,
@@ -75,7 +76,11 @@ export class QueryMatching {
 		descriptor: QueryDescriptor,
 		where: Readonly<Values> | undefined,
 	): boolean {
-		if (this.host.definition(descriptor.resource).matches)
+		if (
+			this.host.definition(descriptor.resource).matches &&
+			!isFilterExpression(descriptor.where) &&
+			!isFilterExpression(where)
+		)
 			return (
 				Object.keys(where ?? {}).length === 0 ||
 				equal(where ?? {}, descriptor.where ?? {})
@@ -131,11 +136,13 @@ export class QueryMatching {
 			return false;
 		const dependencies =
 			definition.queryDependencies?.(descriptor) ??
-			(definition.matches && Object.keys(descriptor.where ?? {}).length > 0
+			(definition.matches &&
+			!isFilterExpression(descriptor.where) &&
+			filterFields(descriptor.where).length > 0
 				? Object.keys(record.fields)
 				: []);
 		if (
-			[...Object.keys(descriptor.where ?? {}), ...dependencies].some(
+			[...filterFields(descriptor.where), ...dependencies].some(
 				(field) =>
 					this.fieldAccess(descriptor, record.identity, field) === "denied",
 			)
@@ -174,17 +181,22 @@ export class QueryMatching {
 			: [];
 		if (
 			definition.matches &&
+			!isFilterExpression(descriptor.where) &&
 			[
-				...Object.keys(descriptor.where ?? {}),
+				...filterFields(descriptor.where),
 				...dependencies.filter(
 					(field) => !establishedScopeFields.includes(field),
 				),
 			].some((field) => record.fields[field]?.stale)
 		)
 			return this.membershipMatch(descriptor, record);
-		if (!descriptor.where || Object.keys(descriptor.where).length === 0)
+		if (
+			!descriptor.where ||
+			(!isFilterExpression(descriptor.where) &&
+				Object.keys(descriptor.where).length === 0)
+		)
 			return true;
-		if (definition.matches) {
+		if (definition.matches && !isFilterExpression(descriptor.where)) {
 			const match = definition.matches(
 				record.values,
 				descriptor.where,
@@ -194,6 +206,17 @@ export class QueryMatching {
 			return match === "unknown"
 				? this.membershipMatch(descriptor, record)
 				: match;
+		}
+		if (isFilterExpression(descriptor.where)) {
+			const values = Object.fromEntries(
+				Object.entries(record.values).filter(
+					([field]) => !record.fields[field]?.stale,
+				),
+			);
+			const result = matchesFilter(values, descriptor.where);
+			return result === "unknown"
+				? this.membershipMatch(descriptor, record)
+				: result;
 		}
 		let unknown = false;
 		for (const [field, expected] of Object.entries(descriptor.where)) {
@@ -243,9 +266,11 @@ export class QueryMatching {
 		const definition = this.host.definition(descriptor.resource);
 		const dependencies = [
 			"$presence",
-			...Object.keys(descriptor.where ?? {}),
+			...filterFields(descriptor.where),
 			...(definition.queryDependencies?.(descriptor) ??
-				(definition.matches && Object.keys(descriptor.where ?? {}).length > 0
+				(definition.matches &&
+				!isFilterExpression(descriptor.where) &&
+				filterFields(descriptor.where).length > 0
 					? Object.keys(record.fields)
 					: [])),
 		];
@@ -322,7 +347,11 @@ export class QueryMatching {
 						actionId: record.proposal,
 						requested: record.requested ?? record.identity ?? {},
 					}
-				: { kind: "resource", resource: record.identity },
+				: {
+						kind: "resource",
+						resource: record.identity,
+						incarnation: record.incarnation,
+					},
 			data: frozen(data),
 			fields: frozen(fields),
 			missing: frozen(missing),

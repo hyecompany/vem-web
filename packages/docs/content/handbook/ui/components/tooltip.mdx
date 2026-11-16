@@ -1,0 +1,21 @@
+---
+title: "Tooltip"
+description: "Repeat a visual label on hover or focus."
+order: 9
+---
+
+Import from `@hyecompany/vem-ui` after [adding the package](/docs/ui#add-the-package).
+
+<ComponentPreview name="tooltip" />
+
+## Use it
+
+<Example package="ui" file="tooltip.tsx" region="example" />
+
+## Behavior and choices
+
+Put TooltipTrigger and TooltipContent inside Tooltip. `render` gives the trigger the semantics and styling of your existing control. TooltipProvider supplies shared delay settings; place it around a related group when needed.
+
+The tooltip is a visual label, not an accessible description relationship. Keep the trigger’s accessible name and all essential instructions on the control or inline in the page. It may not be available to touch users. Use a dialog or other appropriate disclosure for additional interactive content.
+
+<UiReference name="Tooltip" />

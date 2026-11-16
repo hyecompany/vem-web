@@ -14,7 +14,7 @@ Give each permission a stable name. This example uses `tasks:read-notes` and `ta
 
 <Example file="integration/access.ts" region="permission-decision" />
 
-The context ID distinguishes callers on this backend. A permission can be `allowed`, `denied`, or `unknown`; unlisted permissions start unknown. A network failure does not establish denial or logout.
+The context ID distinguishes callers on this backend. Establish it from your authentication flow, not from a saved caller ID. A permission can be `allowed`, `denied`, or `unknown`; unlisted permissions start unknown. With persistence, known decisions resume for the same caller after restart. Current host decisions and revocations override saved decisions. A network failure does not establish denial or logout.
 
 ## 2. Put read rules beside the resource
 
@@ -93,7 +93,7 @@ Return this binding in the response's `grants` alongside its facts:
 
 It declares a dependency, not a grant. Add `state: "allowed"` only if the response verifies permission. Known denial of a prerequisite retires the dependent permission and its evidence. Unknown authority does not revoke existing evidence.
 
-The first binding preserves currently permitted information; changing an established binding retires its old generation. A verified response can establish the new permission and data together. Saved bindings restore before protected payloads become visible. Every persistence adapter implements `writeAccessBindings`, even when its current binding set is empty. Failures are reported and block further protected payload writes while permitted live data remains usable.
+The first binding preserves currently permitted information; changing an established binding retires its old generation. A verified response can establish the new permission and data together. Saved bindings restore before protected payloads become visible. Every persistence adapter implements `writeAccess` for permission snapshots and `writeAccessBindings` for dependencies, even when the binding set is empty. Load both before protected payloads; keep revocation records authoritative over older snapshots. Failures are reported and block further protected payload writes while permitted live data remains usable.
 
 </details>
 

@@ -42,6 +42,19 @@ async function imperative() {
 }
 function Screen() {
 	const form = useEdit(descriptor);
+	const field = form.field("description");
+	// @ts-expect-error Undeclared fields are not available to the form.
+	form.field("undeclared");
+	if (field.state === "readable") {
+		const value: string | undefined = field.value;
+		field.setValue("Edited");
+		// @ts-expect-error A string field cannot accept numeric input.
+		field.setValue(12);
+		void value;
+	} else {
+		// @ts-expect-error Unreadable fields do not expose their values.
+		field.value;
+	}
 	const save: () => ActionHandle<CommandResult<SaveOutcome>> = form.save;
 	if (form.outcome?.kind === "partial") {
 		const application: "unconfirmed" = form.outcome.value.application;

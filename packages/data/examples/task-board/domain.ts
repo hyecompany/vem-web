@@ -120,7 +120,6 @@ export function createTaskDefinition(
 			{
 				key: "task-list",
 				mode: "list",
-				cost: 2,
 				fields: ["title", "status", "notes"],
 				membership: true,
 				async run(_read, context) {

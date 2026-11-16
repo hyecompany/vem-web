@@ -1,0 +1,19 @@
+---
+title: "CommandButton"
+description: "Run a command with its admission and action state."
+order: 21
+---
+
+Put the component inside [DataProvider](/docs/ui/with-data). Pass a command description, not a fetch callback.
+
+<ComponentPreview name="command-button" />
+
+<Example package="ui" file="command-button.tsx" region="example" />
+
+The button explains unavailable admission and observes the last action it started. While that action is running it prevents a duplicate activation. The server can still reject an admitted attempt.
+
+Use `onAction` when the page also needs the immediate action handle for [inline feedback](/docs/ui/components/activity-feedback). The handle represents the shared action; it is not a second operation registry. Other Button props, including `variant` and `size`, still apply.
+
+A retry is a separate deliberate operation. This button never resubmits an uncertain action automatically.
+
+<UiReference name="CommandButton" />

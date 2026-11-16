@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { stableKey } from "../descriptors.js";
+import { filterFields } from "../filters.js";
 import type { TestClient } from "../testing/types.js";
 import type { QueryDescriptor, Values } from "../types.js";
 import type { QueryScenario, ResourceScenarios } from "./types.js";
@@ -81,7 +82,7 @@ export function scenarioQueries(
 					.filter((row) => rowScope(row) !== false);
 		const isUnresolved = (row: (typeof rows)[number]) =>
 			rowScope(row) === "unknown" ||
-			Object.keys(query.where ?? {}).some(
+			filterFields(query.where).some(
 				(field) => !Object.hasOwn(row.data, field),
 			);
 		const unknownScope = rows.some((row) => rowScope(row) === "unknown");

@@ -1,0 +1,237 @@
+/* SPDX-FileCopyrightText: © 2026 Joseph Maldjian <joseph.maldjian@hyecompany.com> */
+/* SPDX-License-Identifier: Apache-2.0 */
+
+.vem-sr-only {
+	position: absolute;
+	inline-size: 1px;
+	block-size: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
+
+.vem-overflow {
+	display: block;
+	position: relative;
+	min-inline-size: 0;
+	max-inline-size: 100%;
+	overflow: hidden;
+	white-space: nowrap;
+}
+
+.vem-overflow-measure,
+.vem-overflow-candidate {
+	display: block;
+	visibility: hidden;
+	inline-size: max-content;
+	pointer-events: none;
+	user-select: none;
+}
+
+.vem-overflow-candidate {
+	position: absolute;
+	inset: 0 auto auto 0;
+}
+
+.vem-overflow-rest {
+	display: block;
+	position: absolute;
+	inset: 0;
+	min-inline-size: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	user-select: none;
+}
+
+.vem-overflow-viewport {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	pointer-events: none;
+	-webkit-mask-image: linear-gradient(
+		to right,
+		transparent,
+		black min(0.75em, 12%),
+		black calc(100% - min(0.75em, 12%)),
+		transparent
+	);
+	mask-image: linear-gradient(
+		to right,
+		transparent,
+		black min(0.75em, 12%),
+		black calc(100% - min(0.75em, 12%)),
+		transparent
+	);
+}
+
+.vem-overflow-track {
+	display: flex;
+	position: absolute;
+	inset-block-start: 0;
+	inset-inline-start: 0;
+	inline-size: max-content;
+	gap: 24px;
+	opacity: 0;
+	visibility: hidden;
+	pointer-events: none;
+	user-select: none;
+	--vem-overflow-travel: calc(-50% - 12px);
+}
+
+.vem-overflow:dir(rtl) .vem-overflow-track {
+	--vem-overflow-travel: calc(50% + 12px);
+}
+
+@keyframes vem-overflow-scroll {
+	from {
+		transform: translateX(0);
+	}
+	to {
+		transform: translateX(var(--vem-overflow-travel));
+	}
+}
+
+.vem-spinner {
+	display: inline-flex;
+	flex-shrink: 0;
+	inline-size: 1.5rem;
+	block-size: 1.5rem;
+	opacity: 0.8;
+}
+
+.vem-spinner[data-size="sm"] {
+	inline-size: 1rem;
+	block-size: 1rem;
+}
+.vem-spinner[data-size="lg"] {
+	inline-size: 2rem;
+	block-size: 2rem;
+}
+.vem-spinner > svg {
+	inline-size: 100%;
+	block-size: 100%;
+}
+
+@keyframes vem-spinner-fade {
+	0%,
+	100% {
+		opacity: 0.15;
+	}
+	50% {
+		opacity: 1;
+	}
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.vem-overflow-rest,
+	.vem-overflow-track {
+		transition: opacity 200ms ease;
+	}
+
+	:where(
+			[data-vem-overflow-trigger]:is(
+					:hover,
+					:focus-visible,
+					:focus-within,
+					[data-highlighted]
+				)
+		)
+		.vem-overflow[data-vem-overflow]
+		> .vem-overflow-rest,
+	.vem-overflow[data-vem-overflow]:is(:hover, :focus-visible)
+		> .vem-overflow-rest {
+		opacity: 0;
+	}
+
+	:where(
+			[data-vem-overflow-trigger]:is(
+					:hover,
+					:focus-visible,
+					:focus-within,
+					[data-highlighted]
+				)
+		)
+		.vem-overflow[data-vem-overflow]
+		> .vem-overflow-viewport
+		> .vem-overflow-track,
+	.vem-overflow[data-vem-overflow]:is(:hover, :focus-visible)
+		> .vem-overflow-viewport
+		> .vem-overflow-track {
+		visibility: visible;
+		opacity: 1;
+		animation: vem-overflow-scroll var(--vem-overflow-duration) linear 200ms
+			infinite backwards;
+	}
+
+	.vem-spinner rect {
+		animation: vem-spinner-fade 800ms linear infinite;
+	}
+}
+
+.vem-combobox-body {
+	display: inherit;
+	flex-direction: inherit;
+	align-items: inherit;
+	justify-content: inherit;
+	gap: inherit;
+	flex-shrink: 0;
+	max-block-size: inherit;
+	min-block-size: 0;
+}
+
+.vem-virtual-list {
+	position: relative;
+	block-size: var(--vem-virtual-size);
+	max-block-size: 20rem;
+	overflow: auto;
+	overscroll-behavior: contain;
+	overflow-anchor: none;
+	scrollbar-width: thin;
+}
+
+.vem-combobox-list {
+	scrollbar-width: thin;
+}
+
+.vem-combobox-virtual-list {
+	max-block-size: min(16rem, calc(var(--available-height, 20rem) - 2rem));
+	scroll-padding-block: 4px;
+}
+
+.vem-virtual-canvas {
+	position: relative;
+}
+.vem-virtual-row {
+	position: absolute;
+}
+.vem-virtual-row[data-resizing],
+.vem-virtual-row[data-outside] {
+	overflow: clip;
+}
+
+.vem-virtual-row-content {
+	display: flow-root;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.vem-virtual-row {
+		transition: height 140ms ease-out;
+	}
+	.vem-virtual-row-content[data-entering] {
+		animation: vem-virtual-enter 140ms ease-out;
+	}
+}
+
+@keyframes vem-virtual-enter {
+	from {
+		opacity: 0;
+		translate: 0 -3px;
+	}
+	to {
+		opacity: 1;
+		translate: 0 0;
+	}
+}

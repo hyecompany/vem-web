@@ -16,12 +16,12 @@ import { commandKey } from "./descriptors.js";
 import type {
 	ActionHandle,
 	ActionJournal,
+	ActionObservation,
 	ActionOutcome,
 	ActionProjection,
 	ActionSnapshot,
 	CommandDescriptor,
 	GrantRef,
-	Watch,
 } from "./types.js";
 
 export { actionId } from "./actions/entry.js";
@@ -405,10 +405,18 @@ export class ActionRegistry {
 		this.listeners.add(listener);
 		return () => this.listeners.delete(listener);
 	}
-	watch(id: string): Watch<ActionSnapshot | undefined> {
+	watch(id: string): ActionObservation {
+		const control = () => {
+			const entry = this.entries.get(id);
+			if (!entry || !this.cached.some((action) => action.id === id))
+				throw new Error("This activity is no longer available");
+			return this.handle(entry);
+		};
 		return {
 			getSnapshot: () => this.cached.find((entry) => entry.id === id),
 			subscribe: (listener) => this.subscribe(listener),
+			cancel: async () => control().cancel(),
+			retry: (options) => control().retry(options),
 		};
 	}
 	close(): void {

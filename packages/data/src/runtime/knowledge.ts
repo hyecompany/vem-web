@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import type { AccessRegistry } from "../access.js";
-import { captureBasis, captureProof } from "../access-proofs.js";
+import { captureProof } from "../access-proofs.js";
 import { freezeValue, stableKey } from "../descriptors.js";
 import { fieldAccess } from "../read-model/access-requirements.js";
 import type {
@@ -30,6 +30,7 @@ import {
 } from "./continuity.js";
 import { EvidenceDependencies } from "./evidence-dependencies.js";
 import { EvidenceSupports, mergeSupports } from "./evidence-supports.js";
+import { IdentityTransitions } from "./identity-transitions.js";
 import {
 	cellRef,
 	knownRelationship,
@@ -39,6 +40,7 @@ import type { Cell } from "./state.js";
 
 export class KnowledgeStore {
 	readonly cells = new Map<string, Cell>();
+	readonly identities: IdentityTransitions;
 	readonly cellsByRecord = new Map<string, Set<string>>();
 	readonly dirtyRecords = new Set<string>();
 	readonly dirtyEffective = new Set<string>();
@@ -63,6 +65,7 @@ export class KnowledgeStore {
 		private readonly grants: AccessRegistry,
 		private readonly invalidated: (ref: EvidenceRef) => void,
 	) {
+		this.identities = new IdentityTransitions(grants);
 		this.evidence = new EvidenceSupports(grants, this.cells, this.continuity);
 	}
 	recordKey(resource: string, identity: unknown): string {
@@ -80,11 +83,7 @@ export class KnowledgeStore {
 			: `${this.recordKey(ref.resource, ref.identity)}:${JSON.stringify(ref.field)}`;
 	}
 	basis(refs: readonly DisclosureBasis[] | undefined): DisclosureProof[] {
-		return this.grants.surviving(
-			(refs ?? []).map((ref) =>
-				captureBasis(ref, (scope) => this.grants.ref(scope)),
-			),
-		);
+		return this.grants.capture(refs);
 	}
 	private fieldBasis(fact: FactObservation, field: string): DisclosureProof[] {
 		const evidence =
@@ -221,6 +220,13 @@ export class KnowledgeStore {
 			);
 		freezeValue(cell.value);
 		freezeValue(cell.identity);
+		if (cell.field === "$presence" && cell.kind !== "relationship")
+			this.identities.presence(
+				this.recordKey(cell.resource, cell.identity),
+				cell.value,
+				Boolean(cell.stale),
+				cell.revision,
+			);
 		this.cells.set(cell.key, cell);
 		this.dependencies.set(cell.key, [
 			...cell.dependencies,
@@ -239,6 +245,8 @@ export class KnowledgeStore {
 		const cell = this.cells.get(key);
 		if (!cell) return;
 		this.cells.delete(key);
+		if (cell.field === "$presence" && cell.kind !== "relationship")
+			this.identities.forget(this.recordKey(cell.resource, cell.identity));
 		this.dependencies.delete(key);
 		this.pendingCurrency.add(key);
 		const record = this.recordKey(cell.resource, cell.identity);
@@ -290,6 +298,7 @@ export class KnowledgeStore {
 				const value: KnownRecord = {
 					key,
 					...record,
+					incarnation: this.identities.reference(key),
 					values: frozen(record.values),
 					fields: frozen(record.fields),
 				};
@@ -376,7 +385,7 @@ export class KnowledgeStore {
 								.flatMap(
 									(dependency) => this.cells.get(dependency)?.bases ?? [],
 								)
-								.map((basis) => [stableKey(basis), basis]),
+								.map((basis) => [this.grants.proofKey(basis), basis]),
 						).values(),
 					];
 			}
@@ -405,7 +414,10 @@ export class KnowledgeStore {
 							this.validSupport(entry, new Set([key])),
 						)
 					: [];
-			const supports = mergeSupports([...retained, support]);
+			const supports = mergeSupports(
+				[...retained, support],
+				this.grants.proofKey,
+			);
 			bases = [
 				...new Map(
 					supports
@@ -419,7 +431,7 @@ export class KnowledgeStore {
 										}))),
 							],
 						}))
-						.map((basis) => [stableKey(basis), basis]),
+						.map((basis) => [this.grants.proofKey(basis), basis]),
 				).values(),
 			];
 			if (
@@ -532,6 +544,7 @@ export class KnowledgeStore {
 	}
 
 	close(): void {
+		this.identities.clear();
 		this.cells.clear();
 		this.cellsByRecord.clear();
 		this.dependencies.clear();

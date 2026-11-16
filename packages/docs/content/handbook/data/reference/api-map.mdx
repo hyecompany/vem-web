@@ -7,8 +7,8 @@ order: 1
 
 | Import | Audience | Main exports |
 | --- | --- | --- |
-| `@hyecompany/vem-data` | Features and contracts | `defineResource`, `defineCommand`, `defineEdit`, `hasFields`, descriptions and result types |
-| `@hyecompany/vem-data/react` | React features | `DataProvider`, `useQuery`, `useCommand`, `useEdit`, `useAction`, `useActivities`, `queryView` |
+| `@hyecompany/vem-data` | Features and contracts | `defineResource`, `defineCommand`, `defineEdit`, `filter`, `hasFields`, descriptions and result types |
+| `@hyecompany/vem-data/react` | React features | `DataProvider`, `useQuery`, `useReadStatus`, `useCommand`, `useEdit`, `useAction`, `useActivities`, `useFeedback`, `useInlineFeedback`, `queryView` |
 | `@hyecompany/vem-data/client` | Tab host | `connectSharedWorker`, `BrowserClient`, compatibility |
 | `@hyecompany/vem-data/worker` | Owner bootstrap | `createSharedHost`, owner contract |
 | `@hyecompany/vem-data/runtime` | Domain and owner integration | `createRuntime`, `ResourceDefinition`, evidence types, `DexiePersistence` |
@@ -18,3 +18,19 @@ order: 1
 [Browse all generated signatures](/docs/data/reference/api), or search for an exact API name. Entry-point listings link every exported declaration, including its members and generic parameters. Shared types may be linked to their canonical declaration under another entry point.
 
 Use only package exports. Internal stores, worker messages, and database rows are not the feature API. Low-level structural helpers `query`, `command`, and `edit` exist, but named resource contracts are the primary contributor interface.
+
+## Upgrade from Data 1
+
+Data 2 changes contracts implemented by custom clients, test doubles, and edit definitions. BrowserClient and the built-in runtime supply the new action controls; applications using them do not implement those methods themselves. Update the dependency and type-check your integration, including any edit definitions or handwritten test doubles.
+
+| If you maintain… | Update for Data 2 |
+| --- | --- |
+| A custom `DataClient` | Support `watch(query, { acquire: false })` without adding demand, and `watchReadStatus(query)` for owner-wide matching read work. Return an `ActionObservation` from `action(id)`, including `cancel()` and `retry()`. Delegate these controls to the owner, which checks current access and admission. |
+| Handwritten `EditSnapshot` objects | Supply `canEdit`: whether readable fields accept local input. It is independent of `canSave`; losing write access can still leave a locally editable draft. |
+| Handwritten `TestClient` or `ScenarioFeedback` objects | Supply the feedback capability required by their public types. Prefer `createTestClient` and `createScenarioClient` instead of copying their structures. |
+| Inline feedback acknowledgements | Pass the observed `phase` and, when present, `outcome.kind`. Acknowledgement needs the displayed stage, not a retained result payload. Existing typed `ActionSnapshot` values remain accepted. |
+| An edit with initially absent optional fields | Declare those keys in the baseline's `fieldDisclosure`, even when `values` omits them. Fields already present in `values` inherit the baseline disclosure unless overridden. Undeclared fields can no longer be edited or saved. |
+
+`PreparedEdit` keeps its existing shape. Its field declarations now determine which draft keys are admitted. Identity transitions and the new React feedback hooks are additive; list and detail screens keep using the same query descriptions.
+
+Continue to [edit definitions](/docs/data/connect/commands-edits), [feedback ownership](/docs/data/connect/feedback), or the [generated signatures](/docs/data/reference/api) for the contract you implement.

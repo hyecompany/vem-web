@@ -39,14 +39,19 @@ export function createScenarioClient(options: {
 	const edits = scenarioEdits(test, resources);
 	const source = test.client;
 	const scenario = delegateClient(source, {
-		watch(descriptor) {
-			const handle = source.watch(descriptor);
+		watch(descriptor, watchOptions) {
+			const handle = source.watch(descriptor, watchOptions);
 			return {
 				...handle,
+				retry() {
+					queries.ensure(descriptor as QueryDescriptor);
+					return handle.retry();
+				},
 				subscribe(listener) {
 					const stop = handle.subscribe(listener);
 					try {
-						queries.ensure(descriptor as QueryDescriptor);
+						if (watchOptions?.acquire !== false)
+							queries.ensure(descriptor as QueryDescriptor);
 						return stop;
 					} catch (error) {
 						stop();

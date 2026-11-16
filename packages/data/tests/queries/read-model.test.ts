@@ -120,7 +120,13 @@ test("unseen filters, selections, details and extracted resources project synchr
 	const all = query({ resource: "things", mode: "list", select: ["name"] });
 	parity(runtime, projection, all);
 	assert.deepEqual(
-		projection.project(all).rows.map((row) => row.identity),
+		projection
+			.project(all)
+			.rows.map((row) =>
+				row.identity.kind === "resource"
+					? { kind: row.identity.kind, resource: row.identity.resource }
+					: row.identity,
+			),
 		[
 			{ kind: "resource", resource: "a" },
 			{ kind: "resource", resource: "b" },

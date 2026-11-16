@@ -28,6 +28,14 @@ Call this once when the view attaches, and call its returned cleanup when the vi
 
 Retry is on the query handle. You do not need a separate refresh query or an event subscription in the view.
 
+Pass `{ acquire: false }` as the second argument to `client.watch` to observe permitted knowledge without requesting missing or stale data. The handle still receives changes and access withdrawal; its explicit `retry()` can acquire.
+
+## Observe read progress without requesting data
+
+<Example file="feature-guide/imperative.ts" region="read-status" />
+
+`watchReadStatus` reports related work from current consumers, including other tabs. Its snapshot has `pending`, `revalidating`, `issues`, and `canRetry`; `handle.retry()` retries unsuccessful matching work. It creates no data demand, and disposing it stops observation without stopping other consumers' reads. See [related read status](/docs/data/build/display#show-progress-for-related-reads) for matching and retry behavior.
+
 <details>
 <summary>Writing an editor without React</summary>
 

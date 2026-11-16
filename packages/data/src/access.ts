@@ -2,11 +2,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {
+	captureBasis,
 	mapProof,
 	proofEvery,
 	proofLeaves,
 	pruneProof,
 } from "./access-proofs.js";
+import { snapshotGrant } from "./access-snapshot.js";
+import { stableKey } from "./descriptors.js";
+import { ObservationProofs } from "./observation-proofs.js";
 import { evaluateAccess } from "./read-model/access-requirements.js";
 import type {
 	AccessBinding,
@@ -14,8 +18,10 @@ import type {
 	AccessSnapshot,
 	AccessState,
 	AccessUpdate,
+	DisclosureBasis,
 	DisclosureProof,
 	GrantRef,
+	ObservationBatch,
 } from "./types.js";
 import { equal, frozen } from "./values.js";
 
@@ -25,6 +31,51 @@ export const grantKey = (
 	JSON.stringify([ref.epoch ?? null, ref.contextId ?? null, ref.scope]);
 
 export class AccessRegistry {
+	private proofMemo?: ObservationProofs;
+	withObservation<T>(
+		batch: ObservationBatch,
+		work: (snapshot: ObservationBatch) => T,
+	): T {
+		const previous = this.proofMemo;
+		const memo = new ObservationProofs(previous);
+		this.proofMemo = memo;
+		try {
+			return work(memo.capture(batch));
+		} finally {
+			this.proofMemo = previous;
+		}
+	}
+	private invalidateProofs(): void {
+		for (let memo = this.proofMemo; memo; memo = memo.parent) memo.invalidate();
+	}
+	private proofResult<T>(
+		operation: string,
+		value: object,
+		calculate: () => T,
+	): T {
+		return this.proofMemo
+			? this.proofMemo.read(
+					operation,
+					value,
+					JSON.stringify([
+						this.revision,
+						this.contextGeneration,
+						this.contextId,
+					]),
+					calculate,
+				)
+			: calculate();
+	}
+	proofKey = (value: unknown): string =>
+		this.proofMemo?.key(value) ?? stableKey(value);
+	capture(refs: readonly DisclosureBasis[] | undefined): DisclosureProof[] {
+		if (!refs) return [];
+		return this.proofResult("capture", refs, () =>
+			this.surviving(
+				refs.map((ref) => captureBasis(ref, (scope) => this.ref(scope))),
+			),
+		);
+	}
 	private bindings = new Map<string, AccessBinding>();
 	private dependencyDenied = new Set<string>();
 	private retiredRestoredBindings = new Set<string>();
@@ -40,6 +91,8 @@ export class AccessRegistry {
 	private revision = 0;
 	private revocationGeneration = 0;
 	private cached: AccessSnapshot | undefined;
+	private savedAccess = new Map<string, AccessSnapshot>();
+	private explicitDecisions = new Set<string>();
 	contextId: string;
 	contextGeneration = 0;
 
@@ -88,6 +141,7 @@ export class AccessRegistry {
 		return () => context === this.contextGeneration && !this.revoked(proof);
 	}
 	register(refs: readonly DisclosureProof[]): GrantRef[] {
+		this.invalidateProofs();
 		const revoked: GrantRef[] = [];
 		for (const ref of refs.flatMap(proofLeaves)) {
 			this.previousProofs.set(`${grantKey(ref)}:${ref.generation}`, ref);
@@ -108,13 +162,16 @@ export class AccessRegistry {
 					grantKey(ref),
 					Math.max(this.tombstones.get(grantKey(ref)) ?? -1, ref.generation),
 				);
+				this.invalidateProofs();
 				revoked.push(ref);
 			}
 		}
 		return revoked;
 	}
 	adopt(proof: DisclosureProof): DisclosureProof {
-		return mapProof(proof, (ref) => this.adoptGrant(ref));
+		return this.proofResult("adopt", proof, () =>
+			mapProof(proof, (ref) => this.adoptGrant(ref)),
+		);
 	}
 	private established(scope: string, path = new Set<string>()): AccessState {
 		const state = this.state(scope);
@@ -137,7 +194,9 @@ export class AccessRegistry {
 		return this.ref(ref.scope);
 	}
 	visible(proof: DisclosureProof): boolean {
-		return proofEvery(proof, (ref) => this.visibleGrant(ref));
+		return this.proofResult("visible", proof, () =>
+			proofEvery(proof, (ref) => this.visibleGrant(ref)),
+		);
 	}
 	private visibleGrant(ref: GrantRef): boolean {
 		const current = this.scopes.get(ref.scope);
@@ -150,13 +209,19 @@ export class AccessRegistry {
 		);
 	}
 	revoked(proof: DisclosureProof): boolean {
-		return !proofEvery(
+		return this.proofResult(
+			"revoked",
 			proof,
-			(ref) =>
-				(this.tombstones.get(grantKey(ref)) ?? -1) < ref.generation &&
-				!(
-					this.state(ref.scope) === "denied" &&
-					(this.independent.has(ref.scope) || ref.contextId === this.contextId)
+			() =>
+				!proofEvery(
+					proof,
+					(ref) =>
+						(this.tombstones.get(grantKey(ref)) ?? -1) < ref.generation &&
+						!(
+							this.state(ref.scope) === "denied" &&
+							(this.independent.has(ref.scope) ||
+								ref.contextId === this.contextId)
+						),
 				),
 		);
 	}
@@ -167,13 +232,16 @@ export class AccessRegistry {
 		return refs.some((ref) => this.visible(ref));
 	}
 	surviving(refs: readonly DisclosureProof[]): DisclosureProof[] {
-		return refs.flatMap((ref) => {
-			const surviving = pruneProof(ref, (grant) => !this.revoked(grant));
-			return surviving ? [surviving] : [];
-		});
+		return this.proofResult("surviving", refs, () =>
+			refs.flatMap((ref) => {
+				const surviving = pruneProof(ref, (grant) => !this.revoked(grant));
+				return surviving ? [surviving] : [];
+			}),
+		);
 	}
 
 	apply(update: AccessUpdate): GrantRef[] {
+		this.invalidateProofs();
 		const revoked: GrantRef[] = [];
 		if (update.contextId !== undefined && update.contextId !== this.contextId) {
 			if (update.retirePrevious !== false) {
@@ -207,6 +275,11 @@ export class AccessRegistry {
 			if (decision.contextIndependent === false)
 				this.independent.delete(decision.scope);
 			const key = this.bindingKey(decision.scope);
+			if (
+				decision.state !== undefined ||
+				decision.contextIndependent !== undefined
+			)
+				this.explicitDecisions.add(key);
 			if (decision.state !== undefined) this.dependencyDenied.delete(key);
 			if (decision.requires !== undefined) {
 				if (decision.scope === "public")
@@ -243,6 +316,7 @@ export class AccessRegistry {
 			if (decision.state !== undefined)
 				revoked.push(...this.change(decision.scope, decision.state));
 		}
+		revoked.push(...this.resumeAccess());
 		revoked.push(...this.cascade());
 		return revoked;
 	}
@@ -261,10 +335,72 @@ export class AccessRegistry {
 			),
 		];
 	}
+	/** Store prior decisions without changing the host-established caller. */
+	restoreAccess(snapshots: readonly AccessSnapshot[]): GrantRef[] {
+		this.invalidateProofs();
+		const retired: GrantRef[] = [];
+		for (const snapshot of snapshots) {
+			this.savedAccess.set(
+				snapshot.contextId,
+				frozen(structuredClone(snapshot)),
+			);
+			retired.push(
+				...this.register(
+					Object.keys(snapshot.scopes).map((scope) =>
+						snapshotGrant(snapshot, scope),
+					),
+				),
+			);
+		}
+		return retired;
+	}
+	private resumeAccess(): GrantRef[] {
+		const latest = new Map<
+			string,
+			{ snapshot: AccessSnapshot; scope: string }
+		>();
+		for (const snapshot of this.savedAccess.values())
+			for (const [scope, decision] of Object.entries(snapshot.scopes)) {
+				if (scope === "public") continue;
+				if (
+					!decision.contextIndependent &&
+					(snapshot.contextId !== this.contextId ||
+						this.retiredContexts.has(snapshot.contextId))
+				)
+					continue;
+				latest.set(
+					JSON.stringify([
+						decision.contextIndependent ? null : snapshot.contextId,
+						scope,
+					]),
+					{ snapshot, scope },
+				);
+			}
+		const revoked: GrantRef[] = [];
+		for (const [key, { snapshot, scope }] of latest) {
+			if (
+				this.explicitDecisions.has(key) ||
+				this.explicitDecisions.has(this.bindingKey(scope)) ||
+				this.retiredRestoredBindings.has(key)
+			)
+				continue;
+			const decision = snapshot.scopes[scope];
+			if (
+				!decision ||
+				(decision.state === "allowed" &&
+					this.revoked(snapshotGrant(snapshot, scope)))
+			)
+				continue;
+			if (decision.contextIndependent) this.independent.add(scope);
+			revoked.push(...this.change(scope, decision.state));
+		}
+		return revoked;
+	}
 	bindingsSnapshot(): readonly AccessBinding[] {
 		return [...this.bindings.values()];
 	}
 	restoreBindings(bindings: readonly AccessBinding[]): void {
+		this.invalidateProofs();
 		for (const binding of bindings) {
 			const existing = this.bindings.get(binding.key);
 			if (existing) {
@@ -366,6 +502,7 @@ export class AccessRegistry {
 	}
 
 	restoreTombstones(values: Readonly<Record<string, number>>): void {
+		this.invalidateProofs();
 		for (const [key, generation] of Object.entries(values)) {
 			if (generation > (this.tombstones.get(key) ?? -1))
 				this.revocationGeneration++;
@@ -424,8 +561,11 @@ export class AccessRegistry {
 		return this.cached;
 	}
 	close(): void {
+		this.invalidateProofs();
 		this.scopes = new Map([["public", { state: "allowed", generation: 0 }]]);
 		this.retiredRestoredBindings.clear();
+		this.savedAccess.clear();
+		this.explicitDecisions.clear();
 		this.bindings.clear();
 		this.dependencyDenied.clear();
 		this.scopeContexts.clear();

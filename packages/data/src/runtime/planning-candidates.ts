@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { stableKey } from "../descriptors.js";
+import { filterEqualities, isFilterExpression } from "../filters.js";
 import {
 	evaluateAccess,
 	fieldAccess,
@@ -21,7 +22,9 @@ import type {
 	ResourceDefinition,
 } from "../types.js";
 import { equal } from "../values.js";
+import { createAcquisitionCostEstimator } from "./acquisition-cost.js";
 import { broaderFilters } from "./planning-filters.js";
+import { membershipCandidates } from "./planning-memberships.js";
 import type {
 	AttemptedSource,
 	Candidate,
@@ -29,6 +32,7 @@ import type {
 	PlannedAcquisition,
 	PlanningHost,
 } from "./planning-model.js";
+import { sourceFilter } from "./source-filters.js";
 
 function scopes(requirement: AccessRequirement | undefined): string[] {
 	if (requirement === undefined) return [];
@@ -46,17 +50,13 @@ function queryFor(requirement: MissingRequirement): QueryDescriptor {
 function sourceRequest(
 	source: AcquisitionSource,
 	requirement: MissingRequirement,
+	context?: ResourceContext,
 ): AcquisitionRequest {
 	const query =
 		source.mode === "one" ? queryFor(requirement) : requirement.query;
-	const supported = source.filters ?? [];
 	const where =
 		source.mode === "list"
-			? Object.fromEntries(
-					Object.entries(query.where ?? {}).filter(([field]) =>
-						supported.includes(field),
-					),
-				)
+			? sourceFilter(source, query.where, context)
 			: undefined;
 	return {
 		resource: requirement.resource,
@@ -124,14 +124,22 @@ function predicateEvidence(
 	requirement: MissingRequirement,
 ): boolean {
 	const field = requirement.field;
+	if (
+		field === undefined ||
+		candidate.source.mode !== "list" ||
+		candidate.source.membership !== true
+	)
+		return false;
+	if (requirement.predicate && isFilterExpression(requirement.query.where)) {
+		return (
+			candidate.request.where !== undefined &&
+			filterCovers(requirement.query.where, candidate.request.where)
+		);
+	}
+	const values = filterEqualities(candidate.request.where);
 	return (
-		field !== undefined &&
-		(requirement.predicate === true ||
-			candidate.source.filters?.includes(field) === true) &&
-		candidate.source.mode === "list" &&
-		candidate.source.membership === true &&
-		Object.hasOwn(candidate.request.where ?? {}, field) &&
-		equal(candidate.request.where?.[field], requirement.query.where?.[field])
+		Object.hasOwn(values, field) &&
+		equal(values[field], filterEqualities(requirement.query.where)[field])
 	);
 }
 function supports(
@@ -144,10 +152,9 @@ function supports(
 		return (
 			(need.kind !== "collection-field" || source.mode === "list") &&
 			(source.fields.includes(need.field ?? "") ||
-				predicateEvidence(
-					{ source, request: sourceRequest(source, need) },
-					need,
-				))
+				(source.mode === "list" &&
+					source.membership === true &&
+					(need.predicate === true || source.filters !== undefined)))
 		);
 	if (need.kind === "relationship")
 		return source.relationships?.includes(need.relationship ?? "") === true;
@@ -157,6 +164,7 @@ export function requestCovers(
 	candidate: PlannedAcquisition,
 	requirement: MissingRequirement,
 	definition: ResourceDefinition,
+	host: PlanningHost,
 ): boolean {
 	if (
 		candidate.resource !== requirement.resource ||
@@ -170,6 +178,7 @@ export function requestCovers(
 	)
 		return false;
 	const expected = sourceRequest(candidate.source, requirement);
+	expected.where = requirement.query.where;
 	if (!equal(candidate.request.scope, expected.scope)) return false;
 	if (candidate.request.mode === "one") {
 		const key = (identity: unknown) =>
@@ -177,11 +186,17 @@ export function requestCovers(
 		if (key(candidate.request.identity) !== key(requirement.identity))
 			return false;
 	} else if (
-		definition.matches && Object.keys(candidate.request.where ?? {}).length > 0
+		definition.matches &&
+		!isFilterExpression(requirement.query.where) &&
+		Object.keys(candidate.request.where ?? {}).length > 0
 			? !equal(candidate.request.where, expected.where)
 			: !filterCovers(candidate.request.where, expected.where)
 	)
-		return false;
+		return (
+			requirement.kind !== "membership" &&
+			requirement.kind !== "collection-field" &&
+			host.matches(candidate.request, requirement.identity)
+		);
 	return true;
 }
 
@@ -211,6 +226,7 @@ export function buildCandidates(
 	blocked: { candidate: Candidate; issue: QueryIssue }[];
 } {
 	const candidates = new Map<string, Candidate>();
+	const estimateCost = createAcquisitionCostEstimator(context, host);
 	const byTarget = new Map<string, Need[]>();
 	const targetNeeds = (candidate: PlannedAcquisition): readonly Need[] =>
 		byTarget.get(
@@ -237,10 +253,19 @@ export function buildCandidates(
 			new Set(sources.map((source) => source.key)).size !== sources.length
 		)
 			throw new Error(`Source keys must be unique for ${definition.name}`);
+		if (!validated.has(definition.name)) {
+			const declared = sources.filter(
+				(source) => source.cost !== undefined,
+			).length;
+			if (declared > 0 && declared !== sources.length)
+				throw new Error(
+					`Resource ${definition.name} must declare comparable costs for every source or omit all costs`,
+				);
+		}
 		validated.add(definition.name);
 		for (const source of sources) {
 			if (!supports(source, node.requirement)) continue;
-			const request = sourceRequest(source, node.requirement);
+			const request = sourceRequest(source, node.requirement, context);
 			const target = targetKey(source, request, definition);
 			const targetRequirements = byTarget.get(target) ?? [];
 			targetRequirements.push(node);
@@ -284,6 +309,20 @@ export function buildCandidates(
 				].sort();
 		}
 	}
+	for (const candidate of membershipCandidates(
+		host,
+		context,
+		candidates,
+		targetNeeds,
+		(candidate, request) =>
+			baseKey(
+				candidate.source,
+				request,
+				host.definition(candidate.resource),
+				context,
+			),
+	))
+		candidates.set(candidate.key, candidate);
 	const groups = new Map<string, Candidate[]>();
 	for (const candidate of candidates.values()) {
 		if (candidate.request.mode !== "list" || !candidate.request.where) continue;
@@ -341,6 +380,7 @@ export function buildCandidates(
 							candidate,
 							node.requirement,
 							host.definition(node.requirement.resource),
+							host,
 						) &&
 						!inflight.some(
 							(work) =>
@@ -349,6 +389,7 @@ export function buildCandidates(
 									work,
 									node.requirement,
 									host.definition(node.requirement.resource),
+									host,
 								) &&
 								baseKey(
 									work.source,
@@ -391,19 +432,16 @@ export function buildCandidates(
 					? candidate.source.accessUnknown(candidate.request, context)
 					: candidate.source.accessUnknown) === "wait")
 		) {
-			candidate.states = [
-				...new Set(
-					targetNeeds(candidate)
-						.filter((node) =>
-							requestCovers(
-								candidate,
-								node.requirement,
-								host.definition(node.requirement.resource),
-							),
-						)
-						.map((node) => node.state),
+			const affected = targetNeeds(candidate).filter((node) =>
+				requestCovers(
+					candidate,
+					node.requirement,
+					host.definition(node.requirement.resource),
+					host,
 				),
-			];
+			);
+			candidate.states = [...new Set(affected.map((node) => node.state))];
+			candidate.covers = new Set(affected.map((node) => node.key));
 			blocked.push({
 				candidate,
 				issue: {
@@ -418,14 +456,6 @@ export function buildCandidates(
 		}
 		if (candidate.source.available?.(candidate.request, context) === false)
 			continue;
-		candidate.cost =
-			typeof candidate.source.cost === "function"
-				? candidate.source.cost(candidate.request)
-				: (candidate.source.cost ?? 1);
-		if (!(candidate.cost > 0) || !Number.isFinite(candidate.cost))
-			throw new Error(
-				`Source ${candidate.source.key} must declare a finite positive cost`,
-			);
 		candidates.set(candidate.key, candidate);
 	}
 	for (const work of inflight)
@@ -452,6 +482,7 @@ export function buildCandidates(
 					candidate,
 					node.requirement,
 					host.definition(node.requirement.resource),
+					host,
 				)
 			)
 				continue;
@@ -491,5 +522,21 @@ export function buildCandidates(
 					candidate.identityKey(node.requirement.identity),
 				);
 		}
+	const inflightCoverage = new Set(
+		inflight.flatMap((work) => [...(candidates.get(work.key)?.covers ?? [])]),
+	);
+	for (const candidate of candidates.values()) {
+		if (inflight.some((work) => work.key === candidate.key)) continue;
+		const covered = [...candidate.covers].flatMap((key) => {
+			const need = needs.get(key);
+			return need && !inflightCoverage.has(key) ? [need.requirement] : [];
+		});
+		candidate.cost = estimateCost(
+			candidate.source,
+			candidate.request,
+			covered,
+			candidate.identityKey,
+		);
+	}
 	return { candidates, blocked };
 }
