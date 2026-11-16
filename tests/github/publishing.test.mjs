@@ -86,9 +86,13 @@ test("browser prerequisites are installed before workspace and documentation tes
 			new URL(`../../.github/workflows/${file}`, import.meta.url),
 			"utf8",
 		);
-		const install = workflow.indexOf(
-			"run: npx playwright install --with-deps chromium",
-		);
+		const install = workflow.indexOf("run: npx playwright install --with-deps");
+		if (file === "checks.yml") {
+			assert.ok(
+				workflow.indexOf("run: node scripts/plan-validation.mjs") < install,
+			);
+			assert.match(workflow, /if: steps\.plan\.outputs\.browsers != ''/);
+		}
 		const run = workflow.indexOf(
 			file === "docs.yml" ? "run: npm run docs:validate" : "run: npm run test:",
 		);

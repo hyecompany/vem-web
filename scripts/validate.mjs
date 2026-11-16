@@ -59,6 +59,7 @@ const tasks = {
 	"build:data": { run: npmRun("build", "data") },
 	"build:ui": { needs: ["build:data"], run: npmRun("build", "ui") },
 	data: { run: npmRun("test", "data") },
+	"data:validate": grouped("types:data", "data"),
 	react: { run: npmRun("test:react") },
 	"ui:unit": {
 		needs: ["build:ui"],

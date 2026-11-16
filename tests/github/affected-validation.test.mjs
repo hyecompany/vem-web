@@ -8,6 +8,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import {
+	browserRequirements,
 	changedFiles,
 	selectValidation,
 } from "../../scripts/lib/affected-validation.mjs";
@@ -155,4 +156,32 @@ test("Git changes include branch commits, staged and unstaged work, deleted and 
 	} finally {
 		await rm(directory, { recursive: true, force: true });
 	}
+});
+
+test("browser prerequisites follow selected suites and unknown targets stay conservative", () => {
+	for (const path of [
+		"packages/data/tests/planning/planner.test.ts",
+		"packages/data/tests/support/model.ts",
+	]) {
+		const plan = selectValidation([path]);
+		assert.deepEqual(plan.targets, ["data:validate"]);
+		assert.deepEqual(browserRequirements(plan.targets), []);
+	}
+	assert.deepEqual(
+		browserRequirements(["check", "react:validate", "workflows"]),
+		[],
+	);
+	assert.deepEqual(browserRequirements(["docs:validate", "data:validate"]), [
+		"chromium",
+	]);
+	for (const targets of [
+		["all"],
+		["unknown"],
+		selectValidation(["packages/data/src/runtime.ts"]).targets,
+	])
+		assert.deepEqual(browserRequirements(targets), [
+			"chromium",
+			"firefox",
+			"webkit",
+		]);
 });
