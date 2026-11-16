@@ -124,7 +124,8 @@ try {
 				esModuleInterop: true,
 				plugins: [{ name: "next" }],
 			},
-			include: ["**/*.ts", "**/*.tsx"],
+			// Imported examples are checked transitively from the application entry points.
+			include: ["app/**/*.ts", "app/**/*.tsx"],
 			exclude: ["node_modules"],
 		}),
 	);
