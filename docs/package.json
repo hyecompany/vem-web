@@ -15,7 +15,7 @@
 		"@fontsource/poppins": "^5.3.0",
 		"@hyecompany/vem-data": "2.0.0",
 		"clsx": "^2.1.1",
-		"fumadocs-core": "^16.18.3",
+		"fumadocs-core": "^16.19.0",
 		"fumadocs-mdx": "^15.5.2",
 		"fumadocs-ui": "^16.18.3",
 		"lucide-react": "^1.16.0",
