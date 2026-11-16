@@ -66,6 +66,15 @@ export function selectValidation(paths) {
 		) {
 			add("check", path, "repository guidance changed");
 		} else if (
+			path.startsWith("packages/data/tests/") &&
+			!path.startsWith("packages/data/tests/react/")
+		) {
+			add(
+				"data:validate",
+				path,
+				"Data runtime tests or their fixtures changed",
+			);
+		} else if (
 			/^packages\/(?:data|ui)\/tests\/react\//.test(path) ||
 			path === "vitest.config.mjs" ||
 			path === "tests/support/react.mjs"
@@ -105,6 +114,7 @@ export function selectValidation(paths) {
 		"check",
 		"workflows",
 		"react:validate",
+		"data:validate",
 		"docs:validate",
 	].filter((target) => selections.has(target));
 	return {
@@ -146,4 +156,22 @@ export function changedFiles(base = "origin/main", directory = process.cwd()) {
 	} catch {
 		return null;
 	}
+}
+
+/** Unknown targets retain the complete browser check. */
+export function browserRequirements(targets) {
+	const withoutBrowsers = new Set([
+		"check",
+		"workflows",
+		"react:validate",
+		"data:validate",
+	]);
+	if (targets.every((target) => withoutBrowsers.has(target))) return [];
+	if (
+		targets.every(
+			(target) => withoutBrowsers.has(target) || target === "docs:validate",
+		)
+	)
+		return ["chromium"];
+	return ["chromium", "firefox", "webkit"];
 }

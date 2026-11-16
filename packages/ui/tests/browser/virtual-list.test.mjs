@@ -53,16 +53,23 @@ test("virtual combobox renders bounded rows, exposes only visible demand, and re
 		).toBeVisible();
 		assert.ok((await page.getByRole("option").count()) < 30);
 		await expect
-			.poll(() => page.evaluate(() => window.activeDescriptions.size))
-			.toBeGreaterThan(0);
-		const visible = await page
-			.locator('[role="option"][data-visible="true"]')
-			.count();
-		assert.equal(
-			await page.evaluate(() => window.activeDescriptions.size),
-			visible,
-		);
-		assert.ok(visible <= (await page.getByRole("option").count()));
+			.poll(() =>
+				page.evaluate(() => {
+					const visible = [
+						...document.querySelectorAll(
+							'[role="option"][data-visible="true"]',
+						),
+					]
+						.map((node) => node.getAttribute("data-project"))
+						.sort();
+					const active = [...window.activeDescriptions].sort();
+					return (
+						visible.length > 0 &&
+						JSON.stringify(visible) === JSON.stringify(active)
+					);
+				}),
+			)
+			.toBe(true);
 		await input.focus();
 		await input.press("ArrowUp");
 		await expect(

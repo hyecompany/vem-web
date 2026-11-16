@@ -25,7 +25,16 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium firefox webkit
+      - name: Select validation prerequisites
+        id: plan
+        run: node scripts/plan-validation.mjs
+        env:
+          VEM_TEST_BASE: ${{ github.event.pull_request.base.sha }}
+      - name: Install required browsers
+        if: steps.plan.outputs.browsers != ''
+        env:
+          VEM_TEST_BROWSERS: ${{ steps.plan.outputs.browsers }}
+        run: npx playwright install --with-deps $VEM_TEST_BROWSERS
       - name: Validate affected suites
         if: github.event_name == 'pull_request'
         run: npm run test:affected
