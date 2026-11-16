@@ -29,6 +29,7 @@ on:
 permissions:
   contents: read
   id-token: write
+  pages: write
 
 jobs:
   publish:
@@ -45,16 +46,20 @@ jobs:
         with:
           node-version: "24"
           registry-url: "https://registry.npmjs.org"
-          package-manager-cache: false
+          cache: npm
       - name: Install dependencies
         run: npm ci
-      - run: npm run check
-      - run: npm run typecheck
-      - run: npx playwright install --with-deps chromium firefox
-      - run: npm test
-      - run: npm run test:package
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - run: npm run test:all
       - name: Publish the release package
         env:
           VEM_PUBLISH_PACKAGE: ${{ inputs.package }}
           VEM_RELEASE_TAG: ${{ inputs.tag }}
         run: node scripts/publish-packages.mjs
+  documentation:
+    name: Deploy released documentation
+    needs: publish
+    uses: ./.github/workflows/docs.yml
+    with:
+      deploy: true
+      ref: ${{ inputs.tag }}

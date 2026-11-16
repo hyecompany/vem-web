@@ -2,19 +2,22 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import assert from "node:assert/strict";
-import test from "node:test";
+import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { expect } from "@playwright/test";
 import { createServer } from "vite";
-import { browser } from "../../../../tests/support/browser.mjs";
+import {
+	browser,
+	browserCacheDirectory,
+} from "../../../../tests/support/browser.mjs";
 
-async function fixture(
-	t,
-	{ protectedAction = false, inspector, search = false } = {},
-) {
-	const server = await createServer({
+const fixtureRoot = fileURLToPath(new URL("./fixture", import.meta.url));
+let server, app;
+before(async () => {
+	server = await createServer({
 		configFile: false,
-		root: fileURLToPath(new URL("./fixture", import.meta.url)),
+		root: fixtureRoot,
+		cacheDir: browserCacheDirectory(fixtureRoot),
 		logLevel: "error",
 		oxc: { jsx: { runtime: "automatic" } },
 		server: { host: "127.0.0.1", port: 0 },
@@ -34,10 +37,20 @@ async function fixture(
 		},
 	});
 	await server.listen();
-	t.after(() => server.close());
-	const app = await browser();
-	t.after(() => app.close());
-	const page = await app.newPage();
+	app = await browser();
+});
+after(async () => {
+	await app?.close();
+	await server?.close();
+});
+
+async function fixture(
+	t,
+	{ protectedAction = false, inspector, search = false } = {},
+) {
+	const context = await app.newContext();
+	t.after(() => context.close());
+	const page = await context.newPage();
 	const errors = [];
 	page.on("pageerror", (error) => errors.push(error.message));
 	await page.goto(

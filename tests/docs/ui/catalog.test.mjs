@@ -4,14 +4,22 @@
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
-import { test } from "node:test";
+import { after, before, test } from "node:test";
 import { expect } from "@playwright/test";
 import { browser } from "../../support/browser.mjs";
 import { root, serve } from "../support/site.mjs";
 
+let app, engine;
+before(async () => {
+	app = await serve();
+	engine = await browser();
+});
+after(async () => {
+	await engine?.close();
+	await app?.close();
+});
+
 async function visit(run, options = {}) {
-	const app = await serve(),
-		engine = await browser();
 	const context = await engine.newContext(options),
 		page = await context.newPage(),
 		errors = [];
@@ -25,12 +33,10 @@ async function visit(run, options = {}) {
 		assert.deepEqual(errors, []);
 	} finally {
 		await context.close();
-		await engine.close();
-		await app.close();
 	}
 }
 async function capture(page, name) {
-	const directory = resolve(root, "packages/docs/.generated/screenshots");
+	const directory = resolve(root, "docs/.generated/screenshots");
 	await mkdir(directory, { recursive: true });
 	await page.screenshot({ path: resolve(directory, name), fullPage: true });
 }

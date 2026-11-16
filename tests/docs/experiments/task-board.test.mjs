@@ -285,13 +285,13 @@ test("static reading, mobile layout, reduced motion, and keyboard controls remai
 					await toggle.evaluate((el) => getComputedStyle(el).outlineStyle),
 					"solid",
 				);
-				await mkdir(resolve(root, "packages/docs/.generated/screenshots"), {
+				await mkdir(resolve(root, "docs/.generated/screenshots"), {
 					recursive: true,
 				});
 				await page.screenshot({
 					path: resolve(
 						root,
-						`packages/docs/.generated/screenshots/acquisition-${width}.png`,
+						`docs/.generated/screenshots/acquisition-${width}.png`,
 					),
 					fullPage: true,
 				});

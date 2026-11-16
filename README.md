@@ -23,6 +23,6 @@ Shared foundations for browser applications. Adopt each package independently; b
 
 ## Work on this repository
 
-Packages live in `packages/data` and `packages/ui`; documentation source lives in `packages/docs/content/handbook`. Executable snippets are in each package's `examples` directory, and built-site checks are in `tests/docs`, and packed-consumer browser checks are in `tests/package`. See [the test layout](tests/README.md) when adding coverage.
+Packages live in `packages/data` and `packages/ui`; package guides live in `packages/data/docs` and `packages/ui/docs`. The `docs/` application assembles them with framework pages from `docs/content/handbook`. Executable snippets are in each package's `examples` directory, built-site checks are in `tests/docs`, and packed-consumer browser checks are in `tests/package`. See [the test layout](tests/README.md) when adding coverage.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for installation and required checks, or [the docs contributor guide](packages/docs/content/handbook/data/reference/contributing.mdx) to change a guide, example, or diagram. `npm run docs:dev` previews the site; `npm run docs:build` produces static output without publishing it.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for installation and required checks, or [the docs contributor guide](packages/data/docs/reference/contributing.mdx) to change a guide, example, or diagram. `npm run docs:dev` previews the site; `npm run docs:build` produces static output without publishing it.

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: © 2026 Joseph Maldjian <joseph.maldjian@hyecompany.com>
+# SPDX-License-Identifier: Apache-2.0
+
 node_modules/
 dist/
 coverage/
@@ -9,9 +12,9 @@ coverage/
 out/
 .source/
 
-packages/docs/content/docs/
+docs/content/docs/
 .generated/
-packages/docs/public/examples/
+docs/public/examples/
 **/.build/
 *.tsbuildinfo
 

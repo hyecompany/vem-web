@@ -7,7 +7,7 @@ import { resolve } from "node:path";
 import { test } from "node:test";
 import { base, root } from "./support/site.mjs";
 
-const out = resolve(root, "packages/docs/out");
+const out = resolve(root, "docs/out");
 async function files(dir) {
 	return (
 		await Promise.all(
@@ -104,7 +104,7 @@ test("text exports contain executable excerpts and equivalent visual explanation
 });
 test("all public entry points and their exported symbols appear in generated reference", async () => {
 	const api = JSON.parse(
-		await readFile(resolve(root, "packages/docs/.generated/api.json"), "utf8"),
+		await readFile(resolve(root, "docs/.generated/api.json"), "utf8"),
 	);
 	const manifest = JSON.parse(
 		await readFile(resolve(root, "packages/data/package.json"), "utf8"),
@@ -119,7 +119,7 @@ test("all public entry points and their exported symbols appear in generated ref
 	for (const entry of api.children) {
 		const path = entry.name === "index" ? "index-1" : entry.name;
 		const text = await readFile(
-			resolve(root, `packages/docs/.generated/api/${path}.md`),
+			resolve(root, `docs/.generated/api/${path}.md`),
 			"utf8",
 		);
 		for (const member of entry.children ?? [])
@@ -131,7 +131,7 @@ test("all public entry points and their exported symbols appear in generated ref
 });
 
 test("every public UI component and binding has a guide and generated reference", async () => {
-	for (const file of await files(resolve(root, "packages/docs/components"))) {
+	for (const file of await files(resolve(root, "docs/components"))) {
 		if (!file.endsWith(".tsx")) continue;
 		assert.doesNotMatch(
 			await readFile(file, "utf8"),
@@ -141,10 +141,7 @@ test("every public UI component and binding has a guide and generated reference"
 	}
 
 	const api = JSON.parse(
-		await readFile(
-			resolve(root, "packages/docs/.generated/ui-api.json"),
-			"utf8",
-		),
+		await readFile(resolve(root, "docs/.generated/ui-api.json"), "utf8"),
 	);
 	const manifest = JSON.parse(
 		await readFile(resolve(root, "packages/ui/package.json"), "utf8"),
@@ -157,10 +154,7 @@ test("every public UI component and binding has a guide and generated reference"
 		entries.sort(),
 	);
 	const catalog = JSON.parse(
-		await readFile(
-			resolve(root, "packages/docs/content/ui-components.json"),
-			"utf8",
-		),
+		await readFile(resolve(root, "docs/content/ui-components.json"), "utf8"),
 	);
 	const documented = catalog.flatMap((entry) => entry.exports).sort();
 	const actual = api.children
@@ -175,14 +169,12 @@ test("every public UI component and binding has a guide and generated reference"
 		actual,
 		"the catalog covers every public component and hook",
 	);
-	const generated = await files(
-		resolve(root, "packages/docs/.generated/ui-api"),
-	);
+	const generated = await files(resolve(root, "docs/.generated/ui-api"));
 	for (const entry of api.children) {
 		const module = await readFile(
 			resolve(
 				root,
-				`packages/docs/.generated/ui-api/${entry.name === "index" ? "index-1" : entry.name}.md`,
+				`docs/.generated/ui-api/${entry.name === "index" ? "index-1" : entry.name}.md`,
 			),
 			"utf8",
 		);
