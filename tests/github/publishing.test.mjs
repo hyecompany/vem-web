@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 import { publicationFor } from "../../scripts/lib/package-release.mjs";
+import { stageRelease, stagingSummary } from "../../scripts/stage-packages.mjs";
 
 const config = JSON.parse(
 	await readFile(
@@ -140,10 +141,55 @@ test("package checks cover PRs and documentation deploys only verified releases"
 		new URL("../../.github/workflows/publish.yml", import.meta.url),
 		"utf8",
 	);
-	assert.match(
-		publish,
-		/needs: publish\s+uses: \.\/\.github\/workflows\/docs\.yml/,
-	);
+	assert.doesNotMatch(publish, /uses: \.\/\.github\/workflows\/docs\.yml/);
+	assert.match(publish, /node \.release-tools\/scripts\/stage-packages\.mjs/);
+	assert.match(publish, /ref: \$\{\{ github\.sha \}\}/);
+	assert.match(publish, /if: github\.ref == 'refs\/heads\/main'/);
 	assert.match(publish, /run: npm run test:all/);
 	assert.match(publish, /ref: \$\{\{ inputs\.tag \}\}/);
+});
+
+test("staging requires a valid release, never uploads published versions, and preserves failures", async () => {
+	const directory = "packages/data";
+	const manifest = { name: "@hyecompany/vem-data", version: "2.0.0" };
+	let uploads = 0;
+	const services = {
+		published: async () => false,
+		stage: async () => {
+			uploads++;
+		},
+	};
+	await assert.rejects(
+		stageRelease(config, directory, "wrong", manifest, services),
+	);
+	assert.equal(uploads, 0);
+	const staged = await stageRelease(
+		config,
+		directory,
+		"vem-data-v2.0.0",
+		manifest,
+		services,
+	);
+	assert.equal(staged.status, "staged");
+	assert.equal(uploads, 1);
+	assert.match(stagingSummary(staged), /settings\/hyecompany\/staged-packages/);
+	assert.match(stagingSummary(staged), /not publicly available/);
+	const published = await stageRelease(
+		config,
+		directory,
+		"vem-data-v2.0.0",
+		manifest,
+		{ ...services, published: async () => true },
+	);
+	assert.equal(published.status, "published");
+	assert.equal(uploads, 1);
+	await assert.rejects(
+		stageRelease(config, directory, "vem-data-v2.0.0", manifest, {
+			...services,
+			stage: async () => {
+				throw Error("npm rejected staging");
+			},
+		}),
+		/npm rejected staging/,
+	);
 });

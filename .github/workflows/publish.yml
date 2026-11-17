@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: © 2026 Joseph Maldjian <joseph.maldjian@hyecompany.com>
 # SPDX-License-Identifier: Apache-2.0
 
-name: Publish packages
+name: Stage packages
 
 on:
   workflow_call:
@@ -22,18 +22,18 @@ on:
           - packages/data
           - packages/ui
       tag:
-        description: Existing release tag to publish
+        description: Existing release tag to stage
         required: true
         type: string
 
 permissions:
   contents: read
   id-token: write
-  pages: write
 
 jobs:
   publish:
-    name: Publish the selected package
+    name: Validate and stage the selected package
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Check out release
@@ -51,15 +51,15 @@ jobs:
         run: npm ci
       - run: npx playwright install --with-deps chromium firefox webkit
       - run: npm run test:all
-      - name: Publish the release package
+      - name: Check out staging tools
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: .release-tools
+          persist-credentials: false
+          sparse-checkout: scripts
+      - name: Stage the release package for approval
         env:
           VEM_PUBLISH_PACKAGE: ${{ inputs.package }}
           VEM_RELEASE_TAG: ${{ inputs.tag }}
-        run: node scripts/publish-packages.mjs
-  documentation:
-    name: Deploy released documentation
-    needs: publish
-    uses: ./.github/workflows/docs.yml
-    with:
-      deploy: true
-      ref: ${{ inputs.tag }}
+        run: node .release-tools/scripts/stage-packages.mjs
