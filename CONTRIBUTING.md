@@ -36,7 +36,7 @@ Each adapted file has a short `Source:` comment linking to the real upstream fil
 
 ## Checks
 
-Use Node.js 24 LTS. After `npm ci`, choose the checks for the work:
+Use Node.js 24.15 or newer in the 24 LTS line. After `npm ci`, choose the checks for the work:
 
 | Command | Coverage |
 | --- | --- |

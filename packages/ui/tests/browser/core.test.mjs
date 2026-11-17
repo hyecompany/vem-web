@@ -12,6 +12,11 @@ import {
 	browser as launchBrowser,
 } from "../../../../tests/support/browser.mjs";
 
+import {
+	startBrowserDiagnostics,
+	withBrowserDiagnostics,
+} from "../../../../tests/support/browser-diagnostics.mjs";
+
 const fixtureRoot = fileURLToPath(new URL("./fixture", import.meta.url));
 let server, browser, url;
 before(async () => {
@@ -36,6 +41,7 @@ async function pageFor(options = {}) {
 		...options,
 	});
 	const page = await context.newPage();
+	await startBrowserDiagnostics(page);
 	page.setDefaultTimeout(6000);
 	page.on("pageerror", (error) => console.error(error));
 	await page.goto(url);
@@ -306,7 +312,9 @@ test("mobile sidebar keeps native attributes, focus restoration, and modal keybo
 			true,
 		);
 		await page.keyboard.press("Escape");
-		await dialog.waitFor({ state: "hidden" });
+		await withBrowserDiagnostics(page, () =>
+			dialog.waitFor({ state: "hidden" }),
+		);
 		assert.equal(
 			await trigger.evaluate((e) => e === document.activeElement),
 			true,
@@ -314,7 +322,9 @@ test("mobile sidebar keeps native attributes, focus restoration, and modal keybo
 		await trigger.tap();
 		await dialog.waitFor();
 		await dialog.getByRole("link", { name: "Tasks", exact: true }).tap();
-		await dialog.waitFor({ state: "hidden" });
+		await withBrowserDiagnostics(page, () =>
+			dialog.waitFor({ state: "hidden" }),
+		);
 		await expect(page).toHaveURL(/#tasks$/);
 	} finally {
 		await context.close();

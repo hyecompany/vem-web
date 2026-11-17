@@ -8,6 +8,7 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { performance } from "node:perf_hooks";
 import { changedFiles, selectValidation } from "./lib/affected-validation.mjs";
+import { browserValidationTasks } from "./lib/browser-validation.mjs";
 import { createTaskRunner } from "./lib/validation-runner.mjs";
 
 const root = resolve(import.meta.dirname, "..");
@@ -118,31 +119,18 @@ const tasks = {
 				join(root, "packages/ui"),
 			),
 	},
-	"browser:all": {
-		needs: ["build:ui"],
-		run: async () => {
-			const results = await Promise.allSettled(
-				["chromium", "firefox", "webkit"].map((engine) =>
-					run(
-						[
-							"--test",
-							"--test-concurrency=1",
-							"tests/browser/*.test.mjs",
-							"tests/data/browser.test.mjs",
-						],
-						join(root, "packages/ui"),
-						{ VEM_BROWSER: engine },
-					),
-				),
-			);
-			const failures = results.filter((result) => result.status === "rejected");
-			if (failures.length)
-				throw new AggregateError(
-					failures.map((result) => result.reason),
-					"Browser validation failed",
-				);
-		},
-	},
+	...browserValidationTasks((engine) =>
+		run(
+			[
+				"--test",
+				"--test-concurrency=1",
+				"tests/browser/*.test.mjs",
+				"tests/data/browser.test.mjs",
+			],
+			join(root, "packages/ui"),
+			{ VEM_BROWSER: engine },
+		),
+	),
 	ui: grouped("react", "ui:unit", "browser"),
 	artifacts: {
 		needs: ["build:ui"],
