@@ -306,7 +306,30 @@ test("mobile sidebar keeps native attributes, focus restoration, and modal keybo
 			true,
 		);
 		await page.keyboard.press("Escape");
-		await dialog.waitFor({ state: "hidden" });
+		try {
+			await dialog.waitFor({ state: "hidden" });
+		} catch (error) {
+			const state = await page.evaluate(() => ({
+				visibility: document.visibilityState,
+				focus: document.activeElement?.outerHTML,
+				dialogs: [...document.querySelectorAll('[role="dialog"]')].map(
+					(node) => ({
+						html: node.outerHTML,
+						opacity: getComputedStyle(node).opacity,
+						translate: getComputedStyle(node).translate,
+						animations: node.getAnimations().map((animation) => ({
+							state: animation.playState,
+							pending: animation.pending,
+							time: animation.currentTime,
+							timing: animation.effect?.getComputedTiming(),
+							frames: animation.effect?.getKeyframes(),
+						})),
+					}),
+				),
+			}));
+			error.message += `\nDismissal state: ${JSON.stringify(state)}`;
+			throw error;
+		}
 		assert.equal(
 			await trigger.evaluate((e) => e === document.activeElement),
 			true,
