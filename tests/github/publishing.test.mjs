@@ -115,6 +115,12 @@ test("package checks cover PRs and documentation deploys only verified releases"
 	assert.match(checks, /push:\s+branches: \[main\]/);
 	assert.match(checks, /run: npm run test:affected/);
 	assert.match(checks, /run: npm run test:all/);
+	assert.match(
+		checks,
+		/name: Upload browser failure diagnostics\s+if: failure\(\)/,
+	);
+	assert.match(checks, /path: \.artifacts\/browser\//);
+	assert.match(checks, /include-hidden-files: true/);
 	assert.doesNotMatch(workflow, /\n {2}(push|pull_request):/);
 	assert.ok(workflow.includes("inputs.deploy && 'pages-release'"));
 	assert.ok(

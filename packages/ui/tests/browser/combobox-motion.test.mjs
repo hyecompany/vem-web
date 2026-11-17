@@ -11,6 +11,11 @@ import {
 	browser as launchBrowser,
 } from "../../../../tests/support/browser.mjs";
 
+import {
+	startBrowserDiagnostics,
+	withBrowserDiagnostics,
+} from "../../../../tests/support/browser-diagnostics.mjs";
+
 const fixtureRoot = fileURLToPath(new URL("./fixture", import.meta.url));
 let server, browser, url;
 before(async () => {
@@ -31,6 +36,7 @@ after(async () => {
 });
 async function motionPage(options) {
 	const page = await browser.newPage(options);
+	await startBrowserDiagnostics(page);
 	await page.addInitScript(() => {
 		window.motionErrors = [];
 		window.addEventListener("error", (event) =>
@@ -118,7 +124,9 @@ for (const manual of [false, true]) {
 			await expect(page.locator('output[aria-label="Selection"]')).toHaveText(
 				"Bravo",
 			);
-			await expect(page.getByRole("listbox")).toHaveCount(0);
+			await withBrowserDiagnostics(page, () =>
+				expect(page.getByRole("listbox")).toHaveCount(0),
+			);
 			assert.deepEqual(errors, []);
 		} finally {
 			assert.deepEqual(await page.evaluate(() => window.motionErrors), []);
@@ -299,7 +307,9 @@ test("closing during a resize releases the size animation and lets dismissal fin
 			.poll(() => page.evaluate(() => window.resizeAnimations.length))
 			.toBe(1);
 		await page.getByRole("combobox", { name: "Project" }).press("Escape");
-		await expect(page.getByRole("listbox")).toHaveCount(0);
+		await withBrowserDiagnostics(page, () =>
+			expect(page.getByRole("listbox")).toHaveCount(0),
+		);
 		assert.equal(await page.evaluate(() => window.resizeAnimations.length), 1);
 		assert.equal(
 			await page.evaluate(() => window.resizeAnimations[0].playState),
