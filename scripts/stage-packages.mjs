@@ -29,7 +29,7 @@ No package was uploaded.
 `
 		: `## ${heading} is awaiting npm approval
 
-[Review staged packages on npm](https://www.npmjs.com/settings/hyecompany/staged-packages) and approve this version with 2FA. It is not publicly available yet.
+[Review staged packages on npm](https://www.npmjs.com/settings/hye-dev/staged-packages) and approve this version with 2FA. It is not publicly available yet.
 
 After approval, [run Documentation](https://github.com/hyecompany/vem-web/actions/workflows/docs.yml) on main with **deploy** checked. Deployment verifies that both packages match their published releases; otherwise the existing site stays in place.
 `;

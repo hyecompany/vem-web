@@ -172,7 +172,7 @@ test("staging requires a valid release, never uploads published versions, and pr
 	);
 	assert.equal(staged.status, "staged");
 	assert.equal(uploads, 1);
-	assert.match(stagingSummary(staged), /settings\/hyecompany\/staged-packages/);
+	assert.match(stagingSummary(staged), /settings\/hye-dev\/staged-packages/);
 	assert.match(stagingSummary(staged), /not publicly available/);
 	const published = await stageRelease(
 		config,
