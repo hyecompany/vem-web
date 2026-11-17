@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/hyecompany/vem-web/compare/vem-data-v1.0.0...vem-data-v2.0.0) (2026-11-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* **data:** introduce automatic shared acquisition
+
+### Features
+
+* **data:** introduce automatic shared acquisition ([00bfe77](https://github.com/hyecompany/vem-web/commit/00bfe77944ff9c475e69dc2109d9a096c2d5afa9))
+
 ## 1.0.0 (2026-11-11)
 
 
