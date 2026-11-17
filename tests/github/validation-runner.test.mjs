@@ -3,6 +3,7 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
+import { browserValidationTasks } from "../../scripts/lib/browser-validation.mjs";
 import { createTaskRunner } from "../../scripts/lib/validation-runner.mjs";
 
 test("concurrent consumers share one prerequisite and never run before it finishes", async () => {
@@ -85,4 +86,34 @@ test("independent work overlaps within the limit and failure waits for running s
 	await rejection;
 	assert.equal(active, 0);
 	assert.equal(peak, 2);
+});
+
+test("browser engines share the task budget with builds instead of nesting parallel processes", async () => {
+	let active = 0,
+		peak = 0;
+	const visited = [];
+	const work = async (name) => {
+		visited.push(name);
+		peak = Math.max(peak, ++active);
+		await new Promise((resolve) => setImmediate(resolve));
+		active--;
+	};
+	const execute = createTaskRunner(
+		{
+			"build:ui": { run: () => work("ui") },
+			...browserValidationTasks(work),
+			build: { run: () => work("build") },
+			all: { needs: ["browser:all", "build"] },
+		},
+		{ concurrency: 2 },
+	);
+	await execute("all");
+	assert.equal(peak, 2);
+	assert.deepEqual(visited.toSorted(), [
+		"build",
+		"chromium",
+		"firefox",
+		"ui",
+		"webkit",
+	]);
 });

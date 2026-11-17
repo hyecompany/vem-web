@@ -11,6 +11,20 @@ export async function startBrowserDiagnostics(page) {
 		.tracing.start({ screenshots: true, snapshots: true, sources: true });
 	await page.addInitScript(() => {
 		window.browserMotionEvents = [];
+		window.browserFrameState = {
+			requested: 0,
+			delivered: 0,
+			lastDelivered: null,
+		};
+		const requestFrame = window.requestAnimationFrame.bind(window);
+		window.requestAnimationFrame = (callback) => {
+			window.browserFrameState.requested++;
+			return requestFrame((time) => {
+				window.browserFrameState.delivered++;
+				window.browserFrameState.lastDelivered = performance.now();
+				callback.call(window, time);
+			});
+		};
 		for (const type of [
 			"transitionrun",
 			"transitionend",
@@ -51,6 +65,8 @@ export async function withBrowserDiagnostics(page, assertion) {
 			page
 				.evaluate(() => ({
 					visibility: document.visibilityState,
+					now: performance.now(),
+					frames: window.browserFrameState,
 					focus: document.activeElement?.outerHTML,
 					events: window.browserMotionEvents,
 					elements: [
