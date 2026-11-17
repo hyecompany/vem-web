@@ -10,6 +10,12 @@ function observePopup(popup: HTMLDivElement) {
 	let height = popup.offsetHeight;
 	let animation: Animation | undefined;
 	let frame = 0;
+	let closingHeight: string | undefined;
+	const restoreHeight = () => {
+		if (closingHeight === undefined) return;
+		popup.style.height = closingHeight;
+		closingHeight = undefined;
+	};
 	const stop = () => {
 		animation?.cancel();
 		animation = undefined;
@@ -25,20 +31,22 @@ function observePopup(popup: HTMLDivElement) {
 			? Number.parseFloat(view.getComputedStyle(popup).height)
 			: height;
 		stop();
-		height = popup.offsetHeight;
 		const open = popup.hasAttribute("data-open");
-		if (
-			!motion.matches ||
-			previous === 0 ||
-			(open && Math.abs(previous - height) < 1)
-		)
+		if (!open) {
+			// Hold the visible size without adding animations to the dismissal lifecycle.
+			closingHeight ??= popup.style.height;
+			popup.style.height = `${previous}px`;
+			return;
+		}
+		restoreHeight();
+		height = popup.offsetHeight;
+		if (!motion.matches || previous === 0 || Math.abs(previous - height) < 1)
 			return;
 		const style = view.getComputedStyle(popup);
 		const time = style.getPropertyValue("--vem-combobox-duration").trim();
 		const duration = Number.parseFloat(time) * (time.endsWith("ms") ? 1 : 1000);
-		const target = open ? height : previous;
 		const current = popup.animate(
-			[{ height: `${previous}px` }, { height: `${target}px` }],
+			[{ height: `${previous}px` }, { height: `${height}px` }],
 			{
 				duration: Number.isFinite(duration) ? duration : 160,
 				easing:
@@ -81,6 +89,7 @@ function observePopup(popup: HTMLDivElement) {
 		mutations.disconnect();
 		motion.removeEventListener("change", reset);
 		stop();
+		restoreHeight();
 	};
 }
 

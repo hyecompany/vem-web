@@ -267,12 +267,45 @@ test("popup size eases status insertion and removal without retaining the remove
 		await expect(
 			page.getByRole("status", { name: "Read status" }),
 		).toBeVisible();
-		assert.equal(
-			await popup.evaluate((node) => node.getAnimations().length),
-			0,
-		);
+		await expect
+			.poll(() => popup.evaluate((node) => node.getAnimations().length))
+			.toBe(0);
 	} finally {
 		assert.deepEqual(await page.evaluate(() => window.motionErrors), []);
+		await page.close();
+	}
+});
+
+test("closing during a resize releases the size animation and lets dismissal finish", async () => {
+	const page = await motionPage();
+	try {
+		await page.goto(`${url}motion.html`);
+		const popup = page.locator('[data-slot="combobox-content"]');
+		await expect(page.getByRole("option")).toHaveCount(3);
+		await popup.evaluate((node) => {
+			window.resizeAnimations = [];
+			const animate = node.animate;
+			node.animate = function (frames, options) {
+				const animation = animate.call(this, frames, options);
+				if (animation.effect.getKeyframes()[0]?.height !== undefined) {
+					animation.pause();
+					window.resizeAnimations.push(animation);
+				}
+				return animation;
+			};
+		});
+		await page.evaluate(() => window.setStatus("Could not load projects"));
+		await expect
+			.poll(() => page.evaluate(() => window.resizeAnimations.length))
+			.toBe(1);
+		await page.getByRole("combobox", { name: "Project" }).press("Escape");
+		await expect(page.getByRole("listbox")).toHaveCount(0);
+		assert.equal(await page.evaluate(() => window.resizeAnimations.length), 1);
+		assert.equal(
+			await page.evaluate(() => window.resizeAnimations[0].playState),
+			"idle",
+		);
+	} finally {
 		await page.close();
 	}
 });
