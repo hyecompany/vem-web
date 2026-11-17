@@ -329,18 +329,23 @@ function Toaster({
 const createToastManager = ToastPrimitive.createToastManager;
 const useToastManager = ToastPrimitive.useToastManager;
 
+// SPDX-SnippetBegin
+// SPDX-SnippetCopyrightText: © 2026 Joseph Maldjian <joseph.maldjian@hyecompany.com>
+// SPDX-License-Identifier: Apache-2.0
 export {
-	Toaster,
+	createToastManager,
 	Toast,
 	ToastAction,
 	ToastClose,
 	ToastContent,
 	ToastDescription,
+	Toaster,
 	ToastPortal,
 	ToastProvider,
 	ToastTitle,
 	ToastViewport,
-	createToastManager,
 	toast,
 	useToastManager,
 };
+
+// SPDX-SnippetEnd

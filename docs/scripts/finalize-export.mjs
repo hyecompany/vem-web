@@ -47,19 +47,21 @@ export async function normalizeSegments(directory) {
 }
 
 export const redirects = {
+	"data/reference/api": "data/reference/api-map",
+	"ui/reference/api": "ui/components",
 	"ui/reference/api/index.Variable.Combobox":
-		"ui/reference/api/index.Function.Combobox",
+		"ui/components/combobox",
 	"ui/registry": "ui",
 	"ui/overflow-text": "ui/components/overflow-text",
 	"ui/spinner": "ui/components/spinner",
 	"ui/reference/api/Function.OverflowText":
-		"ui/reference/api/index.Function.OverflowText",
+		"ui/components/overflow-text",
 	"ui/reference/api/Function.Spinner":
-		"ui/reference/api/index.Function.Spinner",
+		"ui/components/spinner",
 	"ui/reference/api/TypeAlias.OverflowTextProps":
-		"ui/reference/api/index.TypeAlias.OverflowTextProps",
+		"ui/components/overflow-text",
 	"ui/reference/api/TypeAlias.SpinnerProps":
-		"ui/reference/api/index.TypeAlias.SpinnerProps",
+		"ui/components/spinner",
 	"ui/components/picker": "ui/components/combobox",
 	"ui/components/navigation": "ui/components/sidebar",
 	"ui/components/select": "ui/components/combobox",

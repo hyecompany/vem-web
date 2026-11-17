@@ -67,8 +67,8 @@ try {
 			"vite",
 		].map((name) => {
 			const version = [
-				"node_modules",
 				"packages/ui/node_modules",
+				"node_modules",
 				"docs/node_modules",
 				"packages/data/node_modules",
 			]
@@ -114,26 +114,27 @@ try {
 		/Apache License/,
 	);
 	assert.equal(
-		(await readFile(join(installed, "LICENSE-MIT"), "utf8")).replaceAll(
+		(
+			await readFile(join(installed, "dist/LICENSES/MIT.txt"), "utf8")
+		).replaceAll("\r\n", "\n"),
+		(await readFile(join(root, "LICENSES/MIT.txt"), "utf8")).replaceAll(
 			"\r\n",
 			"\n",
 		),
-		(await readFile(join(root, "packages/ui/LICENSE-MIT"), "utf8")).replaceAll(
-			"\r\n",
-			"\n",
-		),
-		"The packed UI must include the complete original shadcn MIT notice",
+		"The packed MIT license must match the canonical SPDX text",
 	);
-	const originalNotice = await readFile(join(installed, "LICENSE-MIT"), "utf8");
-	const template = await readFile(join(root, "LICENSES/MIT.txt"), "utf8");
-	assert.equal(
-		originalNotice.replace(/\s+/g, " ").trim(),
-		template
-			.replace("<year> <copyright holders>", "2023 shadcn")
-			.replace(/\s+/g, " ")
-			.trim(),
-		"The upstream notice must retain its copyright and complete MIT terms",
-	);
+	for (const file of ["src/button.tsx", "dist/button.js"]) {
+		const source = await readFile(join(installed, file), "utf8");
+		assert.match(
+			source,
+			/SPDX-FileCopyrightText\x3a Copyright \(c\) 2023 shadcn/,
+		);
+		assert.match(
+			source,
+			/SPDX-SnippetCopyrightText\x3a © 2026 Joseph Maldjian/,
+		);
+		assert.match(source, /SPDX-License-Identifier\x3a MIT/);
+	}
 	await cp(join(root, "tests/package/ui"), directory, {
 		recursive: true,
 		filter: (path) => !path.endsWith(".test.mjs"),

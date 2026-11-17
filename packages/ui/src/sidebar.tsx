@@ -879,6 +879,7 @@ function SidebarMenuSubButton({
 	});
 	return flyout ? <Menu.Item render={element} /> : element;
 }
+
 // SPDX-SnippetEnd
 
 export {

@@ -206,13 +206,14 @@ function InputGroupTextarea({
 		/>
 	);
 }
-// SPDX-SnippetEnd
 
 export {
 	InputGroup,
 	InputGroupAddon,
 	InputGroupButton,
-	InputGroupText,
 	InputGroupInput,
+	InputGroupText,
 	InputGroupTextarea,
 };
+
+// SPDX-SnippetEnd

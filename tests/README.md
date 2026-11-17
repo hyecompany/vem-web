@@ -5,14 +5,14 @@
 
 These suites test built artifacts and complete browser journeys. Runtime behavior and public contracts belong to [the data package tests](../packages/data/tests/README.md) and `packages/ui/tests`.
 
-| Location | Responsibility | Command |
-| --- | --- | --- |
-| `docs/*.test.mjs` | Static export, internal links, search coverage, and site accessibility | `npm run docs:validate` |
-| `docs/experiments/*.test.mjs` | Interactive learning tools against the built docs | `npm run docs:validate` |
-| `package/*.test.mjs` | Actual HTTP/event fixture and SharedWorker starter, including independent installed-package behavior | `npm run test:package` |
-| `package/ui/*.test.mjs` | Independent packed UI consumer, server rendering, hydration, portable styles, and interactions | `npm run test:ui-package` |
-| `github/*.test.mjs` | Release package isolation and workflow inputs | `npm run test:workflows` |
-| `support/` | Browser launch configuration shared across suites | Imported helpers only |
+| Location                      | Responsibility                                                                                       | Command                   |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------- |
+| `docs/*.test.mjs`             | Static export, internal links, search coverage, and site accessibility                               | `npm run docs:validate`   |
+| `docs/experiments/*.test.mjs` | Interactive learning tools against the built docs                                                    | `npm run docs:validate`   |
+| `package/*.test.mjs`          | Actual HTTP/event fixture and SharedWorker starter, including independent installed-package behavior | `npm run test:package`    |
+| `package/ui/*.test.mjs`       | Independent packed UI consumer, server rendering, hydration, portable styles, and interactions       | `npm run test:ui-package` |
+| `github/*.test.mjs`           | Release package isolation and workflow inputs                                                        | `npm run test:workflows`  |
+| `support/`                    | Browser launch configuration shared across suites                                                    | Imported helpers only     |
 
 `npm test` runs the Node and React suites without documentation generation or browser launches. `npm run test:affected` selects suites from changed paths; `npm run test:all` runs the complete release checks with shared preparation. Use `npm run docs:validate` to build and check the site together, or `npm run test:docs` against an existing build. The production site uses an empty base path; when testing a subpath, use the same `BASE_PATH` for the build and tests.
 

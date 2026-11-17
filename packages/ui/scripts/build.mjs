@@ -4,7 +4,7 @@
 import { spawnSync } from "node:child_process";
 import { copyFile, mkdir, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { componentStyles } from "./styles.mjs";
 
 const require = createRequire(import.meta.url);
@@ -15,7 +15,14 @@ if (output !== resolve(import.meta.dirname, "../dist"))
 await rm(output, { recursive: true, force: true });
 const result = spawnSync(
 	process.execPath,
-	[require.resolve("typescript/bin/tsc"), "-p", "tsconfig.json"],
+	[
+		resolve(
+			dirname(require.resolve("typescript/package.json")),
+			require("typescript/package.json").bin.tsc,
+		),
+		"-p",
+		"tsconfig.json",
+	],
 	{ cwd: root, stdio: "inherit", windowsHide: true },
 );
 if (result.error) throw result.error;
@@ -40,4 +47,10 @@ await copyFile(
 await copyFile(
 	resolve(root, "src/devtools/styles.d.ts"),
 	resolve(output, "devtools/styles.d.ts"),
+);
+
+await mkdir(resolve(output, "LICENSES"), { recursive: true });
+await copyFile(
+	resolve(root, "../../LICENSES/MIT.txt"),
+	resolve(output, "LICENSES/MIT.txt"),
 );

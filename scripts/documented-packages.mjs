@@ -3,6 +3,6 @@
 
 /** Documentation locations stay explicit so adding a package cannot move existing URLs. */
 export const documentedPackages = [
-	{ id: "data", title: "Vem Data", reference: "api" },
-	{ id: "ui", title: "Vem UI", reference: "ui-api" },
+	{ id: "data", title: "Vem Data" },
+	{ id: "ui", title: "Vem UI" },
 ];

@@ -122,10 +122,11 @@ function TabsContent({
 		/>
 	);
 }
+
 // SPDX-SnippetEnd
 
 // SPDX-SnippetBegin
 // SPDX-SnippetCopyrightText: © 2026 Joseph Maldjian <joseph.maldjian@hyecompany.com>
 // SPDX-License-Identifier: Apache-2.0
-export { Tabs, TabsList, TabsTrigger, TabsContent };
+export { Tabs, TabsContent, TabsList, TabsTrigger };
 // SPDX-SnippetEnd

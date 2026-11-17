@@ -380,34 +380,29 @@ test("filtering a virtual collection animates the popup's actual clamped height"
 		const expanded = (await popup.boundingBox()).height;
 		await input.fill("Project 0000");
 		await expect(page.getByRole("option")).toHaveCount(1);
+		let bounds;
 		await expect
-			.poll(() =>
-				popup.evaluate((node) =>
-					node.getAnimations().some((animation) => {
-						const frames = animation.effect?.getKeyframes() ?? [];
+			.poll(async () => {
+				bounds = await popup.evaluate((node) => {
+					const animation = node.getAnimations().find((candidate) => {
+						const frames = candidate.effect?.getKeyframes() ?? [];
 						return (
 							Number.parseFloat(frames[0]?.height) >
 							Number.parseFloat(frames.at(-1)?.height)
 						);
-					}),
-				),
-			)
+					});
+					if (!animation) return null;
+					const frames = animation.effect.getKeyframes();
+					animation.pause();
+					animation.currentTime = animation.effect.getTiming().duration / 2;
+					return {
+						from: Number.parseFloat(frames[0].height),
+						to: Number.parseFloat(frames.at(-1).height),
+					};
+				});
+				return bounds !== null;
+			})
 			.toBe(true);
-		const bounds = await popup.evaluate((node) => {
-			const animation = node
-				.getAnimations()
-				.find(
-					(candidate) =>
-						candidate.effect?.getKeyframes()[0]?.height !== undefined,
-				);
-			const frames = animation.effect.getKeyframes();
-			animation.pause();
-			animation.currentTime = animation.effect.getTiming().duration / 2;
-			return {
-				from: Number.parseFloat(frames[0].height),
-				to: Number.parseFloat(frames.at(-1).height),
-			};
-		});
 		assert.ok(
 			bounds.from <= expanded + 1,
 			"animation starts from the visible viewport, not thousands of virtual pixels",

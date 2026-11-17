@@ -133,11 +133,11 @@
 
 	:where(
 			[data-vem-overflow-trigger]:is(
-					:hover,
-					:focus-visible,
-					:focus-within,
-					[data-highlighted]
-				)
+				:hover,
+				:focus-visible,
+				:focus-within,
+				[data-highlighted]
+			)
 		)
 		.vem-overflow[data-vem-overflow]
 		> .vem-overflow-rest,
@@ -148,11 +148,11 @@
 
 	:where(
 			[data-vem-overflow-trigger]:is(
-					:hover,
-					:focus-visible,
-					:focus-within,
-					[data-highlighted]
-				)
+				:hover,
+				:focus-visible,
+				:focus-within,
+				[data-highlighted]
+			)
 		)
 		.vem-overflow[data-vem-overflow]
 		> .vem-overflow-viewport

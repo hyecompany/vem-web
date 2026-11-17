@@ -91,7 +91,7 @@ test("text exports contain executable excerpts and equivalent visual explanation
 	const pages = JSON.parse(await readFile(resolve(out, "docs.json"), "utf8"));
 	assert.ok(pages.some((page) => page.slug === "data/connect/access"));
 	assert.doesNotMatch(text, /Complete source:/);
-	assert.ok(pages.filter((page) => page.kind === "api").length > 100);
+	assert.ok(pages.every((page) => page.kind === "guide"));
 	const source = await readFile(
 		resolve(root, "packages/data/examples/task-board/contract.ts"),
 		"utf8",
@@ -102,35 +102,7 @@ test("text exports contain executable excerpts and equivalent visual explanation
 		.trim();
 	assert.ok(text.includes(region), "displayed contract is compiled source");
 });
-test("all public entry points and their exported symbols appear in generated reference", async () => {
-	const api = JSON.parse(
-		await readFile(resolve(root, "docs/.generated/api.json"), "utf8"),
-	);
-	const manifest = JSON.parse(
-		await readFile(resolve(root, "packages/data/package.json"), "utf8"),
-	);
-	const entries = Object.keys(manifest.exports).map((entry) =>
-		entry === "." ? "index" : entry.slice(2),
-	);
-	assert.deepEqual(
-		api.children.map((entry) => entry.name).sort(),
-		entries.sort(),
-	);
-	for (const entry of api.children) {
-		const path = entry.name === "index" ? "index-1" : entry.name;
-		const text = await readFile(
-			resolve(root, `docs/.generated/api/${path}.md`),
-			"utf8",
-		);
-		for (const member of entry.children ?? [])
-			assert.ok(
-				text.includes(`[${member.name}]`),
-				`${entry.name}.${member.name} missing from reference`,
-			);
-	}
-});
-
-test("every public UI component and binding has a guide and generated reference", async () => {
+test("every public UI component and binding has a guide", async () => {
 	for (const file of await files(resolve(root, "docs/components"))) {
 		if (!file.endsWith(".tsx")) continue;
 		assert.doesNotMatch(
@@ -140,55 +112,26 @@ test("every public UI component and binding has a guide and generated reference"
 		);
 	}
 
-	const api = JSON.parse(
-		await readFile(resolve(root, "docs/.generated/ui-api.json"), "utf8"),
+	const catalog = JSON.parse(
+		await readFile(resolve(root, "docs/content/ui-components.json"), "utf8"),
 	);
 	const manifest = JSON.parse(
 		await readFile(resolve(root, "packages/ui/package.json"), "utf8"),
 	);
-	const entries = Object.keys(manifest.exports)
-		.filter((key) => !key.endsWith(".css"))
-		.map((key) => (key === "." ? "index" : key.slice(2)));
-	assert.deepEqual(
-		api.children.map((entry) => entry.name).sort(),
-		entries.sort(),
-	);
-	const catalog = JSON.parse(
-		await readFile(resolve(root, "docs/content/ui-components.json"), "utf8"),
-	);
-	const documented = catalog.flatMap((entry) => entry.exports).sort();
-	const actual = api.children
-		.flatMap((entry) =>
-			entry.children
-				.filter((member) => member.kind === 64 || member.kind === 32)
-				.map((member) => member.name),
-		)
-		.sort();
-	assert.deepEqual(
-		documented,
-		actual,
-		"the catalog covers every public component and hook",
-	);
-	const generated = await files(resolve(root, "docs/.generated/ui-api"));
-	for (const entry of api.children) {
-		const module = await readFile(
-			resolve(
-				root,
-				`docs/.generated/ui-api/${entry.name === "index" ? "index-1" : entry.name}.md`,
-			),
-			"utf8",
+	const actual = [];
+	for (const entry of Object.keys(manifest.exports).filter(
+		(key) => !key.endsWith(".css"),
+	)) {
+		const module = await import(
+			`@hyecompany/vem-ui${entry === "." ? "" : entry.slice(1)}`
 		);
-		for (const member of entry.children) {
-			assert.ok(
-				module.includes(`[${member.name}]`),
-				`${entry.name}.${member.name} missing from entry reference`,
-			);
-			assert.ok(
-				generated.some((file) => file.endsWith(`.${member.name}.md`)),
-				`${member.name} missing generated declaration`,
-			);
-		}
+		actual.push(...Object.keys(module));
 	}
+	assert.deepEqual(
+		catalog.flatMap((entry) => entry.exports).sort(),
+		actual.sort(),
+		"the catalog covers public runtime exports",
+	);
 	const pages = JSON.parse(await readFile(resolve(out, "docs.json"), "utf8"));
 	for (const component of catalog) {
 		const guide = pages.find((page) => `/docs/${page.slug}` === component.url);

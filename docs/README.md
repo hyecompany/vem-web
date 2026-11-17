@@ -12,8 +12,7 @@ Edit **`content/handbook`**, not generated `content/docs`. Run `npm run docs:pre
 - Code excerpts come from region markers in compiled `packages/<package>/examples` files. `Example package="ui"` selects UI; omitted package means Data.
 - Diagrams and their written equivalents come from `content/diagrams.json`.
 - Focused experiment explanations come from `content/experiments.json`, with implementations in `components/labs`.
-- API pages come from each documented package's public JavaScript entry points through TypeDoc and typedoc-plugin-markdown. Register package locations in `scripts/documented-packages.mjs`; existing Data paths remain stable.
-- The component catalog is maintained in `content/ui-components.json`. Every public UI component or binding belongs to one task guide; the generator verifies API links against TypeDoc output.
+- The component catalog is maintained in `content/ui-components.json`. Every public UI component or binding belongs to one task guide..
 - UI previews in `components/previews` render compiled examples through public package imports. Catalog descriptions supply their text equivalents; the additional OverflowText and Spinner interactions are explained in `content/ui-previews.json`.
 - Navigation, `llms.txt`, `llms-full.txt`, and `docs.json` are generated from the same content.
 

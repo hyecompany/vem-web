@@ -24,7 +24,8 @@ test("owner transfers use the same action and preserve domain-specific outcomes"
 		),
 		transferFetch: async (_url, request) => {
 			assert.equal(request?.method, "POST");
-			assert.equal(await (request?.body as Blob).text(), "contents");
+			assert.ok(request?.body instanceof Blob);
+			assert.equal(await request.body.text(), "contents");
 			return new Response("partial", { status: 200 });
 		},
 	});

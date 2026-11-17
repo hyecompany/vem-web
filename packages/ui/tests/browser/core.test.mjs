@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import AxeBuilder from "@axe-core/playwright";
+import { expect } from "@playwright/test";
 import { createServer } from "vite";
 import {
 	browserCacheDirectory,
@@ -314,7 +315,7 @@ test("mobile sidebar keeps native attributes, focus restoration, and modal keybo
 		await dialog.waitFor();
 		await dialog.getByRole("link", { name: "Tasks", exact: true }).tap();
 		await dialog.waitFor({ state: "hidden" });
-		assert.equal(new URL(page.url()).hash, "#tasks");
+		await expect(page).toHaveURL(/#tasks$/);
 	} finally {
 		await context.close();
 	}
@@ -369,7 +370,7 @@ test("sidebar branches preserve parent links and independent expanded disclosure
 		await page.getByRole("link", { name: "Volumes", exact: true }).waitFor();
 		assert.equal(new URL(page.url()).hash, "");
 		await page.getByRole("link", { name: "Storage", exact: true }).click();
-		assert.equal(new URL(page.url()).hash, "#storage");
+		await expect(page).toHaveURL(/#storage$/);
 		await page.getByRole("button", { name: "Collapse Storage" }).click();
 		assert.equal(
 			await page.getByRole("link", { name: "Volumes", exact: true }).count(),
@@ -385,7 +386,7 @@ test("sidebar branches preserve parent links and independent expanded disclosure
 		await page.keyboard.press("Escape");
 		await page.getByRole("menu").waitFor({ state: "hidden" });
 		await parent.press("Enter");
-		assert.equal(new URL(page.url()).hash, "#storage");
+		await expect(page).toHaveURL(/#storage$/);
 		await parent.press("ArrowDown");
 		await page.getByRole("menu", { name: "Storage", exact: true }).waitFor();
 		assert.equal(
@@ -426,7 +427,7 @@ test("compact sidebar branches support touch disclosure without following the pa
 		await page.getByRole("menu", { name: "Storage", exact: true }).waitFor();
 		assert.equal(new URL(page.url()).hash, "");
 		await page.getByRole("menuitem", { name: "Volumes", exact: true }).tap();
-		assert.equal(new URL(page.url()).hash, "#volumes");
+		await expect(page).toHaveURL(/#volumes$/);
 		await page.getByRole("menu").waitFor({ state: "hidden" });
 		await parent.evaluate((element) => element.click());
 		await page.waitForURL("**/#storage");

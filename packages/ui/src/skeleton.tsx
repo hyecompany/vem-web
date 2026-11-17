@@ -24,6 +24,7 @@ function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
 		/>
 	);
 }
+
 // SPDX-SnippetEnd
 
 export { Skeleton };

@@ -190,8 +190,8 @@ test("UI guides explain the components and expose full labels without JavaScript
 		);
 		await expect(page.locator("main")).toContainText("function FileName");
 		await expect(
-			page.getByRole("link", { name: "All props", exact: true }),
-		).toHaveAttribute("href", /TypeAlias\.OverflowTextProps/);
+			page.getByRole("link", { name: "Spinner", exact: true }).last(),
+		).toHaveAttribute("href", /\/docs\/ui\/components\/spinner\/?$/);
 		await page.goto(`${app.url}/docs/ui/spinner/`);
 		await expect(
 			page

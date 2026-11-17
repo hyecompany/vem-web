@@ -47,3 +47,42 @@ test("a failed prerequisite prevents its consumers and does not get silently ret
 	assert.equal(attempts, 1);
 	assert.throws(() => execute("missing"), /Unknown validation task/);
 });
+
+test("independent work overlaps within the limit and failure waits for running siblings", async () => {
+	let active = 0;
+	let peak = 0;
+	const started = [];
+	const gates = new Map();
+	const tasks = Object.fromEntries(
+		["a", "b", "c"].map((name) => [
+			name,
+			{
+				run: async () => {
+					started.push(name);
+					peak = Math.max(peak, ++active);
+					await new Promise((resolve) => gates.set(name, resolve));
+					active--;
+					if (name === "a") throw Error("failure");
+				},
+			},
+		]),
+	);
+	tasks.all = { needs: ["a", "b", "c"] };
+	const execute = createTaskRunner(tasks, { concurrency: 2 });
+	let settled = false;
+	const result = execute("all").finally(() => {
+		settled = true;
+	});
+	const rejection = assert.rejects(result, /failure/);
+	await new Promise((resolve) => setImmediate(resolve));
+	assert.deepEqual(started, ["a", "b"]);
+	gates.get("a")();
+	await new Promise((resolve) => setImmediate(resolve));
+	assert.deepEqual(started, ["a", "b", "c"]);
+	assert.equal(settled, false);
+	gates.get("b")();
+	gates.get("c")();
+	await rejection;
+	assert.equal(active, 0);
+	assert.equal(peak, 2);
+});

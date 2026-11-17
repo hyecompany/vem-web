@@ -154,34 +154,6 @@ for (const { directory, prefix } of guideSources) {
 		});
 	}
 }
-for (const { id, reference } of documentedPackages) {
-	const apiDir = resolve(docs, ".generated", reference);
-	for (const file of await files(apiDir)) {
-		if (!file.endsWith(".md")) continue;
-		const name = relative(apiDir, file).replaceAll("\\", "/");
-		const original = (await readFile(file, "utf8")).replaceAll("\r\n", "\n");
-		const title =
-			original
-				.match(/^# (.+)$/m)?.[1]
-				?.replaceAll("`", "")
-				.replace(/\\([<>_])/g, "$1") ?? name.slice(0, -3);
-		const text = original
-			.replace(/^# .+\n/m, "")
-			.replace(
-				/\]\(([^)]+)\.md(#[^)]*)?\)/g,
-				(_, path, anchor = "") =>
-					`](/docs/${id}/reference/api${path === "index" ? "" : `/${path}`}${anchor})`,
-			);
-		const slug = `${id}/reference/api${name === "index.md" ? "" : `/${name.slice(0, -3)}`}`;
-		const description =
-			"Generated from the public package entry points. Types and signatures follow the installed source.";
-		await save(
-			resolve(output, `${slug}${name === "index.md" ? "/index" : ""}.mdx`),
-			`---\ntitle: ${JSON.stringify(title)}\ndescription: ${JSON.stringify(description)}\n---\n\n${text}`,
-		);
-		pages.push({ slug, title, description, text, kind: "api", order: 100 });
-	}
-}
 const folders = new Set([
 	"",
 	...pages.flatMap((page) => {
@@ -224,11 +196,7 @@ for (const folder of folders) {
 		resolve(output, folder, "meta.json"),
 		JSON.stringify(
 			{
-				title:
-					index?.title ??
-					(folder.endsWith("/api")
-						? "API signatures"
-						: folder.split("/").at(-1) || "Hye Vem"),
+				title: index?.title ?? (folder.split("/").at(-1) || "Hye Vem"),
 				pages: [...new Set(items)],
 			},
 			null,
@@ -266,8 +234,6 @@ function readingOrder(page) {
 }
 const ordered = [...pages]
 	.sort((a, b) => {
-		const kind = Number(a.kind === "api") - Number(b.kind === "api");
-		if (kind) return kind;
 		const left = readingOrder(a),
 			right = readingOrder(b);
 		for (let index = 0; index < Math.max(left.length, right.length); index++) {
@@ -309,7 +275,7 @@ await save(
 	),
 );
 console.log(
-	`Prepared ${pages.filter((page) => page.kind === "guide").length} guides and ${pages.filter((page) => page.kind === "api").length} API pages, examples, navigation, and text exports.`,
+	`Prepared ${pages.filter((page) => page.kind === "guide").length} guides, examples, navigation, and text exports.`,
 );
 
 await save(

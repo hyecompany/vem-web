@@ -13,7 +13,7 @@ Use the [task board](https://hyevem.com/docs/data/start/quickstart/) to filter t
 
 - [Build a feature](https://hyevem.com/docs/data/build/): complete list, action, editor, and testing examples.
 - [Connect your backend](https://hyevem.com/docs/data/connect/): begin with one resource; add events, permissions, and a browser host.
-- [Look up an API](https://hyevem.com/docs/data/reference/api-map/): public entry points and generated signatures.
+- [Look up an API](https://hyevem.com/docs/data/reference/api-map/): public entry points and their responsibilities.
 
 The package is under development. React bindings target React 19+. The shared browser host needs a secure context, module SharedWorker, and Web Locks; persistence is optional.
 

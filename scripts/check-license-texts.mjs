@@ -25,6 +25,16 @@ try {
 			normalize(await readFile(downloaded, "utf8")),
 			`${file} must be the unmodified SPDX text downloaded by REUSE`,
 		);
+		const copies =
+			license === "Apache-2.0"
+				? ["LICENSE", "packages/data/LICENSE", "packages/ui/LICENSE"]
+				: [];
+		for (const copy of copies)
+			assert.equal(
+				normalize(await readFile(join(root, copy), "utf8")),
+				normalize(await readFile(downloaded, "utf8")),
+				`${copy} must match the canonical SPDX license text`,
+			);
 	}
 } finally {
 	await rm(temporary, { recursive: true, force: true });

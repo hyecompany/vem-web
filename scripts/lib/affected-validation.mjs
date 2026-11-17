@@ -14,7 +14,6 @@ const validationInfrastructure = new Set([
 ]);
 const docsScripts = new Set([
 	"scripts/generate-docs.mjs",
-	"scripts/generate-reference.mjs",
 	"scripts/documented-packages.mjs",
 	"scripts/component-docs.mjs",
 ]);

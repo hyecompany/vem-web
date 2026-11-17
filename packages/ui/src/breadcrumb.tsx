@@ -160,6 +160,7 @@ function BreadcrumbEllipsis({
 		</span>
 	);
 }
+
 // SPDX-SnippetEnd
 
 export {

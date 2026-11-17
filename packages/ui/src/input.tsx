@@ -30,6 +30,7 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
 		/>
 	);
 }
+
 // SPDX-SnippetEnd
 
 export { Input };

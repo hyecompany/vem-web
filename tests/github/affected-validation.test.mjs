@@ -19,7 +19,6 @@ test("guides and their generated inputs select docs while ordinary guidance stay
 		"packages/ui/docs/components/button.mdx",
 		"docs/content/diagrams.json",
 		"docs/components/Flow.tsx",
-		"scripts/generate-reference.mjs",
 		"tests/docs/static.test.mjs",
 	]) {
 		const selected = selectValidation([path]);
@@ -82,7 +81,7 @@ test("package changes and unknown or shared dependencies cannot silently skip va
 		["tests/docs/support/site.mjs"],
 		["tests/docs/packed/app/page.tsx"],
 		["REUSE.toml"],
-		["packages/ui/LICENSE-MIT"],
+		["packages/ui/LICENSE"],
 		["docs/public/LICENSE-shadcn.txt"],
 		["docs/public/LICENSES.txt"],
 		["LICENSES/MIT.txt"],
