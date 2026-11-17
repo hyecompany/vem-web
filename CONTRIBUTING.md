@@ -36,7 +36,7 @@ Each adapted file has a short `Source:` comment linking to the real upstream fil
 
 ## Checks
 
-Use Node.js 24 LTS. After `npm ci`, choose the checks for the work:
+Use Node.js 24.15 or newer in the 24 LTS line. After `npm ci`, choose the checks for the work:
 
 | Command | Coverage |
 | --- | --- |
@@ -70,9 +70,13 @@ Keep package behavior and compile-only contracts under `packages/data/tests` and
 
 ## Releases and deployment
 
-Release Please opens independent package release PRs from Conventional Commits on `main`. Review each proposed version, especially breaking changes, then merge the release PR to create its tag and invoke publication. Changed package paths determine the package; the commit scope alone does not. The release manifest records published versions, not unreleased candidates.
+Release Please opens independent package release PRs from Conventional Commits on `main`. Review each proposed version, especially breaking changes, then merge the release PR to create its tag and stage the package. Changed package paths determine the package; the commit scope alone does not. The release manifest records tagged versions; npm availability is verified separately.
 
-The publish workflow verifies the selected package and tag, checks the packed artifact, and skips versions already on npm. To retry a failed publication, run **Publish packages** with that package and its existing release tag. Configure npm trusted publishers for `hyecompany/vem-web` with the calling workflows `release-please.yml` and `publish.yml`; initial package registration may require npm account authorization.
+The **Stage packages** workflow validates the release tag and uploads the package for npm approval. Follow the approval link in its run summary and approve the version with 2FA. Then run **Documentation** on `main` with **deploy** checked; the site changes only when both packages match their published releases.
+
+To recover a failed staging run, select the package and existing release tag in **Stage packages**. A version already staged must be approved or rejected on npm before uploading it again.
+
+Configure staging-only npm trusted publishers for `hyecompany/vem-web`: `release-please.yml` for automatic staging and `publish.yml` for manual recovery. Leave direct publishing disabled. GitHub release tags are created before staging; they do not establish npm availability.
 
 Repository settings must allow GitHub Actions to create pull requests. PR checks created by the workflow token may require approval; review the generated changes before approving those runs. Automation never supplies a human DCO sign-off.
 
