@@ -54,9 +54,9 @@
 		"test": "tsx --tsconfig tsconfig.test.json --test \"tests/**/*.test.ts\""
 	},
 	"dependencies": {
-		"@tanstack/db": "1.0.0-rc.1.4",
+		"@tanstack/db": "1.0.0-rc.1.5",
 		"dexie": "4.4.7",
-		"xstate": "5.33.3"
+		"xstate": "5.33.4"
 	},
 	"peerDependencies": {
 		"react": ">=19"
@@ -67,6 +67,6 @@
 		"fake-indexeddb": "^6.0.0",
 		"react": "^19.0.0",
 		"tsx": "^4.20.0",
-		"typescript": "^5.9.0"
+		"typescript": "^7.0.2"
 	}
 }

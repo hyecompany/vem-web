@@ -49,5 +49,3 @@ Load the module containing the inspector **and its styles** through a build-time
 The `devtools.js` module is the panel and preparation code above. Other build tools should use their equivalent compile-time development constant. Keep imports of inspection, scenarios, the panel, and its stylesheet inside that development module graph.
 
 Verify the final **client and worker** bundles exclude development imports and initialization; hiding the panel is not sufficient. Vem Data's `/devtools` entry also exposes `subscribe` and `getSnapshot` if your host needs a custom inspector view.
-
-<UiReference name="DataInspector" />

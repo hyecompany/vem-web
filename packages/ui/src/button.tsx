@@ -70,6 +70,7 @@ function Button({
 		/>
 	);
 }
+
 // SPDX-SnippetEnd
 
 // SPDX-SnippetBegin

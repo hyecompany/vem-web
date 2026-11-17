@@ -32,6 +32,7 @@ function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
 		/>
 	);
 }
+
 // SPDX-SnippetEnd
 
 export { Textarea };

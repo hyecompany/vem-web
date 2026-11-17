@@ -67,8 +67,8 @@ try {
 		"@types/node",
 	]) {
 		const version = [
-			"node_modules",
 			"docs/node_modules",
+			"node_modules",
 			"packages/ui/node_modules",
 			"packages/data/node_modules",
 		]

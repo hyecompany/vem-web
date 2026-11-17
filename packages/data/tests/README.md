@@ -5,22 +5,22 @@
 
 Put a test beside the behavior it protects. These directories describe stable responsibilities, not a copy of the implementation's module tree. Keep related edge cases in an existing suite; create another file when it covers a distinct behavior.
 
-| Directory | What belongs here |
-| --- | --- |
-| `contracts/` | Public resource descriptions and the feature testing API |
-| `types/` | Compile-only API inference and rejected-input assertions |
-| `react/` | React provider and hook lifecycle contracts in jsdom |
-| `queries/` | Consumer results, projection, subscriptions, retry and revalidation |
-| `knowledge/` | Observations, membership, relationships, derivation and continuity |
-| `planning/` | Source selection, scheduling, filters, prerequisites and acquisition limits |
-| `access/` | Permissions, disclosure proofs and revocation across acquisitions |
-| `actions/` | Command execution, proposals and action outcomes |
-| `editing/` | Drafts, writable baselines, conflicts and edit admission |
-| `host/` | Tab/owner communication and local browser projection |
-| `persistence/` | Durable state, hydration, restoration and action recovery |
-| `devtools/` | Development scenarios and their lifetimes |
-| `examples/` | Behavior of the compiled examples used by documentation |
-| `support/` | Small fixtures used by several package suites |
+| Directory      | What belongs here                                                           |
+| -------------- | --------------------------------------------------------------------------- |
+| `contracts/`   | Public resource descriptions and the feature testing API                    |
+| `types/`       | Compile-only API inference and rejected-input assertions                    |
+| `react/`       | React provider and hook lifecycle contracts in jsdom                        |
+| `queries/`     | Consumer results, projection, subscriptions, retry and revalidation         |
+| `knowledge/`   | Observations, membership, relationships, derivation and continuity          |
+| `planning/`    | Source selection, scheduling, filters, prerequisites and acquisition limits |
+| `access/`      | Permissions, disclosure proofs and revocation across acquisitions           |
+| `actions/`     | Command execution, proposals and action outcomes                            |
+| `editing/`     | Drafts, writable baselines, conflicts and edit admission                    |
+| `host/`        | Tab/owner communication and local browser projection                        |
+| `persistence/` | Durable state, hydration, restoration and action recovery                   |
+| `devtools/`    | Development scenarios and their lifetimes                                   |
+| `examples/`    | Behavior of the compiled examples used by documentation                     |
+| `support/`     | Small fixtures used by several package suites                               |
 
 A cross-cutting case has one home: choose the contract whose failure the test detects. Permission withdrawal during acquisition belongs in `access/`; selecting a cheaper permitted source belongs in `planning/`. Avoid duplicating the same scenario across folders.
 

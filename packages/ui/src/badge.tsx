@@ -68,6 +68,7 @@ function Badge({
 		},
 	});
 }
+
 // SPDX-SnippetEnd
 
 // SPDX-SnippetBegin

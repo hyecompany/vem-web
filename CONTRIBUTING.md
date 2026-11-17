@@ -50,7 +50,7 @@ Use Node.js 24 LTS. After `npm ci`, choose the checks for the work:
 | `npm run test:package` | Independent installed Data and UI consumers |
 | `npm run test:all` | Complete validation, including all three browser engines and the packed Next.js consumer |
 
-Install browser engines once with `npx playwright install chromium firefox webkit`. For the complete release check, run `npm run test:all`; builds, reference generation, and packing are shared within that invocation. Each packed consumer still installs into its own empty directory. Only npm's download cache is reused.
+Install browser engines once with `npx playwright install chromium firefox webkit`. For the complete release check, run `npm run test:all`; builds, reference generation, and packing are shared within that invocation. Independent validation tasks run two at a time; prerequisites run once, and documentation type generation finishes before its production build. Each packed consumer still installs into its own empty directory. Only npm's download cache is reused.
 
 `test:affected` prints its selection and reasons. To compare with another Git base, use `npm run test:affected -- --base <ref>`. It selects whole suites, not individual tests: documentation-only work runs documentation checks; shared package, configuration, or unknown inputs run everything. A missing comparison base also runs everything. PRs use this selection; main and release validation always use `test:all`.
 
@@ -60,7 +60,7 @@ Set `VEM_BROWSER=firefox` or `VEM_BROWSER=webkit` to run a focused browser check
 
 ## Documentation and examples
 
-Edit package guides in `packages/data/docs` or `packages/ui/docs`, and framework pages in `docs/content/handbook`, add compiled snippets under `packages/data/examples`, and put API semantics in JSDoc on public declarations. `npm run docs:prepare` generates reference, navigation, content, and machine-readable exports. Never hand-edit `content/docs` or `.generated`.
+Edit package guides in `packages/data/docs` or `packages/ui/docs`, and framework pages in `docs/content/handbook`, add compiled snippets under `packages/data/examples`, and put API semantics in JSDoc on public declarations. `npm run docs:prepare` generates navigation, content, and machine-readable exports. Never hand-edit `content/docs` or `.generated`.
 
 Follow the [documentation contributor guide](packages/data/docs/reference/contributing.mdx) for diagrams, focused experiments, accessibility, and failure-path checks. Keep runtime behavior changes separate from documentation-only work; record discovered discrepancies explicitly.
 
@@ -80,7 +80,7 @@ GitHub Pages serves the verified documentation release. Pages uses GitHub Action
 
 ## Public documentation
 
-Package guides live in `packages/data/docs` and `packages/ui/docs`. The private `docs/` workspace assembles them, their compiled examples, and API reference without changing public URLs.
+Package guides live in `packages/data/docs` and `packages/ui/docs`. The private `docs/` workspace assembles them, their compiled examples, and previews.
 
 Main and pull requests build and test the current documentation but do not deploy it. Successful npm publication requests deployment from its release tag. The site updates only when every package version in that checkout is the current npm release and each package tree matches its own release tag. Otherwise, the existing site stays live until the remaining package changes are released. This keeps the task board and cross-package examples on a coherent, tested snapshot.
 

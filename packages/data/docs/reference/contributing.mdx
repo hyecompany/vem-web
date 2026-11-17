@@ -39,11 +39,7 @@ Each experiment needs an initial state, a few labeled controls, reset, observabl
 
 Add its guide and compiled example, then register the public exports in `content/ui-components.json`. The catalog, search, and text exports come from that metadata and guide. `ComponentPreview` renders the same example used by the guide; give it a clear initial state and reset. Keep Data bindings alongside the other components, with their provider prerequisites on the guide.
 
-Use `UiReference` with the public symbol name to generate a link to its exact TypeDoc page and props. Do not copy prop tables or import internal package files. Retired URLs belong in the static redirect map in `docs/scripts/finalize-export.mjs`.
-
-## Change the API reference
-
-Update JSDoc on the public source declaration. `scripts/generate-reference.mjs` reads each documented package's public JavaScript export entry points through pinned TypeDoc and its Markdown plugin. The package map in `scripts/documented-packages.mjs` assigns reference output locations without changing published Data URLs. Stylesheet exports stay in the usage guides. Signatures and member lists are generated; semantic responsibilities belong in source comments and the relevant guide.
+Explain the props needed for the task beside the example. Keep JSDoc on public declarations accurate so editor hints describe defaults and behavior. Update the guide and compiled example when the contract changes. Retired URLs belong in `docs/scripts/finalize-export.mjs`.
 
 ## Review the teaching value
 

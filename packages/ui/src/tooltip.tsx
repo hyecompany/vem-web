@@ -105,6 +105,7 @@ function TooltipContent({
 		</TooltipPrimitive.Portal>
 	);
 }
-// SPDX-SnippetEnd
 
-export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider };
+export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger };
+
+// SPDX-SnippetEnd

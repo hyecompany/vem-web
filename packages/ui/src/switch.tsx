@@ -45,6 +45,7 @@ function Switch({
 		</SwitchPrimitive.Root>
 	);
 }
+
 // SPDX-SnippetEnd
 
 export { Switch };

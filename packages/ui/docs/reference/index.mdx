@@ -1,6 +1,6 @@
 ---
 title: "Reference"
-description: "Public component, binding, and prop signatures."
+description: "Public imports, component types, and styling."
 order: 5
 ---
 
@@ -8,10 +8,10 @@ order: 5
 {/* SPDX-License-Identifier: Apache-2.0 */}
 
 
-[API signatures](/docs/ui/reference/api) are generated from the public `@hyecompany/vem-ui` and `@hyecompany/vem-ui/data` entries. The [component catalog](/docs/ui/components) connects each entry to its usage guide and working preview.
+The [component catalog](/docs/ui/components) links each component to its usage guide and working preview. Import components from `@hyecompany/vem-ui` and optional Data bindings from `@hyecompany/vem-ui/data`.
 
-Use React’s `ComponentProps<typeof Button>` (or the relevant component) when you need to reuse its prop type. The generated reference follows each component’s actual public signature.
+Use React’s `ComponentProps<typeof Button>` (or the relevant component) when you need to reuse its prop type. Your editor reads the declarations shipped with the package.
 
 Include `@hyecompany/vem-ui/styles.css` once. Importing JavaScript does not insert the stylesheet. The core entry has no Data dependency; the `/data` entry requires Vem Data and its provider.
 
-Implementation changes belong in the package, with public prop documentation and compiled examples updated together. See [contributing to the docs](/docs/data/reference/contributing) for the reference and snippet workflow.
+Implementation changes belong in the package, with public prop documentation and compiled examples updated together. See [contributing to the docs](/docs/data/reference/contributing) for the guide and snippet workflow.

@@ -49,8 +49,8 @@ const dependencies = Object.fromEntries(
 		"vite",
 	].map((name) => {
 		const version = [
-			"node_modules",
 			"packages/data/node_modules",
+			"node_modules",
 			"docs/node_modules",
 		]
 			.map((prefix) => lock.packages[`${prefix}/${name}`]?.version)

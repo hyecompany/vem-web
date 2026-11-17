@@ -14,25 +14,27 @@
 	"dependencies": {
 		"@fontsource/poppins": "^5.3.0",
 		"@hyecompany/vem-data": "2.0.0",
+		"@hyecompany/vem-ui": "file:../packages/ui",
 		"clsx": "^2.1.1",
-		"fumadocs-core": "^16.18.3",
-		"fumadocs-mdx": "^15.5.2",
-		"fumadocs-ui": "^16.18.3",
+		"fumadocs-core": "^16.19.3",
+		"fumadocs-mdx": "^15.6.3",
+		"fumadocs-ui": "^16.19.3",
 		"lucide-react": "^1.16.0",
-		"next": "^16.4.5",
+		"next": "^16.4.6",
+		"next-themes": "^0.4.6",
 		"react": "^19.0.0",
 		"react-dom": "^19.0.0",
-		"tailwind-merge": "^3.0.2",
-		"@hyecompany/vem-ui": "file:../packages/ui",
-		"next-themes": "^0.4.6"
+		"tailwind-merge": "^3.0.2"
 	},
 	"devDependencies": {
 		"@tailwindcss/postcss": "^4.0.9",
+		"@types/mdast": "^4.0.4",
 		"@types/node": "^24.0.0",
 		"@types/react": "^19.0.0",
 		"@types/react-dom": "^19.0.0",
 		"postcss": "^8.5.33",
 		"tailwindcss": "^4.0.9",
-		"typescript": "^5.9.0"
+		"typescript": "^7.0.2",
+		"vfile": "^6.0.3"
 	}
 }

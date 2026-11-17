@@ -33,6 +33,7 @@ function Separator({
 		/>
 	);
 }
+
 // SPDX-SnippetEnd
 
 export { Separator };

@@ -43,7 +43,10 @@ async function fixture() {
 	await promisify(execFile)(
 		process.execPath,
 		[
-			consumerRequire.resolve("typescript/bin/tsc"),
+			resolve(
+				dirname(consumerRequire.resolve("typescript/package.json")),
+				consumerRequire("typescript/package.json").bin.tsc,
+			),
 			"-p",
 			join(directory, "tsconfig.json"),
 		],

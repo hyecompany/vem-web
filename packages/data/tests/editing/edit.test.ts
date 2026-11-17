@@ -266,7 +266,10 @@ test("a completed save does not overwrite edits entered while it was running", a
 	const action = session.save();
 	session.set("title", "newer local title");
 	await until(() => state.submissions.length === 1);
-	assert.equal((state.submissions[0]?.values as Form).title, "submitted title");
+	assert.equal(
+		(state.submissions[0]?.values as Form | undefined)?.title,
+		"submitted title",
+	);
 	completion.resolve({ kind: "succeeded" });
 	await action.result;
 	await until(() => !session.getSnapshot().saving);

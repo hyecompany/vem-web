@@ -12,7 +12,8 @@ concurrency:
 permissions:
   contents: read
 jobs:
-  data:
+  validation:
+    name: Package and documentation validation
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

@@ -94,14 +94,13 @@ const tasks = {
 	"docs:prepare": {
 		needs: ["build:ui"],
 		run: async () => {
-			await run(["scripts/generate-reference.mjs"]);
 			await run(["scripts/generate-docs.mjs"]);
 		},
 	},
 	"types:docs": { needs: ["docs:prepare"], run: npmRun("typecheck", "docs") },
 	types: grouped("types:data", "types:ui", "types:docs"),
 	"react:validate": grouped("types:data", "types:ui", "react"),
-	"docs:build": { needs: ["docs:prepare"], run: npmRun("build", "docs") },
+	"docs:build": { needs: ["types:docs"], run: npmRun("build", "docs") },
 	"docs:validate": {
 		needs: ["types:docs", "docs:build"],
 		run: tests("--test-concurrency=2", "tests/docs/**/*.test.mjs"),

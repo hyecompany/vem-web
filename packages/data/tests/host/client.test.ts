@@ -372,12 +372,15 @@ test("queued client messages capture invocation values and preserve order before
 		assert.deepEqual(sent[2]?.ids, ["at claim"]);
 		assert.deepEqual(sent[3]?.values, { name: "at save" });
 		assert.deepEqual(
-			(sent[3]?.prepared as PreparedEdit<{ name: string }>).values,
+			(sent[3]?.prepared as PreparedEdit<{ name: string }> | undefined)?.values,
 			{ name: "baseline" },
 		);
-		assert.deepEqual((sent[4]?.command as { input: unknown }).input, {
-			name: "at command",
-		});
+		assert.deepEqual(
+			(sent[4]?.command as { input: unknown } | undefined)?.input,
+			{
+				name: "at command",
+			},
+		);
 		stop();
 	}
 });
