@@ -16,15 +16,15 @@
 		"@hyecompany/vem-data": "2.0.0",
 		"@hyecompany/vem-ui": "file:../packages/ui",
 		"clsx": "^2.1.1",
-		"fumadocs-core": "^16.19.3",
-		"fumadocs-mdx": "^15.6.3",
-		"fumadocs-ui": "^16.19.3",
-		"lucide-react": "^1.16.0",
+		"fumadocs-core": "^16.19.5",
+		"fumadocs-mdx": "^15.6.4",
+		"fumadocs-ui": "^16.19.5",
+		"lucide-react": "^1.77.0",
 		"next": "^16.4.6",
 		"next-themes": "^0.4.6",
 		"react": "^19.0.0",
 		"react-dom": "^19.0.0",
-		"tailwind-merge": "^3.0.2"
+		"tailwind-merge": "^3.7.1"
 	},
 	"devDependencies": {
 		"@tailwindcss/postcss": "^4.0.9",
